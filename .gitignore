@@ -1,0 +1,14 @@
+# Personal identity — lives only on the owner's machine, never in the repo
+persona.md
+user.md
+*.bak
+
+# Review and runtime artifacts
+.claude/dryrun-*.md
+.claude/eval.md
+.claude/scheduled_tasks.lock
+
+# Temp — never check in
+temp/
+*temp*
+.tmp/
