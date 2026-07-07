@@ -18,6 +18,12 @@ the main context clean.
 
 ## Step 1 — Inline (minimal, no CM calls)
 
+0. **Local timestamp** — Get the current local time from the system clock
+   (`Get-Date`, or `date` on POSIX) and format it
+   `YYYY-MM-DD HH:mm (UTC±offset)` — e.g. `2026-07-07 18:45 (UTC+5:30)`.
+   The user's timezone is declared in `user.md`; if the system clock
+   disagrees with it, trust the system clock and note the discrepancy.
+   This timestamp heads the replay list and travels to the sub-agent.
 1. **Replay** — Write a bullet list of what happened since the last beat:
    events and key judgments/decisions, not analysis. ~100 words for quiet
    windows, up to ~500 for rich ones (major decisions, new identity
@@ -35,9 +41,16 @@ the main context clean.
 
 Dispatch ONE sub-agent. Always Haiku — the main agent's job ends at the
 replay list. The dispatch prompt must contain everything the sub-agent
-needs: the replay bullet list, the six-step procedure below, and the
-memory typing rules (or tell it to read this SKILL.md and CLAUDE.md's
-Cognitive Memory section — sub-agents don't inherit them automatically).
+needs: the local timestamp from step 0, the replay bullet list, the
+six-step procedure below, and the memory typing rules (or tell it to read
+this SKILL.md and CLAUDE.md's Cognitive Memory section — sub-agents
+don't inherit them automatically).
+
+**Timestamps**: every memory the sub-agent stores gets a local-date tag
+(`YYYY-MM-DD` from the step-0 timestamp), and the surface map's header
+states "as of `<full timestamp>`". Never let the sub-agent derive its own
+time — it uses the timestamp handed to it.
+
 The sub-agent:
 
 1. **Detect voids** — concepts, decisions, corrections, or knowledge in
