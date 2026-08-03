@@ -7,13 +7,18 @@ description: Run a single local ollama-backed agent loop in Python and get one s
 
 `local-agent` supersedes `ollama-coordinator`. Do not use the two skills together.
 
+Let `DIR` be **this skill's own directory** — the folder containing this `SKILL.md`.
+Resolve it from where you loaded this file; do not assume a repository location,
+since this skill is copied between checkouts.
+
 Invoke only:
 
 ```text
-python C:/Projects/second-brain/.claude/skills/local-agent/scripts/run.py --task <value> --system <value> [--model <name>] [--endpoint <url>]
+python DIR/scripts/run.py --task <value> --system <value> [--model <name>] [--endpoint <url>]
 ```
 
-`run.py` is the only Claude-facing interface.
+`run.py` is the only Claude-facing interface. Always run the copy that sits beside
+this `SKILL.md` — running another checkout's copy silently tests the wrong code.
 
 ## When To Use It
 
