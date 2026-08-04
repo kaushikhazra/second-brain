@@ -26,4 +26,5 @@ __pycache__/
 .claude/.venv/
 .claude/uv*.exe
 .claude/synaptra-data/
+.claude/.self-aware
 .mcp.json

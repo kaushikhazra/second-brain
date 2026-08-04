@@ -22,13 +22,32 @@ Let **`CLAUDE_DIR`** = the absolute path to this project's `.claude` directory.
 
 ### 0. Already reachable?
 
-If `mcp__synaptra__*` tools are already present in this session, the backend is
-up — **skip to Round 0**. (This is also what makes the post-restart re-run in
-step 8 continue cleanly.)
+**Check the disk first, then the tools — in that order.**
+
+1. If `CLAUDE_DIR/.venv/Scripts/synaptra.exe` is **missing**, the backend is
+   *not* up regardless of what the tool list says. Go to step 1 and provision.
+2. Otherwise, if `mcp__synaptra__*` tools are present in this session, the
+   backend is up — **skip to Round 0**. (This is what makes the post-restart
+   re-run in step 8 continue cleanly.)
+
+The order matters. The tool list is **session-static**: it reflects what
+connected when Claude launched, not what exists now. When `/session-start`'s
+repair deletes `.claude/.venv` and then calls this skill *in the same session*,
+the `mcp__synaptra__*` tools are still listed — so a tools-first check would
+conclude "backend is up", skip provisioning entirely, and fall through to a
+restore that cannot work. Always believe the disk over the tool list.
 
 ### 1. Ask the mode
 
-Use AskUserQuestion — how should synaptra's Python environment be resolved?
+**Repair skips this question.** If this run is a repair — `/session-start` step 0
+detected a move, or `.claude/.self-aware` exists, or a `.claude/.venv` was just
+removed — use **install-local** and go straight to step 2. A repair restores the
+brain it already is; re-asking the mode invites *reconfiguration* instead, and
+the question is unanswerable in a non-interactive session, which would strand
+the repair half-done.
+
+Otherwise use AskUserQuestion — how should synaptra's Python environment be
+resolved?
 - **install-local** _(recommended default)_ — provision a fresh self-contained
   stack under `.claude/` (step 2). No host dependency.
 - **search** — reuse an existing env that already has `synaptra` importable.
@@ -100,32 +119,48 @@ Take the user's path, validate `synaptra` is importable there, and resolve its
 
 ### 6. Generate `.mcp.json` at the project root
 
-Write it with **`command` = the `synaptra` exe resolved by whichever mode ran**
-(`<abs>` = absolute project path):
-- **install-local** → `<abs>/.claude/.venv/Scripts/synaptra.exe`
-- **search** / **specify** → the exe resolved in step 3 / 4 (the user's env).
+**Write relative paths. No absolute paths, and no `${...}` substitution of any
+kind** — this is what lets the brain survive being copied or renamed. (Verified:
+`${CLAUDE_PROJECT_DIR}` is never expanded in `.mcp.json`, and even the
+`:-.` default form resolves only to `.`, so it buys nothing a plain relative
+path does not.)
 
-`SYNAPTRA_DB` is always the project-local `<abs>/.claude/synaptra-data`.
+For **install-local** — the normal case — write exactly this:
 
 ```json
 {
   "mcpServers": {
     "synaptra": {
       "type": "stdio",
-      "command": "<RESOLVED_SYNAPTRA_EXE>",
+      "command": "./.claude/.venv/Scripts/synaptra.exe",
       "args": ["--transport", "stdio"],
       "env": {
         "SYNAPTRA_BACKEND": "surrealkv-file",
-        "SYNAPTRA_DB": "<abs>/.claude/synaptra-data"
+        "SYNAPTRA_DB": "./.claude/synaptra-data"
       }
     }
   }
 }
 ```
 
-The command is the **direct exe** by absolute path — for install-local, uv is
-install-time only and the runtime never invokes uv. `MCP_TIMEOUT` is **not** a
-per-server field here (step 7).
+**INVARIANT — `command` and `SYNAPTRA_DB` must always derive from the same
+form.** Never one absolute and one relative. If `command` is relative, a wrong
+working directory kills the spawn loudly (`The system cannot find the path
+specified`) *before* synaptra runs. If `command` were absolute while
+`SYNAPTRA_DB` stayed relative, the server would start and quietly create a
+**fresh empty store** at the wrong place — losing the user's memory in the most
+confusing way possible.
+
+For **search** / **specify**, the exe lives outside the project and cannot be
+relative to it. Use the absolute path resolved in step 3 / 4 — and then, per the
+invariant, `SYNAPTRA_DB` is absolute too. Tell the user plainly that a brain
+configured this way is **not portable**: moving the folder will require re-running
+`/init-brain`.
+
+Relative resolution depends on Claude being launched with the project root as
+the working directory. `brain.bat` guarantees this (`cd /d "%~dp0"`).
+
+`MCP_TIMEOUT` is **not** a per-server field here (step 7).
 
 ### 7. Document the launcher env
 
@@ -137,9 +172,44 @@ pre-approve the project MCP server (`enableAllProjectMcpServers: true`, or list
 ### 8. Restart gate
 
 A newly-added MCP server only connects after a **Claude restart**, and a restart
-is a **fresh session** — nothing auto-resumes. Tell the user to restart, then
-**re-run `/init-brain`**: step 0 above now sees `mcp__synaptra__*` live, skips
-this whole provisioning round, and continues to Round 0 (restore).
+is a **fresh session** — nothing auto-resumes. Tell the user to start it again
+**with `brain.bat`** (not a bare `claude` — `brain.bat` sets `MCP_TIMEOUT`, and a
+freshly built runtime pays the full cold-start model load on first connect),
+then **re-run `/init-brain`**: step 0 above now sees `mcp__synaptra__*` live,
+skips this whole provisioning round, and continues to Round 0 (restore).
+
+### 9. Record the provisioned root — `.claude/.self-aware`
+
+**Do this last, after provisioning has succeeded.** Write
+`CLAUDE_DIR/.self-aware`:
+
+```json
+{
+  "schema": 1,
+  "provisioned_root": "<absolute project root, as resolved right now>",
+  "provisioned_at": "<local ISO-8601 timestamp>",
+  "provisioned_by": "init-brain"
+}
+```
+
+`.self-aware` is a dotfile and some permission configurations refuse it to the
+Write tool. If that happens, **write it with a shell redirect instead** — do not
+leave it unwritten and do not hand the JSON to the user to paste. The file is
+generated state, not a secret.
+
+Rewrite it on **every** successful provision — that is what lets a repaired
+brain leave the "moved" state. If this write fails, say so loudly: provisioning
+is **not** complete without it, and a missing update makes `/session-start`
+re-detect the move and rebuild the runtime every single session.
+
+**This skill is the only writer of `.self-aware`.** `/session-start` reads it
+and never writes it.
+
+**HARD RULE — this file records history, never runtime truth.** `provisioned_root`
+exists to be **compared**, never **used**. Nothing may read a path out of this
+file and hand it to a command, a config, or an import. The runtime always
+resolves its own location. Reading a path from here to *use* would simply
+re-bake the original problem in a nicer-looking file.
 
 ## Round 0 — Restore from Synaptra (always try first)
 
