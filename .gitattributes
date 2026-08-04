@@ -1,0 +1,10 @@
+# Kept out of the distributable artifact — maintainer-only files.
+# `git archive` honours export-ignore, so the dist can never contain them.
+.gitattributes  export-ignore
+tools/          export-ignore
+
+# Development-only tests. A user never runs these and nothing in the skills
+# invokes them; shipping them only invites "am I supposed to run these?".
+# Pattern, not a list of names, so a NEW test file cannot silently start
+# shipping. They stay in the repo — they just leave the dist.
+.claude/skills/*/scripts/test_*.py  export-ignore
