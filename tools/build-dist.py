@@ -19,13 +19,14 @@ Stdlib only. Run from anywhere inside the repo:
 
 from __future__ import annotations
 
+import fnmatch
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 # Anything matching these must never reach a user's machine. The builder
 # asserts their absence rather than trusting that git got it right.
@@ -41,6 +42,15 @@ FORBIDDEN = (
     "uv.exe",
     "__pycache__",
 )
+
+# Basename globs that must never appear in the artifact.
+#
+# These exist because the set-equality check against `git archive` CANNOT
+# catch an exclusion regression. `export-ignore` changes what `git archive`
+# emits, so both sides of that comparison move together and it keeps passing
+# whether or not the exclusion worked. Only an assert stated in absolute
+# terms — "no file named test_*.py is in this zip" — can actually fail.
+FORBIDDEN_GLOBS = ("test_*.py",)
 
 
 class BuildError(RuntimeError):
@@ -92,6 +102,17 @@ def check_forbidden(names: set[str]) -> None:
     bad = sorted(n for n in names for f in FORBIDDEN if f in n)
     if bad:
         raise BuildError(f"archive contains files that must never ship: {bad}")
+    globbed = sorted(
+        n
+        for n in names
+        for g in FORBIDDEN_GLOBS
+        if fnmatch.fnmatch(PurePosixPath(n).name, g)
+    )
+    if globbed:
+        raise BuildError(
+            f"archive contains development-only files matching {FORBIDDEN_GLOBS}: "
+            f"{globbed} — check .gitattributes export-ignore"
+        )
 
 
 def build(root: Path, version: str) -> Path:
