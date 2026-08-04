@@ -12,6 +12,9 @@ user.md
 # (requirement.md, design.md, task.md, dryrun-*.md all live here)
 .claude/specs/
 
+# Distributable artifacts — the builder is committed, its output is not
+dist/
+
 # Temp — never check in
 temp/
 *temp*

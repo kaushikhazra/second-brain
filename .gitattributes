@@ -1,0 +1,4 @@
+# Kept out of the distributable artifact — maintainer-only files.
+# `git archive` honours export-ignore, so the dist can never contain them.
+.gitattributes  export-ignore
+tools/          export-ignore
