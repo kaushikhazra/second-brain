@@ -76,7 +76,9 @@ Every invocation prints exactly one JSON object to stdout, including CLI argumen
   "error_type": "string or null",
   "error_message": "string or null",
   "endpoint_used": "string",
-  "model_used": "string"
+  "model_used": "string",
+  "context_length_ceiling": "integer or null",
+  "context_length_active": "integer or null"
 }
 ```
 
@@ -86,6 +88,9 @@ Notes:
 - On failure, `summary` is assembled in Python by `run.py`.
 - `files_touched` and `commands_run` come from Python runtime logging, never from the model.
 - Failure output still uses the same JSON shape.
+- `context_length_ceiling` is the model's architectural maximum, read from `POST /api/show` → `model_info["<arch>.context_length"]`. Null if the query fails.
+- `context_length_active` is the effective window actually in use, read from `GET /api/ps` → `models[*].context_length` (field name confirmed live against ornith:9b). Null if the model is not yet loaded at preflight time or the query fails.
+- A mismatch between the two (e.g. ceiling 262144, active 4096) means the server's `OLLAMA_CONTEXT_LENGTH` is constraining the window.
 
 ## Bounds
 
@@ -98,6 +103,7 @@ Bound-related failures use distinct `error_type` values:
 - `tool_call_limit_exceeded`
 - `structured_output_validation_failed`
 - `overall_timeout_exceeded`
+- `context_overflow`
 
 Preflight failures use:
 
@@ -109,6 +115,23 @@ Other failure types use:
 - `invalid_arguments`
 - `input_resolution_failed`
 - `agent_run_failed`
+
+### Distinguishing context overflow from schema validation failure
+
+`structured_output_validation_failed` fires when pydantic-ai exhausts its 2 output-validation retries. Context overflow is one possible root cause: when the model's context window is full, ollama truncates the response and the model produces empty or malformed output, which triggers the same retry path.
+
+`context_overflow` fires for any other `UnexpectedModelBehavior` (e.g. the model returns a completely empty response before retries are exhausted). When `structured_output_validation_failed` occurs and `context_length_active` is known, the `error_message` includes the active and ceiling values plus a hint to check `OLLAMA_CONTEXT_LENGTH`.
+
+### Context window
+
+The effective context window is a **server-side property**, not a client-side one. The only way to change it over the `/v1` endpoint is to set `OLLAMA_CONTEXT_LENGTH` in the server's environment before starting ollama.
+
+| Value | Source | Field in JSON |
+|-------|--------|--------------|
+| Model ceiling | `POST /api/show` → `model_info["<arch>.context_length"]` | `context_length_ceiling` |
+| Effective (in-use) | `GET /api/ps` → `models[*].context_length` | `context_length_active` |
+
+If `OLLAMA_CONTEXT_LENGTH` is not set, ollama defaults to a small window (4096 for ornith:9b as observed). The model ceiling (e.g. 262144) is the architectural maximum; the effective window may be far smaller. A `context_length_active` value that is much smaller than `context_length_ceiling` is a reliable indicator that `OLLAMA_CONTEXT_LENGTH` should be set explicitly.
 
 ## Timeout Limitation
 

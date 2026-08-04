@@ -1,6 +1,6 @@
 ---
 name: heartbeat
-description: The persona's awake cognition cycle. Auto-fires every 30 min via cron (created by /session-start). Replays the window since the last beat, detects memory voids and continuations, dispatches a Haiku sub-agent for cognitive-memory bookkeeping, returns one line internally. Always silent — never visible to the user unless the gate opens.
+description: The persona's awake cognition cycle. Auto-fires every 30 min via cron (created by /session-start). Replays the window since the last beat, detects memory voids and continuations, dispatches a Haiku sub-agent for synaptra bookkeeping, returns one line internally. Always silent — never visible to the user unless the gate opens.
 invocation: cron-only
 output: silent
 ---
@@ -8,7 +8,7 @@ output: silent
 # Heartbeat
 
 The heartbeat is not infrastructure — it is cognition: a lightweight
-consolidation cycle that keeps cognitive memory current while the
+consolidation cycle that keeps Synaptra current while the
 conversation flows.
 
 **The main agent does the thinking. The sub-agent does the bookkeeping.**
@@ -43,7 +43,7 @@ Dispatch ONE sub-agent. Always Haiku — the main agent's job ends at the
 replay list. The dispatch prompt must contain everything the sub-agent
 needs: the local timestamp from step 0, the replay bullet list, the
 six-step procedure below, and the memory typing rules (or tell it to read
-this SKILL.md and CLAUDE.md's Cognitive Memory section — sub-agents
+this SKILL.md and CLAUDE.md's Synaptra section — sub-agents
 don't inherit them automatically).
 
 **Timestamps**: every memory the sub-agent stores gets a local-date tag
@@ -54,13 +54,13 @@ time — it uses the timestamp handed to it.
 The sub-agent:
 
 1. **Detect voids** — concepts, decisions, corrections, or knowledge in
-   the replay absent from cognitive memory. Before storing, run
+   the replay absent from Synaptra. Before storing, run
    `memory_recall` on similar tags/content; if coverage exists, update the
    existing memory instead of duplicating.
 2. **Detect continuations** — commitments about future work; also check
    whether previously noted continuations are now resolved.
 3. **Fill voids** — `memory_store` each with the appropriate type, tags,
-   and importance (per CLAUDE.md's Cognitive Memory rules).
+   and importance (per CLAUDE.md's Synaptra rules).
 4. **Handle continuations** — new ones: `working` memory tagged
    `continuation`, `importance` 0.8+ (same reason as the session handoff:
    `working` decays hours-scale, and unresolved threads must survive

@@ -8,7 +8,22 @@ user.md
 .claude/eval.md
 .claude/scheduled_tasks.lock
 
+# Spec-driven SDLC working artifacts — internal, never shipped in this public repo
+# (requirement.md, design.md, task.md, dryrun-*.md all live here)
+.claude/specs/
+
 # Temp — never check in
 temp/
 *temp*
 .tmp/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Self-contained synaptra runtime (machine-specific, huge — never commit)
+.claude/.python/
+.claude/.venv/
+.claude/uv*.exe
+.claude/synaptra-data/
+.mcp.json
