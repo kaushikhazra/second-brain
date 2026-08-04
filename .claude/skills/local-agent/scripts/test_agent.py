@@ -33,7 +33,9 @@ class TestAgent(unittest.TestCase):
 
     def test_build_agent_registers_all_five_tools(self):
         built_agent = agent.build_agent("ornith:9b", "System")
-        tool_names = [tool.name for tool in built_agent._function_toolset.tools.values()]
+        tool_names = [
+            tool.name for tool in built_agent._function_toolset.tools.values()
+        ]
 
         self.assertEqual(
             tool_names,
@@ -41,14 +43,40 @@ class TestAgent(unittest.TestCase):
         )
 
     def test_run_agent_summary_returns_agent_summary_from_real_agent_run(self):
-        built_agent = agent.build_agent("ornith:9b", "System")
+        # Real stub functions with the correct type annotations are required because
+        # pydantic-ai calls get_type_hints() on each registered tool to build its schema.
+        # Mock objects (including autospec'd ones) lack real __annotations__, so they fail
+        # at schema-construction time with a KeyError on the first parameter name.
+        def stub_read_file(path: str) -> str:
+            return '{"status":"success"}'
 
-        summary = asyncio.run(
-            built_agent.run(
-                "Task",
-                model=TestModel(custom_output_args={"summary": "Model summary"}),
-            )
-        ).output
+        def stub_write_file(path: str, content: str) -> str:
+            return '{"status":"success"}'
+
+        def stub_edit_file(path: str, old: str, new: str) -> str:
+            return '{"status":"success"}'
+
+        def stub_run_command(command: str) -> str:
+            return '{"status":"success","exit_code":0,"output":""}'
+
+        def stub_web_search(query: str, max_results: int = 5) -> str:
+            return '{"status":"success","results":[]}'
+
+        with (
+            mock.patch.object(agent, "read_file", new=stub_read_file),
+            mock.patch.object(agent, "write_file", new=stub_write_file),
+            mock.patch.object(agent, "edit_file", new=stub_edit_file),
+            mock.patch.object(agent, "run_command", new=stub_run_command),
+            mock.patch.object(agent, "web_search", new=stub_web_search),
+        ):
+            built_agent = agent.build_agent("ornith:9b", "System")
+
+            summary = asyncio.run(
+                built_agent.run(
+                    "Task",
+                    model=TestModel(custom_output_args={"summary": "Model summary"}),
+                )
+            ).output
 
         self.assertEqual(summary.summary, "Model summary")
 

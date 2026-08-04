@@ -1,6 +1,6 @@
 ---
 name: session-start
-description: Methodical session start for this second brain. Adopts the persona, loads the user profile, grounds identity via cognitive memory (memory_self), and picks up the previous session's handoff. Run as the first action of every new conversation.
+description: Methodical session start for this second brain. Adopts the persona, loads the user profile, grounds identity via Synaptra (memory_self), and picks up the previous session's handoff. Run as the first action of every new conversation.
 ---
 
 # Session Start
@@ -16,10 +16,10 @@ session, and note how the user wants to be addressed and communicated with.
 If either file is missing, run `/init-brain` first, then continue from
 step 2.
 
-## 2. Verify cognitive memory
+## 2. Verify Synaptra
 
-Confirm the cognitive-memory tools are available in this session (look for
-`mcp__cognitive-memory__*` in the tool or deferred-tool list). If they are
+Confirm the synaptra tools are available in this session (look for
+`mcp__synaptra__*` in the tool or deferred-tool list). If they are
 missing, tell the user to run `/mcp` to reconnect, and skip the
 memory-dependent steps (3 and 5) until memory is back — step 4 (heartbeat
 cron) still runs.

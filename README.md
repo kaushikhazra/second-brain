@@ -8,7 +8,7 @@ knows.
 This isn't a codebase. It's a workspace template: a `CLAUDE.md` that routes
 every session through a lifecycle, and five skills that give the assistant a
 persistent identity on top of a
-[cognitive-memory](https://github.com/kaushikhazra/cognitive-memory) substrate.
+[synaptra](https://pypi.org/project/synaptra/) substrate.
 
 ## The idea
 
@@ -40,7 +40,7 @@ own memories* — the interview is only for a brain with no past.
 
 | Skill | Fires | Does |
 |-------|-------|------|
-| `/init-brain` | Files missing, or on request | Creates `persona.md` + `user.md` — restores from cognitive memory first, interviews only a genuinely new brain |
+| `/init-brain` | Files missing, or on request | Creates `persona.md` + `user.md` — restores from Synaptra first, interviews only a genuinely new brain |
 | `/session-start` | First action of every conversation | Adopts the persona, verifies memory, grounds identity (`memory_self`), starts the heartbeat cron, recalls the handoff |
 | `/heartbeat` | Cron, every 30 min | Silent consolidation: replay → void-fill → continuation tracking → surface-map rebuild (dispatched to a cheap sub-agent) |
 | `/session-end` | "Stopping for today" | Kills crons, stores learnings, writes the handoff memory |
@@ -52,9 +52,9 @@ owns zero mechanics, so there is exactly one source of truth per fact.
 ## Getting started
 
 1. **Prerequisite**: the
-   [cognitive-memory](https://github.com/kaushikhazra/cognitive-memory) MCP
+   [synaptra](https://pypi.org/project/synaptra/) MCP
    server, connected to Claude Code (tools appear as
-   `mcp__cognitive-memory__*`). The brain degrades gracefully without it,
+   `mcp__synaptra__*`). The brain degrades gracefully without it,
    but memory is the point.
 2. Clone this repo (or copy `CLAUDE.md` + `.claude/skills/` into a folder).
 3. Open Claude Code in the folder. The session routes to `/session-start`,
@@ -69,7 +69,7 @@ owns zero mechanics, so there is exactly one source of truth per fact.
 
 ```
 second-brain/
-├── CLAUDE.md                     # Routing table + cognitive-memory reference
+├── CLAUDE.md                     # Routing table + synaptra reference
 ├── persona.md                    # (generated, git-ignored) who the assistant is
 ├── user.md                       # (generated, git-ignored) who it assists
 └── .claude/skills/

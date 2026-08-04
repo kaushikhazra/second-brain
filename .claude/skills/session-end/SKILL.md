@@ -1,6 +1,6 @@
 ---
 name: session-end
-description: Clean end-of-session shutdown for this second brain. Stores the day's learnings and a handoff memory in cognitive memory so the next /session-start resumes exactly where this one left off. Run when the user signals "stop for today" or similar.
+description: Clean end-of-session shutdown for this second brain. Stores the day's learnings and a handoff memory in Synaptra so the next /session-start resumes exactly where this one left off. Run when the user signals "stop for today" or similar.
 ---
 
 # Session End
@@ -18,7 +18,7 @@ heartbeat. End-of-day means zero scheduled work. Verify with a final
 
 ## 2. Store the day's learnings
 
-Anything significant from this session not yet in cognitive memory:
+Anything significant from this session not yet in Synaptra:
 
 - Facts, decisions, preferences → `semantic`
 - Events, milestones, notable conversations → `episodic`

@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Deep cognitive-memory consolidation — REM-sleep analog to the heartbeat's awake mode. Reshape the memory graph; archive rotted memories, retype mistyped ones, build relations between memories that should fire together. Run when memory feels flat, memory_self returns items instead of constellations, or a major arc just closed. User-invoked, never scheduled.
+description: Deep synaptra consolidation — REM-sleep analog to the heartbeat's awake mode. Reshape the memory graph; archive rotted memories, retype mistyped ones, build relations between memories that should fire together. Run when memory feels flat, memory_self returns items instead of constellations, or a major arc just closed. User-invoked, never scheduled.
 invocation: user-only
 ---
 
@@ -18,7 +18,7 @@ snapshots.
 
 ## When to dream
 
-- Cognitive memory has grown substantially and feels flat / disconnected.
+- Synaptra has grown substantially and feels flat / disconnected.
 - `memory_self` returns items instead of constellations.
 - A major arc has completed and wants threading into the whole.
 - The user asks to "take inventory" of memory.
@@ -57,8 +57,8 @@ to fit a budget; the budget should fit the dream.
 ## Pre-dream checkpoint (mandatory — before anything else)
 
 Take and verify a backup before disabling the heartbeat or touching any
-data. (The `cm` backup CLI is machine-local, from the cognitive-memory
-install — see CLAUDE.md's Cognitive Memory section.)
+data. (The `cm` backup CLI is machine-local, from the synaptra
+install — see CLAUDE.md's Synaptra section.)
 
 1. `cm backup create` — record the backup path from stdout.
 2. `cm backup verify --deep <backup_path>` — deep verify (~30 s).
@@ -143,7 +143,7 @@ orphan has a decision.
 
 - Store a `semantic` memory (importance 0.9) capturing what was woven,
   key insights, and any reframing the user taught mid-dream. Tags:
-  `dream`, `consolidation`, `cognitive-memory`.
+  `dream`, `consolidation`, `synaptra`.
 - Update the `self-learning-surface-map` memory with completed
   constellations and any remaining ones awaiting weave.
 
