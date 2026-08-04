@@ -18,9 +18,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
-
 import agent
+import config
 import run
 import tools
 
@@ -35,16 +34,33 @@ class TestResolveTextArgument(unittest.TestCase):
         path.write_text("from file", encoding="utf-8")
         self.assertEqual(run.resolve_text_argument(str(path), "--task"), "from file")
 
-    def test_missing_path_is_literal(self):
+    def test_missing_path_is_an_error_not_a_prompt(self):
+        # A typo'd path used to be handed to the model as its task text, which
+        # silently burned whole runs.
         missing = str(Path(self.tempdir.name, "missing.txt"))
-        self.assertEqual(run.resolve_text_argument(missing, "--task"), missing)
+        with self.assertRaisesRegex(run.ResolverError, "looks like a file path"):
+            run.resolve_text_argument(missing, "--task")
 
-    def test_directory_is_literal(self):
+    def test_directory_is_an_error(self):
         directory = Path(self.tempdir.name, "folder")
         directory.mkdir()
-        self.assertEqual(
-            run.resolve_text_argument(str(directory), "--task"), str(directory)
-        )
+        with self.assertRaisesRegex(run.ResolverError, "looks like a file path"):
+            run.resolve_text_argument(str(directory), "--task")
+
+    def test_prose_containing_a_slash_is_still_literal(self):
+        for literal in ("answer yes/no", "use the a/b test", "read C:/ and report back"):
+            with self.subTest(literal=literal):
+                self.assertEqual(run.resolve_text_argument(literal, "--task"), literal)
+
+    def test_path_shapes_are_recognised(self):
+        for value in ("./task.txt", "../a/b", "~/prompts/x", "/etc/thing", "notes.md"):
+            with self.subTest(value=value):
+                self.assertTrue(run.looks_like_a_path(value))
+
+    def test_prose_shapes_are_not_paths(self):
+        for value in ("Summarise the findings.", "yes/no", "line 1\nline 2", ""):
+            with self.subTest(value=value):
+                self.assertFalse(run.looks_like_a_path(value))
 
     def test_multiline_literal_is_allowed(self):
         literal = "line 1\nline 2"
@@ -76,6 +92,20 @@ class TestMain(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
+        # Isolate from whatever config.json happens to exist on this machine,
+        # and from whether this interpreter really has the dependencies.
+        self.config = {
+            "python": None,
+            "ollama_host": run.DEFAULT_ENDPOINT,
+            "model": run.DEFAULT_MODEL,
+        }
+        for target, value in (
+            ("load_config", lambda *a, **k: dict(self.config)),
+            ("missing_dependencies", lambda: []),
+        ):
+            patcher = mock.patch.object(run, target, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def _invoke_main(self, args: list[str]) -> tuple[int, dict, str]:
         stdout_buffer = io.StringIO()
@@ -196,7 +226,7 @@ class TestMain(unittest.TestCase):
         async def raising_runner(
             task_text: str, system_text: str, model_name: str
         ) -> agent.AgentSummary:
-            raise UsageLimitExceeded("tool call budget exceeded")
+            raise agent.ToolCallLimitExceeded("tool call budget exceeded")
 
         with (
             mock.patch.object(
@@ -216,7 +246,7 @@ class TestMain(unittest.TestCase):
         async def raising_runner(
             task_text: str, system_text: str, model_name: str
         ) -> agent.AgentSummary:
-            raise UnexpectedModelBehavior(
+            raise agent.OutputValidationError(
                 "Exceeded maximum retries (2) for output validation"
             )
 
@@ -236,7 +266,7 @@ class TestMain(unittest.TestCase):
         async def raising_runner(
             task_text: str, system_text: str, model_name: str
         ) -> agent.AgentSummary:
-            raise UnexpectedModelBehavior(
+            raise agent.OutputValidationError(
                 "Exceeded maximum retries (2) for output validation"
             )
 
@@ -264,7 +294,7 @@ class TestMain(unittest.TestCase):
         async def raising_runner(
             task_text: str, system_text: str, model_name: str
         ) -> agent.AgentSummary:
-            raise UnexpectedModelBehavior("model returned empty response")
+            raise agent.ModelBehaviorError("model returned empty response")
 
         with (
             mock.patch.object(
@@ -401,6 +431,245 @@ class TestMain(unittest.TestCase):
         )
         self.assertIn("usage: run.py", stderr)
 
+    def test_missing_dependencies_are_reported_before_anything_runs(self):
+        with (
+            mock.patch.object(run, "missing_dependencies", lambda: ["ddgs"]),
+            mock.patch.object(run, "perform_preflight") as preflight,
+        ):
+            _, payload, _ = self._invoke_main(["--task", "Task", "--system", "System"])
+
+        self.assertEqual(payload["error_type"], "missing_dependencies")
+        self.assertTrue(payload["needs_configuration"])
+        self.assertIn("ddgs", payload["error_message"])
+        preflight.assert_not_called()
+
+    def test_unconfigured_model_asks_instead_of_guessing(self):
+        self.config["model"] = None
+        with (
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["a:1", "b:2"]),
+            mock.patch.object(run, "perform_preflight") as preflight,
+        ):
+            _, payload, _ = self._invoke_main(["--task", "Task", "--system", "System"])
+
+        self.assertEqual(payload["error_type"], "model_not_configured")
+        self.assertTrue(payload["needs_configuration"])
+        self.assertEqual(payload["available_models"], ["a:1", "b:2"])
+        preflight.assert_not_called()
+
+    def test_unreachable_endpoint_offers_reconfiguration(self):
+        with mock.patch.object(
+            run, "perform_preflight", side_effect=ConnectionError("connection refused")
+        ):
+            _, payload, _ = self._invoke_main(["--task", "Task", "--system", "System"])
+
+        self.assertEqual(payload["error_type"], "endpoint_unreachable")
+        self.assertTrue(payload["needs_configuration"])
+        self.assertIn("--set-host", payload["error_message"])
+
+    def test_model_not_found_offers_the_available_models(self):
+        with (
+            mock.patch.object(
+                run, "perform_preflight", side_effect=LookupError("Requested model missing")
+            ),
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["x:1"]),
+        ):
+            _, payload, _ = self._invoke_main(["--task", "Task", "--system", "System"])
+
+        self.assertEqual(payload["error_type"], "model_not_found")
+        self.assertTrue(payload["needs_configuration"])
+        self.assertEqual(payload["available_models"], ["x:1"])
+
+    def test_active_context_is_re_read_after_the_run(self):
+        # Preflight sees null on a cold start because the model is not loaded
+        # yet; the value is only observable afterwards.
+        async def runner(task_text, system_text, model_name):
+            return agent.AgentSummary(summary="ok")
+
+        with (
+            mock.patch.object(run, "RUNNER", side_effect=runner),
+            mock.patch.object(
+                run,
+                "perform_preflight",
+                return_value=run.PreflightResult(
+                    ["ornith:9b"], context_length_ceiling=262144, context_length_active=None
+                ),
+            ),
+            mock.patch.object(run, "_fetch_context_length_active", return_value=16384),
+        ):
+            _, payload, _ = self._invoke_main(["--task", "Task", "--system", "System"])
+
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["context_length_active"], 16384)
+
+
+class TestConfigureCommand(unittest.TestCase):
+    """--configure must never prompt when there is no usable terminal."""
+
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.path = Path(self.tempdir.name, "config.json")
+        self.stored = config.default_config()
+
+        patcher = mock.patch.object(run, "load_config", lambda *a, **k: dict(self.stored))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        saver = mock.patch.object(
+            run, "save_config", lambda cfg, path=None: config.save_config(cfg, self.path)
+        )
+        saver.start()
+        self.addCleanup(saver.stop)
+
+    def _invoke(self, args: list[str]) -> dict:
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            run.main(args)
+        lines = buffer.getvalue().splitlines()
+        self.assertEqual(len(lines), 1)
+        return json.loads(lines[0])
+
+    def test_set_flags_are_persisted_without_prompting(self):
+        with mock.patch.object(run, "list_available_models", lambda *a, **k: ["m:1"]):
+            payload = self._invoke(
+                ["--configure", "--set-host", "192.168.1.5", "--set-model", "m:1"]
+            )
+
+        self.assertEqual(payload["status"], "success")
+        saved = json.loads(self.path.read_text(encoding="utf-8"))
+        self.assertEqual(saved["ollama_host"], "http://192.168.1.5:11434")
+        self.assertEqual(saved["model"], "m:1")
+
+    def test_unchosen_model_returns_a_question_and_never_prompts(self):
+        # The caller is an agent harness, so a blocked run hands back the
+        # question instead of trying to read stdin. An earlier version prompted
+        # here and died with EOFError, emitting a traceback instead of JSON.
+        with (
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["m:1", "m:2"]),
+            mock.patch("builtins.input", side_effect=AssertionError("must not prompt")),
+        ):
+            payload = self._invoke(["--configure"])
+
+        self.assertEqual(payload["error_type"], "model_not_configured")
+        self.assertTrue(payload["needs_configuration"])
+        choice = payload["configuration_required"]
+        self.assertEqual(choice["field"], "model")
+        self.assertEqual([o["value"] for o in choice["options"]], ["m:1", "m:2"])
+        self.assertIn("--set-model", choice["resolve_command"])
+
+    def test_unreachable_host_asks_about_the_host_not_the_model(self):
+        with mock.patch.object(run, "list_available_models", lambda *a, **k: []):
+            payload = self._invoke(["--configure"])
+
+        choice = payload["configuration_required"]
+        self.assertEqual(choice["field"], "ollama_host")
+        self.assertTrue(choice["allow_custom"])
+        self.assertIn("--set-host", choice["resolve_command"])
+
+    def test_setting_only_python_does_not_prompt_for_a_host(self):
+        self.stored["model"] = "already:1"
+        with (
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["already:1"]),
+            mock.patch("builtins.input", side_effect=AssertionError("must not prompt")),
+        ):
+            payload = self._invoke(["--configure", "--set-python", "none"])
+
+        self.assertEqual(payload["status"], "success")
+        self.assertIsNone(json.loads(self.path.read_text(encoding="utf-8"))["python"])
+
+    def test_bad_host_is_reported_as_invalid_configuration(self):
+        payload = self._invoke(["--configure", "--set-host", "ftp://nope"])
+
+        self.assertEqual(payload["error_type"], "invalid_configuration")
+
+
+class TestStatusCommand(unittest.TestCase):
+    def setUp(self) -> None:
+        self.stored = {
+            "python": None,
+            "ollama_host": run.DEFAULT_ENDPOINT,
+            "model": "ornith:9b",
+        }
+        patcher = mock.patch.object(run, "load_config", lambda *a, **k: dict(self.stored))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def _invoke(self) -> dict:
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            run.main(["--status"])
+        lines = buffer.getvalue().splitlines()
+        self.assertEqual(len(lines), 1)
+        return json.loads(lines[0])
+
+    def test_a_question_always_sets_needs_configuration(self):
+        # These two fields must never disagree, whichever code path builds the
+        # result. --status built one directly and got this wrong.
+        self.stored["model"] = None
+        with (
+            mock.patch.object(run, "missing_dependencies", lambda: []),
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["ornith:9b"]),
+        ):
+            payload = self._invoke()
+
+        self.assertIsNotNone(payload["configuration_required"])
+        self.assertTrue(payload["needs_configuration"])
+
+    def test_healthy_setup_reports_no_blocker(self):
+        with (
+            mock.patch.object(run, "missing_dependencies", lambda: []),
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["ornith:9b"]),
+        ):
+            payload = self._invoke()
+
+        self.assertEqual(payload["status"], "success")
+        self.assertIsNone(payload["configuration_required"])
+        self.assertFalse(payload["needs_configuration"])
+
+    def test_status_never_mutates_config(self):
+        with (
+            mock.patch.object(run, "missing_dependencies", lambda: []),
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["ornith:9b"]),
+            mock.patch.object(run, "save_config", side_effect=AssertionError("must not write")),
+        ):
+            self._invoke()
+
+    def test_blockers_are_reported_in_the_order_a_run_would_hit_them(self):
+        # Dependencies come before host reachability, which comes before model.
+        with (
+            mock.patch.object(run, "missing_dependencies", lambda: ["ddgs"]),
+            mock.patch.object(run, "list_available_models", lambda *a, **k: []),
+        ):
+            payload = self._invoke()
+
+        self.assertEqual(payload["configuration_required"]["field"], "dependencies")
+
+    def test_configured_model_absent_from_host_is_flagged(self):
+        with (
+            mock.patch.object(run, "missing_dependencies", lambda: []),
+            mock.patch.object(run, "list_available_models", lambda *a, **k: ["other:1"]),
+        ):
+            payload = self._invoke()
+
+        self.assertEqual(payload["configuration_required"]["field"], "model")
+        self.assertEqual(payload["available_models"], ["other:1"])
+
+
+class TestMainGuard(unittest.TestCase):
+    def test_unexpected_exception_still_produces_one_json_object(self):
+        buffer = io.StringIO()
+        with (
+            mock.patch.object(run, "main", side_effect=RuntimeError("kaboom")),
+            contextlib.redirect_stdout(buffer),
+        ):
+            code = run.main_guarded([])
+
+        lines = buffer.getvalue().splitlines()
+        self.assertEqual(code, 0)
+        self.assertEqual(len(lines), 1)
+        payload = json.loads(lines[0])
+        self.assertEqual(payload["error_type"], "internal_error")
+        self.assertIn("kaboom", payload["error_message"])
+
 
 class TestPreflight(unittest.TestCase):
     def test_build_tags_url_strips_endpoint_path(self):
@@ -460,8 +729,26 @@ class TestSkillContract(unittest.TestCase):
             "structured_output_validation_failed",
             "overall_timeout_exceeded",
             "context_overflow",
+            "missing_dependencies",
+            "model_not_configured",
+            "invalid_configuration",
+            "internal_error",
         ):
             self.assertIn(error_type, content)
+
+    def test_skill_md_documents_configuration_and_dependencies(self):
+        skill_path = Path(__file__).resolve().parents[1] / "SKILL.md"
+        content = skill_path.read_text(encoding="utf-8")
+
+        for fragment in ("config.json", "--configure", "--set-host", "--set-model", "--set-python"):
+            self.assertIn(fragment, content)
+
+    def test_requirements_file_lists_every_checked_dependency(self):
+        requirements = Path(__file__).resolve().parents[1] / "requirements.txt"
+        content = requirements.read_text(encoding="utf-8")
+
+        for _, package in config.REQUIRED_PACKAGES:
+            self.assertIn(package, content)
 
 
 class TestCliScript(unittest.TestCase):

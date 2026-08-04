@@ -1,0 +1,11 @@
+# Runtime dependencies for the local-agent skill.
+#
+# Deliberately small. The skill talks to ollama over its native HTTP API using
+# the standard library, so there is no model-framework dependency here — that
+# was removed when the skill moved off the OpenAI-compatible /v1 route.
+#
+# Install into whichever interpreter `config.json` points at:
+#   <python> -m pip install -r requirements.txt
+
+pydantic>=2          # result models and output-schema validation
+ddgs>=6              # backs the web_search tool
