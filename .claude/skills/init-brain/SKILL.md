@@ -181,16 +181,46 @@ skips this whole provisioning round, and continues to Round 0 (restore).
 ### 9. Record the provisioned root — `.claude/.self-aware`
 
 **Do this last, after provisioning has succeeded.** Write
-`CLAUDE_DIR/.self-aware`:
+`CLAUDE_DIR/.self-aware` with these keys:
 
-```json
-{
-  "schema": 1,
-  "provisioned_root": "<absolute project root, as resolved right now>",
-  "provisioned_at": "<local ISO-8601 timestamp>",
-  "provisioned_by": "init-brain"
-}
+| Key | Value |
+|---|---|
+| `schema` | `1` |
+| `provisioned_root` | absolute project root, as resolved right now |
+| `provisioned_at` | local ISO-8601 timestamp |
+| `provisioned_by` | `"init-brain"` |
+
+**Serialise it with a real JSON writer — never by filling in a template.**
+A Windows root goes into JSON as a string containing backslashes, and `\b`,
+`\t`, `\n`, `\f`, `\r` are all JSON escapes. Hand-writing
+`"provisioned_root": "C:\bm\brainmove"` parses back as
+`C:\x08m\x08rainmove` — silently, with no error. Paths whose next character
+happens to be something else survive by luck, which is worse: the bug hides
+until someone installs under `C:\brain` or `C:\temp`.
+
+Use the standalone interpreter already provisioned under `CLAUDE_DIR/.python`:
+
+```python
+import json, os, datetime
+p = os.path.join(CLAUDE_DIR, ".self-aware")
+with open(p, "w", encoding="utf-8") as f:
+    json.dump({"schema": 1,
+               "provisioned_root": ROOT,
+               "provisioned_at": datetime.datetime.now().astimezone().isoformat(),
+               "provisioned_by": "init-brain"}, f, indent=2)
+# round-trip: prove what was written parses back to the same path
+assert json.load(open(p, encoding="utf-8"))["provisioned_root"] == ROOT
 ```
+
+**The round-trip assert is mandatory, not decorative.** Without it a corrupted
+value looks fine to the eye and to `grep`, and the only symptom is that
+`/session-start` reports a move on **every** launch forever — rebuilding the
+venv each time on a brain that never moved. Verify by parsing, never by reading.
+
+The same rule applies to `.mcp.json` in step 6: it is safe today only because
+every path in it is relative and uses forward slashes. If a path with
+backslashes ever goes in there (the `search`/`specify` modes), serialise it the
+same way.
 
 `.self-aware` is a dotfile and some permission configurations refuse it to the
 Write tool. If that happens, **write it with a shell redirect instead** — do not

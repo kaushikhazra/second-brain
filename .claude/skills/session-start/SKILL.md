@@ -93,8 +93,15 @@ root. Do not build a separate repair path — this is the repair path. Its
 existing failure handling (package unresolvable, Windows `MAX_PATH`) covers
 failures here; do not duplicate it.
 
-**5. Restart.** `/init-brain`'s restart gate tells the user to start again with
-`brain.bat`. The memory server only reconnects in a fresh session.
+**5. Restart — and stop here.** `/init-brain`'s restart gate tells the user to
+start again with `brain.bat`. The memory server only reconnects in a fresh
+session, so **do not continue to step 1**: this session ends at the gate.
+Persona adoption, identity grounding, the heartbeat cron, and handoff pickup all
+belong to the fresh session that follows.
+
+**When reading `.self-aware`, parse it — do not pattern-match the text.** If it
+fails to parse, treat it as missing (unknown, not moved) and say so; never
+compare against a raw substring.
 
 _Windows-only, by the same non-goal that makes `brain.bat` Windows-only._
 
