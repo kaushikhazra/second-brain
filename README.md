@@ -65,6 +65,19 @@ owns zero mechanics, so there is exactly one source of truth per fact.
 5. When memory grows large and recall starts feeling like a list instead of
    a mind, say so — that's what `/dream` is for.
 
+## Optional add-ons
+
+A brain ships with nothing it does not need. Extras come from the
+`apex-tools` marketplace, which is already registered here — you install
+what you want, when you want it, and a brain that stays alone never
+acquires the machinery for company.
+
+| Plugin | Install | Gives you |
+|--------|---------|-----------|
+| `crosschat` | `/plugin install crosschat@apex-tools` | Lets this brain talk to other Claude Code sessions over NATS. Each brain gets an address (its folder name), and any session can message any other by that address — several specialised brains working as a team rather than one generalist. Also needs `pip install crosschat` and a reachable NATS server. |
+
+Browse the rest with `/plugin marketplace browse apex-tools`.
+
 ## Anatomy
 
 ```

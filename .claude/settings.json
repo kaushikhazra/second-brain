@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "apex-tools": {
+      "source": {
+        "source": "github",
+        "repo": "kaushikhazra/apex"
+      }
+    }
+  }
+}
