@@ -61,11 +61,31 @@ The sub-agent:
    whether previously noted continuations are now resolved.
 3. **Fill voids** — `memory_store` each with the appropriate type, tags,
    and importance (per CLAUDE.md's Synaptra rules).
-4. **Handle continuations** — new ones: `working` memory tagged
-   `continuation`, `importance` 0.8+ (same reason as the session handoff:
-   `working` decays hours-scale, and unresolved threads must survive
-   overnight gaps). Resolved ones: a `working` memory tagged
-   `continuation-end`, related to the original via `memory_relate`.
+4. **Handle continuations** — new ones: **`episodic`** memory tagged
+   `continuation`, `importance` 0.8+. Resolved ones: a `working` memory
+   tagged `continuation-end`, related to the original via `memory_relate`
+   (those *should* fade — the resolution belongs folded into the
+   substantive memory, not kept as a standing record).
+
+   **Never store a live continuation as `working`.** `working` decays
+   hours-scale. A continuation is by definition something nobody touches
+   until the day it matters, so it sits unread and its retrievability
+   collapses — measured at **R ≈ 0.06 within a single day**. Anything
+   under the 0.2 threshold is archived by `memory_consolidate` on sight,
+   and consolidation cannot tell a live thread from a dead one; it only
+   sees access recency.
+
+   This is not theoretical. On 2026-08-12 a consolidation dry run
+   proposed archiving five genuinely live threads — a product ship date,
+   an unresolved pricing contradiction, a pending external request, a
+   dated commitment, and an open discrepancy the user had been asked to
+   rule on. All five were rescued only because a dream happened to run
+   first and a human was watching. Unattended, they would have vanished
+   with no error and nothing visibly wrong.
+
+   `episodic` decays days-scale and survives the gap. Reserve `working`
+   for genuinely transient within-session scratch that *should* be gone
+   by tomorrow.
 5. **Rebuild the surface map** — recall the highest-retrievability
    memories across the domains below and update the
    `self-learning-surface-map` memory. Must end with a CONTINUATION
