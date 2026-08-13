@@ -60,12 +60,72 @@ Take and verify a backup before disabling the heartbeat or touching any
 data. (The `cm` backup CLI is machine-local, from the synaptra
 install — see CLAUDE.md's Synaptra section.)
 
-1. `cm backup create` — record the backup path from stdout.
-2. `cm backup verify --deep <backup_path>` — deep verify (~30 s).
-3. **Either command fails → ABORT the dream.** Surface the error. A
-   failed backup means no rollback — no dream without a rollback.
-4. Both succeed → tell the user: "Checkpoint at `<path>`." That path is
-   this dream's rollback point.
+### `cm` does NOT inherit the brain's DB path — you must pass it
+
+**This is the trap. It fails silently and every safety check still says
+green.** `.mcp.json` injects `SYNAPTRA_BACKEND` and `SYNAPTRA_DB` into the
+MCP server's environment. A shell invocation of `cm` inherits none of it
+and falls back to the **user-level default store** (`~/.synaptra/data`) —
+a different, near-empty database that it then backs up perfectly.
+
+Always set the environment from `.mcp.json` before any `cm` call:
+
+```powershell
+$env:SYNAPTRA_BACKEND = 'surrealkv-file'
+$env:SYNAPTRA_DB      = '<brain root>\.claude\synaptra-data'
+```
+
+Read the values out of `.mcp.json` rather than hardcoding them — if the
+brain moved or was provisioned differently, that file is the truth.
+
+### The steps
+
+1. `memory_stats` — record `storage.memory_count`. **This is the number
+   the backup must match.**
+2. `cm backup create` — record the backup path from stdout.
+3. `cm backup verify --deep <backup_path>` — deep verify (~30 s).
+4. **Row-count check (the one that actually matters).** Read
+   `manifest.json` in the backup directory and compare
+   `row_counts.memory` against step 1's count. **They must be equal.**
+5. **Any step fails, or the counts differ → ABORT the dream.** Surface
+   the error. No rollback means no dream.
+6. All pass → tell the user: "Checkpoint at `<path>` — N memories." That
+   path is this dream's rollback point.
+
+### Why step 4 exists — three green lights on a useless backup
+
+Observed 2026-08-12: a backup containing **1 of 55 memories** passed
+every check.
+
+| Check | Said | Why it was blind |
+|-------|------|------------------|
+| `cm backup create` | exit 0, "Backup complete" | It backed up the wrong DB, correctly |
+| `cm backup verify --deep` | `OK` | Verifies the backup is *internally consistent*, never that it is *complete against the source* |
+| `memory_health` | `backup_is_stale: false` | Age-only. A fresh backup of the wrong store looks perfect |
+
+Only the row count catches it. Restoring from that backup would have
+silently destroyed 54 of 55 memories.
+
+### Benign noise — do not diagnose from it
+
+`cm backup create` logs a stop/restart cycle and then, after ~180 s:
+
+```
+WARNING: CM service started but did not respond within 180 s.
+         It may still be replaying the SurrealKV clog (~2 min is normal).
+```
+
+This appears on **successful** backups too. Synaptra here runs as
+per-client `synaptra.exe --transport stdio` MCP servers, not a managed
+background service, so the `Stop-ScheduledTask` step is a no-op and the
+readiness wait always times out. **The warning is not the cause of a bad
+backup.** Judge the backup by its row count, never by this log line.
+
+### If `cm` cannot be made to work
+
+Fall back to a filesystem copy of the `SYNAPTRA_DB` directory and say
+plainly that it was taken with the MCP servers live, so it may catch a
+mid-write moment. Better than no rollback; not equivalent to a clean one.
 
 ## Prerequisites
 
@@ -199,3 +259,8 @@ its path in the continuation.
 - **Editing memory text instead of linking.** If a list-memory lacks a
   new item, don't rewrite the list — link the item via `part_of` and let
   the graph express membership.
+- **Diagnosing from the log instead of the data.** When a tool both emits
+  a scary warning and returns a wrong result, the warning is the obvious
+  suspect and is often unrelated. Check what the tool actually read and
+  wrote — the paths, the counts — before naming a cause. Stating a
+  confident wrong diagnosis costs more than saying "not yet established."
