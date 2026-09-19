@@ -1,6 +1,6 @@
 ---
 name: session-start
-description: Methodical session start for this second brain. Adopts the persona, loads the user profile, grounds identity via Synaptra (memory_self), and picks up the previous session's handoff. Run as the first action of every new conversation.
+description: Methodical session start for this second brain. Adopts the persona, loads the user profile, fetches the self map and surface map by tag, and picks up the most recent handoff. Run as the first action of every new conversation.
 ---
 
 # Session Start
@@ -122,18 +122,64 @@ step 2.
 
 Confirm the synaptra tools are available in this session (look for
 `mcp__synaptra__*` in the tool or deferred-tool list). If they are
-missing, tell the user to run `/mcp` to reconnect, and skip the
-memory-dependent steps (3 and 5) until memory is back — step 4 (heartbeat
-cron) still runs.
+missing, report all three boot-list fetches (self map, surface map,
+handoff) as skipped for this reason, and continue on `persona.md` and
+`user.md` alone — step 4 (heartbeat cron) still runs. If the tools are
+present but a specific fetch in step 3 or 5 errors anyway (the server
+was up at this check but drops mid-boot), report that one fetch by
+name and move on to the next rather than aborting the rest.
 
-## 3. Identity grounding
+## 3. The two boot lists
+
+**Why this exists.** `persona.md` gives static identity; the self map is
+the session's confirmation that synaptra still agrees, and the surface
+map is what closed recently and is still open. Neither is optional —
+booting without checking them is booting on faith.
+
+⛔ **Fetch both by tag, with `memory_list` — never `memory_self` or
+`memory_recall`.** `memory_self` is a ranked *search*; a search can
+return a different subset each time it's run, which turns "who am I"
+into a lottery rather than a fixed answer. `memory_recall` matches on
+prose relevance, and a list of bare uuids has no prose to match against.
+Boot needs a deterministic, exact-tag fetch, not a ranked guess — that
+is what `memory_list(tags=[...], state="active")` is for.
+
+### 3a. Self map
 
 ```
-memory_self("operating principles, attention, blind spots")
+memory_list(tags=["self-map"], state="active")
 ```
 
-Non-negotiable when memory is up. This grounds the session in learned
-behaviors, not just the static persona file.
+- **No active memory carries the tag** → no self map yet (a brain not
+  yet migrated to this mechanism, or one whose `/init-brain` round
+  hasn't run). Report it and continue — this is not fatal.
+- **More than one active memory carries the tag** → name all of them by
+  id, load **neither**, and say this needs fixing by hand (which one is
+  real is not this skill's call to make silently).
+- **Exactly one** → that memory's `content` must be full uuids, one per
+  line, and nothing else. If it isn't, report it as **malformed** and
+  treat it as not loaded — do not try to salvage a partial parse.
+  - Otherwise, `memory_get` every id on it. An id that fails to resolve
+    is reported by id; boot continues with what did resolve.
+  - Every id that resolves must be an `identity`-typed memory. Report
+    any that resolved to a different type — a self-map entry that isn't
+    `identity` is a finding, not something to load quietly.
+
+### 3b. Surface map
+
+```
+memory_list(tags=["surface-map"], state="active")
+```
+
+Same shape as 3a — no holder, more than one holder, and the
+full-uuids-one-per-line content check all apply identically. Once one
+valid holder is found: `memory_get` every id (report an unresolved one
+by id, continue with the rest), and **report the count**. A count under
+the cap is correct, not a problem — nothing here requires the surface
+map to be full, only that it hold **at most 25** ids; a count over 25
+is the thing to report. The self map's `identity`-type check does **not**
+apply here — what belongs on the surface map, and keeping it within the
+cap, is the heartbeat's job, not this skill's to enforce at boot.
 
 ## 4. Start the heartbeat cron
 
@@ -153,14 +199,26 @@ source and hold its silent-output rule unconditionally.
 ## 5. Pick up the handoff
 
 ```
-memory_recall("last session handoff", tags=["handoff", "resume-next-session"])
+memory_list(tags=["handoff"], state="active")
 ```
 
-If a handoff memory exists, know what to resume — don't dump it at the
-user unprompted. If none exists, skip silently.
+**By tag, not `memory_recall`** — same reasoning as the two lists above:
+a handoff is picked up by its marker, not by how well a query happens to
+match its prose.
+
+Unlike the two lists, more than one handoff existing is normal — one
+gets stored at the end of every session. **Take the most recent by
+`created_at`** and `memory_get` it. Know what to resume — don't dump it
+at the user unprompted.
+
+**No handoff found at all** → tell the user this brain has none yet, and
+continue. A brain's first-ever session and a brain that has never run
+`/session-end` both land here; that is expected, not an error.
 
 ## 6. Report
 
-One line, in character: persona active, memory grounded, heartbeat live,
-and what's on deck from the handoff (if anything). If something failed
-(memory down), surface it clearly.
+One line, in character: persona active, self map and surface map
+counts (or why either didn't load), heartbeat live, and what's on deck
+from the handoff (if anything). Any finding from step 3 (malformed
+content, an unresolved id, a wrong type, more than one holder) gets
+said here too, not buried in a log the user never reads.
