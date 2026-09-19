@@ -48,3 +48,25 @@ Observe.
   on the branch as you go, one commit per cycle, and push. Do not merge.
 - **Nothing in this loop touches `persona.md`, `user.md`, `init-brain`, `session-start`,
   `session-end`, `local-agent` or `agent-creator`.**
+
+- **Added after cycle 2 — how to prove a criterion the substrate does not enforce.**
+  Two routes, in this order of preference:
+  1. **Make it mechanism.** AC 12 (reserved tags refused) and AC 26 (short id on relate
+     refused) are exactly what a `PreToolUse` hook is for. Add a hook in
+     `.claude/settings.json` that inspects `mcp__synaptra__memory_store` /
+     `memory_update` tag lists for `self-map` / `surface-map` and
+     `mcp__synaptra__memory_relate` ids for anything shorter than a full uuid, and
+     blocks the call with the rule stated. Then the check is a script that invokes the
+     hook with a bad payload and asserts it exits non-zero, and with a good payload and
+     asserts it passes. That fails when the hook is removed, which is the standard.
+     Keep the refusal text in the skill too, so the assistant knows why it was blocked.
+  2. **Scripted agent, only where mechanism is impossible.** AC 8 (a fact stored whole,
+     never split) is a judgement the model makes. Prove it with one headless run:
+     `claude -p` in a scratch project directory that carries only the shapes file and
+     `/create-memory`, given a two-fact paragraph and a one-fact paragraph, asserting
+     from the transcript that the first became two stores and the second one. Run it
+     once per cycle that touches the skill, record the result as a number, and treat a
+     model that fails it as a recorded number rather than a failed cycle, the way Axiom
+     #75 recorded AC 15 and 16 per model.
+  The hook is a settings change, so it is part of this story's artifact; commit it with
+  the skill. `.claude/settings.json` exists already; add to it, do not replace it.
