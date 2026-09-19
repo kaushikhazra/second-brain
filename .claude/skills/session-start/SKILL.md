@@ -157,10 +157,17 @@ memory_list(tags=["self-map"], state="active")
   id, load **neither**, and say this needs fixing by hand (which one is
   real is not this skill's call to make silently).
 - **Exactly one** → that memory's `content` must be full uuids, one per
-  line, and nothing else. If it isn't, report it as **malformed** and
-  treat it as not loaded — do not try to salvage a partial parse.
-  - Otherwise, `memory_get` every id on it. An id that fails to resolve
-    is reported by id; boot continues with what did resolve.
+  line, and nothing else. ⚠ **Empty content is a valid, zero-count list,
+  not malformed** — an empty string trivially satisfies "uuids, one per
+  line, nothing else" (zero of each). Only NON-empty content that fails
+  to parse as clean uuid lines (prose, a partial id, anything else mixed
+  in) is malformed. Malformed → report it and treat it as not loaded —
+  do not try to salvage a partial parse.
+  - Otherwise, `memory_get` every id on it (an empty list has none to
+    fetch — report the zero count as a finding worth noting, since a
+    self map with nothing on it is unusual even though it isn't
+    malformed). An id that fails to resolve is reported by id; boot
+    continues with what did resolve.
   - Every id that resolves must be an `identity`-typed memory. Report
     any that resolved to a different type — a self-map entry that isn't
     `identity` is a finding, not something to load quietly.
@@ -172,14 +179,18 @@ memory_list(tags=["surface-map"], state="active")
 ```
 
 Same shape as 3a — no holder, more than one holder, and the
-full-uuids-one-per-line content check all apply identically. Once one
-valid holder is found: `memory_get` every id (report an unresolved one
-by id, continue with the rest), and **report the count**. A count under
-the cap is correct, not a problem — nothing here requires the surface
-map to be full, only that it hold **at most 25** ids; a count over 25
-is the thing to report. The self map's `identity`-type check does **not**
-apply here — what belongs on the surface map, and keeping it within the
-cap, is the heartbeat's job, not this skill's to enforce at boot.
+full-uuids-one-per-line content check all apply identically, **including
+that empty content is a valid, zero-count list, not malformed** (same
+reasoning as 3a). Once one valid holder is found: `memory_get` every id
+(report an unresolved one by id, continue with the rest), and **report
+the count**. A count under the cap is correct, not a problem — nothing
+here requires the surface map to be full, only that it hold **at most
+25** ids; a count over 25 is the thing to report, and **an empty surface
+map (count 0) is the normal, expected state for a freshly-seeded brain**,
+not a finding to flag the way an empty self map is. The self map's
+`identity`-type check does **not** apply here — what belongs on the
+surface map, and keeping it within the cap, is the heartbeat's job, not
+this skill's to enforce at boot.
 
 ## 4. Start the heartbeat cron
 
