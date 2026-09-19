@@ -44,9 +44,13 @@ Checked, per tag (`self-map`, `surface-map`):
 - **Exactly one active holder** (AC 1, 2). Zero -> reported absent. More than one ->
   all named by id, none loaded (AC 5) -- this script only reports; NOT loading is
   `/session-start`'s job at runtime, not this script's.
-- **Content is full uuids, one per line, nothing else** (AC 19). A holder that fails
-  this is reported malformed and its ids are not checked further (a malformed list
-  is not "loaded", so there is nothing further to validate about what it points at).
+- **Content is full uuids, one per line, nothing else -- or whitespace-only, which
+  is the valid empty state** (AC 19; the whitespace-only exception is issue #4's:
+  a beat writes a single space rather than the empty string, since a raw
+  `memory_update` call cannot reliably encode a true empty string). A holder that
+  fails this (prose, a partial id, anything else mixed in) is reported malformed
+  and its ids are not checked further (a malformed list is not "loaded", so there
+  is nothing further to validate about what it points at).
 - **Surface map: count <= 25** (AC 7, the issue's only stated numeric cap -- self-map
   has NONE in the issue text; do not invent one. Velasari's own source material
   mentions "N=3" for her self-map, but that is HER current count, stated as a fact
@@ -143,11 +147,23 @@ def check_list(tag: str, memories: list[dict], resolved: dict | None) -> list[st
     # "Full uuids, one per line, and nothing else" (AC 1/2/19) -- every line, blank
     # or not, must be exactly one bare uuid. A trailing blank line, stray whitespace,
     # or any prose anywhere in the content makes it malformed.
+    #
+    # EXCEPTION (issue #4): whitespace-only content (e.g. a single space) is ALSO a
+    # valid empty state, not malformed. The heartbeat writes a single space, never
+    # the literal empty string, when the last id closes -- a raw MCP `memory_update`
+    # call reproducibly fails to encode a true empty-string content value (confirmed
+    # across issue #4 cycles 3-6; no CLI or payload workaround reaches around it,
+    # since this brain's synaptra runs over stdio with no listening port a CLI
+    # could ever connect to). So "empty" for a boot list means content that is
+    # either genuinely empty OR entirely whitespace -- both parse to zero ids.
+    is_whitespace_only = bool(content) and not content.strip()
     raw_lines = content.splitlines()
-    malformed = bool(content) and not (
-        raw_lines and all(UUID_LINE_RE.match(line) for line in raw_lines)
+    malformed = (
+        bool(content)
+        and not is_whitespace_only
+        and not (raw_lines and all(UUID_LINE_RE.match(line) for line in raw_lines))
     )
-    ids = list(raw_lines)
+    ids = [] if (not content or is_whitespace_only) else list(raw_lines)
 
     if malformed:
         findings.append(

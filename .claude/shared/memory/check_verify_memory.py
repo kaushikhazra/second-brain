@@ -107,6 +107,25 @@ def main() -> int:
         ("AC19: malformed content reported, not loaded", ok, f"exit={p.returncode}")
     )
 
+    # --- issue #4: whitespace-only content is a VALID empty state, not malformed ---
+    # the heartbeat writes a single space (never the literal empty string, which a
+    # raw MCP memory_update call cannot reliably encode) when the last id closes.
+    mems = base_memories()
+    mems[1]["content"] = " "  # holder-surface, single space
+    p = run({"memories": mems, "resolved": base_resolved()})
+    ok = (
+        p.returncode == 0
+        and "MALFORMED" not in p.stdout
+        and "[surface-map] holder holder-surface, count=0" in p.stdout
+    )
+    results.append(
+        (
+            "issue #4: whitespace-only content is valid-empty, not malformed",
+            ok,
+            f"exit={p.returncode}",
+        )
+    )
+
     # --- AC 7: surface map over the cap ---
     mems = base_memories()
     over_cap_ids = [f"{i:08x}-0000-0000-0000-000000000000" for i in range(26)]

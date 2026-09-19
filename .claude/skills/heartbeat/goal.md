@@ -138,51 +138,22 @@ them at boot — a beat re-reads only the ones it needs to judge closure on.
   tidiness that skill's own rule warns against — it is the reason the list exists —
   but that carve-out is not yet stated in `/update-memory` itself; a later cycle adds
   it there by name.
-- ⚠ **Writing an empty string** (the last remaining id closing, dropping the list to
-  zero) **has been unreliable via a single `memory_update` call.** A scripted-agent
-  run (issue #4, cycle 3) found the MCP tool call reproducibly emitting malformed
-  JSON (`"content": ` with nothing after the colon) specifically when the value
-  being sent is the empty string, byte-for-byte identical on every blind retry — a
-  `cm update <holder-id> --content ""` via Bash CLI workaround does NOT solve this
-  either: `cm` is HTTP-only and this brain's synaptra runs over **stdio** with no
-  listening port, in scratch tests and the live brain alike (issue #4, cycle 4).
-  **Tried and did NOT fix it (issue #4, cycle 5)**: splitting into two calls — a
-  single-space `memory_update` first, confirmed landed, then a follow-up call to
-  the true empty string. The single space always lands fine; the follow-up
-  empty-string call fails the same identical way. The glitch is specific to
-  generating the empty-string VALUE itself, not to an identical retry or a
-  single-field payload shape.
-  **The `cm` CLI route was re-tested at velasari's explicit request (issue #4,
-  cycle 6) and confirmed dead, not a wording problem.** Definitive: `cm --help`
-  lists exactly one connection option, `--url` (an HTTP endpoint, default
-  `http://127.0.0.1:8050/mcp`) — no file-mode, no stdio-mode, nothing that
-  reads a `SYNAPTRA_DB` path directly. This brain's synaptra always runs over
-  **stdio** (`.mcp.json`: `synaptra.exe --transport stdio`), spawned inline
-  per session with no listening port at all — there is categorically no URL
-  for `cm` to point at. Cycle 2's original proof that `cm update --content ""`
-  succeeds was run against a SEPARATE scratch HTTP server started for seeding
-  and verification — never the same connection a beat's own live session
-  holds. A cycle-4 trace showed `cm` defaulting to an unrelated port and
-  reporting the live entry "not found"; passing `SYNAPTRA_DB` as an env var to
-  `cm` did not help, because `cm` has no code path that reads it. This is a
-  protocol fact (stdio has no network endpoint), not a bug this skill's prose
-  can route around, and not an artifact of cycle 4's now-fixed verify-script
-  bug — that bug affected only how the RESULT was read back, not whether the
-  write itself landed.
-  **This looks like a Claude Code / MCP tool-call generation quirk specific to
-  producing a literal empty-string value** — three approaches (direct call,
-  two-step, payload-shape variant) and the CLI route have now all been tried
-  and ruled out with direct evidence against the store, not assumption.
-  **Until a real fix lands**: attempt the empty-content `memory_update` call;
-  if it fails, **stop — this is the `SKILL.md` Failure section's case** — say
-  so once and leave the holder on its last valid (non-malformed) state. Do not
-  retry blindly, do not reach for `cm`, and do not keep improvising new
-  payload shapes per beat; this needs a fix upstream of what a beat can do
-  about it in the moment. A non-empty content string (removing one id but
-  leaving others) is unaffected and goes through `memory_update` normally —
-  only the drops-to-zero case is affected, and it stays a known, reported,
-  unresolved limitation until fixed elsewhere.
-- Ids only, newline-separated, nothing else. No prose, no labels, no stamp.
+- ⚠ **The empty case is written as a single space, not the empty string.** A
+  literal empty-string `content` value reproducibly fails the `memory_update`
+  MCP tool call with malformed JSON, and no CLI or payload-shape workaround
+  reaches around it — confirmed across issue #4 cycles 3–6, including that
+  `cm` (the only other write path) is HTTP-only and this brain's synaptra
+  always runs over stdio with no listening port for it to reach, live or in
+  test. A single space, by contrast, has always landed cleanly. So: **the
+  holder's content is either full uuids, one per line, or whitespace-only —
+  and whitespace-only means the list is empty.** When the last id closes,
+  write a single space, not `""`. `verify_memory.py` and `/session-start`'s
+  boot-list checks (issue #3) both treat whitespace-only content as the valid
+  empty state, not malformed — see their own files for that half of this
+  rule; it lives there because they own what "malformed" means for a boot
+  list, not here.
+- Otherwise (the list still holds at least one id): full uuids, one per line,
+  nothing else. No prose, no labels, no stamp.
 - Say "removed from the map", never "evicted" or "forgotten" — removing an id does
   not remove the memory. It stays in memory proper, fully retrievable; it is simply
   no longer what the next session opens holding.

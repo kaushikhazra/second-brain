@@ -157,12 +157,17 @@ memory_list(tags=["self-map"], state="active")
   id, load **neither**, and say this needs fixing by hand (which one is
   real is not this skill's call to make silently).
 - **Exactly one** → that memory's `content` must be full uuids, one per
-  line, and nothing else. ⚠ **Empty content is a valid, zero-count list,
-  not malformed** — an empty string trivially satisfies "uuids, one per
-  line, nothing else" (zero of each). Only NON-empty content that fails
-  to parse as clean uuid lines (prose, a partial id, anything else mixed
-  in) is malformed. Malformed → report it and treat it as not loaded —
-  do not try to salvage a partial parse.
+  line, and nothing else. ⚠ **Empty OR whitespace-only content is a
+  valid, zero-count list, not malformed** — an empty string trivially
+  satisfies "uuids, one per line, nothing else" (zero of each), and
+  whitespace-only (a single space) is the same zero-count state written
+  a different way: the raw update path this brain's writer skills use
+  cannot reliably encode a true empty-string content value (issue #4,
+  cycles 3–6), so the heartbeat writes a single space instead when the
+  last id closes — both read as "nothing on the list." Only content
+  that fails to parse as clean uuid lines AND isn't whitespace-only (prose, a partial id,
+  anything else mixed in) is malformed. Malformed → report it and treat
+  it as not loaded — do not try to salvage a partial parse.
   - Otherwise, `memory_get` every id on it (an empty list has none to
     fetch — report the zero count as a finding worth noting, since a
     self map with nothing on it is unusual even though it isn't
@@ -180,8 +185,8 @@ memory_list(tags=["surface-map"], state="active")
 
 Same shape as 3a — no holder, more than one holder, and the
 full-uuids-one-per-line content check all apply identically, **including
-that empty content is a valid, zero-count list, not malformed** (same
-reasoning as 3a). Once one valid holder is found: `memory_get` every id
+that empty or whitespace-only content is a valid, zero-count list, not
+malformed** (same reasoning as 3a). Once one valid holder is found: `memory_get` every id
 (report an unresolved one by id, continue with the rest), and **report
 the count**. A count under the cap is correct, not a problem — nothing
 here requires the surface map to be full, only that it hold **at most
