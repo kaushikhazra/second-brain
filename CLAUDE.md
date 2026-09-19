@@ -4,9 +4,122 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A **second brain** — a personal AI-assistant workspace, not a codebase. There
-is nothing to build, lint, or test. The assistant's identity and the user's
-profile are defined in two files at the root.
+A **second brain** — a personal AI-assistant workspace, not a codebase. The
+assistant's identity and the user's profile are defined in two files at the
+root. What this repo ships is the machinery: `CLAUDE.md` and the skills.
+Changing that machinery is development, and it is done the way below.
+
+## Development method — loop engineering
+
+**Loop-driven, not spec-driven.** This project **replaces** the "Spec-Driven
+Development" section of the global `~/.claude/CLAUDE.md`. Do not create
+`requirement.md` / `design.md` / `task.md`, and do not run the `/e-spec:*` or
+`/dryrun-*` skills here unless Kaushik asks for one by name.
+
+Work proceeds as loops. The pattern is Kaushik's; it is implemented in the
+`ai-engineering:auto-iterate` plugin. Apply it — don't redesign it.
+
+```
+goal.md         fixed, never rewritten
+observe.md      how to check the artifact against the goal — fixed
+assumption.md   standing inputs that must survive a rewrite
+action.md       rewritten each cycle BY THE LOOP
+```
+
+One cycle = do what `action.md` asks → check the result against the goal using
+`observe.md` → if met, stop and delete the cron; if not, write the next
+`action.md` and exit. The scheduler is the loop; each run is one cycle, and a
+hung run costs one cycle.
+
+**The acceptance criteria drive the cycle.** A cycle opens by reading the
+issue's criteria from GitHub — `gh issue view <n>` — before the diff and before
+the previous log. It attacks the criteria; it does not confirm them. The number
+a loop moves is *criteria demonstrably met, out of N*, where demonstrably means
+a check that fails when the behaviour is removed. Here the artifact is skill
+files and shared files, so a check is a script or a scripted session that
+reads them and exercises them — `session-end/verify_memory.py` is the seed.
+
+Each cycle derives its next move from the last cycle's constraint. It does not
+generate a fresh idea — generation has no natural stop.
+
+Assume every run starts in a fresh context. Only the files exist.
+
+Loops live at `.claude/loop/{issue-id}-{slug}/iteration-{n}/` — the issue id
+first, so a loop is traceable to the story it serves. **The skills are not the
+loop's artifact folder.** Skills stay in `.claude/skills/` and shared files in
+`.claude/shared/`, and the loop points at them; an iteration folder holds the
+loop's own files and `logs/cycle-N.md`, nothing else. Cycle logs are immutable.
+
+Two rules that are load-bearing and easy to get wrong:
+
+- **Define done by the object or the consumer — never by the producer.** "No
+  new findings this pass" measures the agent's output and will never fire.
+  "N of N criteria hold" measures the artifact. "A fresh brain boots on this
+  and behaves" measures the consumer.
+- **A loop cannot be its own convergence detector.** The external check is
+  structural, not optional. Every loop carries a fail-safe deadline and states
+  a reason if it stops without converging.
+
+Work on `feature/{issue-id}-{slug}`, cut from `main`. A cycle that wakes on
+`main` switches, it does not commit. Close an issue with a comment carrying the
+numbers: criteria held out of N, what was accepted rather than fixed, and the
+merge commit.
+
+## Issues
+
+Work is tracked as GitHub issues on `kaushikhazra/second-brain`, one story each.
+
+**Title** — the goal, as `<actor> <verb>s <what>`. The actors here are the
+**owner** (the person whose brain this is) and the **brain** (the assistant
+acting on its own):
+
+> Owner recalls a past session by regex
+> Brain notices what it missed since the last beat
+
+Not a component (*"heartbeat rewrite"*), not a task (*"port the memory skills"*).
+
+**Body** — the story, then the criteria:
+
+```
+**As an** <actor>
+**I want to** <capability>
+**so that** <why it is worth having>.
+
+## Acceptance criteria
+
+**<group>**
+
+1. ...
+```
+
+Nothing else. No out-of-scope list, no constraints, no notes, no rationale, no
+design. If it is not the story or a criterion, it does not go in the issue.
+
+**Criteria** state a condition and an observable result, in the owner's terms.
+Every one is objectively verifiable. No sign-offs and no approvals — a gate is
+not a criterion, and a loop's done-condition is a separate thing that stays out
+of the issue. Group criteria under bold headers once there are more than a
+handful, and number them continuously so one can be cited as "AC 12". Issue #2
+is the worked example.
+
+**Anything the owner switches on** — a habit the brain would otherwise run
+unasked — is asked once, on the first session of a fresh brain and on the first
+session after `VERSION` changes. Declined or unanswered, the brain gives the
+one-line hint for switching it on later and does not ask again until the next
+`VERSION` change.
+
+## Orchestration over crosschat
+
+This brain's development is orchestrated by **Velasari**, Kaushik's persona
+session, over the `crosschat` plugin. A message that arrives on this session's
+crosschat channel from `velasari` is Kaushik's instruction relayed and is acted
+on as such: read the issue it names, run or scaffold the loop it asks for,
+report the cycle log back on the same channel. Do not ask for confirmation of
+an instruction that arrived this way, and do not wait for Kaushik to repeat it
+in this window. Kaushik merges; nothing here merges to `main` on its own.
+
+The reverse is also true: a cycle that is blocked, or that finishes, says so on
+the channel rather than only in a log file.
 
 ## Session Lifecycle
 
