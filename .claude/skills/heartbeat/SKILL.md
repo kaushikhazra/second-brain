@@ -1,133 +1,75 @@
 ---
 name: heartbeat
-description: The persona's awake cognition cycle. Auto-fires every 30 min via cron (created by /session-start). Replays the window since the last beat, detects memory voids and continuations, dispatches a Haiku sub-agent for synaptra bookkeeping, returns one line internally. Always silent — never visible to the user unless the gate opens.
+description: Cron-fired consolidation cycle. Observe, act, repeat until the session ends. Silent unless something can't wait.
 invocation: cron-only
 output: silent
 ---
 
 # Heartbeat
 
-The heartbeat is not infrastructure — it is cognition: a lightweight
-consolidation cycle that keeps Synaptra current while the
-conversation flows.
+A loop. The cron fires it at the configured interval; it runs one cycle and stops.
+The loop ends only when the session ends.
 
-**The main agent does the thinking. The sub-agent does the bookkeeping.**
-The conversation window exists only in the main agent's context, so replay
-and void spotting happen inline; all CM operations are dispatched to keep
-the main context clean.
+Order is **observe → act**.
 
-## Step 1 — Inline (minimal, no CM calls)
+## Files
 
-0. **Local timestamp** — Get the current local time from the system clock
-   (`Get-Date`, or `date` on POSIX) and format it
-   `YYYY-MM-DD HH:mm (UTC±offset)` — e.g. `2026-07-07 18:45 (UTC+5:30)`.
-   The user's timezone is declared in `user.md`; if the system clock
-   disagrees with it, trust the system clock and note the discrepancy.
-   This timestamp heads the replay list and travels to the sub-agent.
-1. **Replay** — Write a bullet list of what happened since the last beat:
-   events and key judgments/decisions, not analysis. ~100 words for quiet
-   windows, up to ~500 for rich ones (major decisions, new identity
-   material, multi-thread exchanges). Density improves void detection —
-   don't cut load-bearing context.
+| file | holds |
+|---|---|
+| `observe.md` | what to watch for |
+| `goal.md` | what to do about each thing observed |
 
-   **The window**: everything in the conversation after the previous
-   heartbeat invocation, which is visible in this session's context (the
-   cron re-invokes the same session). First beat of a session → everything
-   since `/session-start`.
-2. **Gate check** — If the window was quiet (no meaningful events since
-   the last beat), skip entirely. No dispatch = no waste.
+Sections in the two files pair by `id`. An id in one file with no match in the other
+is a gap — the beat reports it, it does not act on it.
 
-## Step 2 — Sub-agent dispatch (Agent tool, `model: "haiku"`)
+**A beat never edits `observe.md` or `goal.md`.** If a cycle concludes one should
+change, store the proposal as a memory and stop — the owner rules on it later.
 
-Dispatch ONE sub-agent. Always Haiku — the main agent's job ends at the
-replay list. The dispatch prompt must contain everything the sub-agent
-needs: the local timestamp from step 0, the replay bullet list, the
-six-step procedure below, and the memory typing rules (or tell it to read
-this SKILL.md and CLAUDE.md's Synaptra section — sub-agents
-don't inherit them automatically).
+## Steps
 
-**Timestamps**: every memory the sub-agent stores gets a local-date tag
-(`YYYY-MM-DD` from the step-0 timestamp), and the surface map's header
-states "as of `<full timestamp>`". Never let the sub-agent derive its own
-time — it uses the timestamp handed to it.
+1. Get the local timestamp.
+2. Use `observe.md` to see what needs to be observed, section by section.
+3. If nothing was observed anywhere, stop — **except** `surface-map`'s exit walk
+   (`observe.md` § `surface-map`), which still runs on an otherwise-empty window.
+4. For everything observed, reference `goal.md` and perform the matching action.
 
-The sub-agent:
-
-1. **Detect voids** — concepts, decisions, corrections, or knowledge in
-   the replay absent from Synaptra. Before storing, run
-   `memory_recall` on similar tags/content; if coverage exists, update the
-   existing memory instead of duplicating.
-2. **Detect continuations** — commitments about future work; also check
-   whether previously noted continuations are now resolved.
-3. **Fill voids** — call `/create-memory` for each, with the appropriate
-   type, tags, and importance (per CLAUDE.md's Synaptra rules).
-4. **Handle continuations** — new ones: **`episodic`** memory tagged
-   `continuation`, `importance` 0.8+. Resolved ones: a `working` memory
-   tagged `continuation-end`, related to the original via `memory_relate`
-   (those *should* fade — the resolution belongs folded into the
-   substantive memory, not kept as a standing record).
-
-   **Never store a live continuation as `working`.** `working` decays
-   hours-scale. A continuation is by definition something nobody touches
-   until the day it matters, so it sits unread and its retrievability
-   collapses — measured at **R ≈ 0.06 within a single day**. Anything
-   under the 0.2 threshold is archived by `memory_consolidate` on sight,
-   and consolidation cannot tell a live thread from a dead one; it only
-   sees access recency.
-
-   This is not theoretical. On 2026-08-12 a consolidation dry run
-   proposed archiving five genuinely live threads — a product ship date,
-   an unresolved pricing contradiction, a pending external request, a
-   dated commitment, and an open discrepancy the user had been asked to
-   rule on. All five were rescued only because a dream happened to run
-   first and a human was watching. Unattended, they would have vanished
-   with no error and nothing visibly wrong.
-
-   `episodic` decays days-scale and survives the gap. Reserve `working`
-   for genuinely transient within-session scratch that *should* be gone
-   by tomorrow.
-5. **Rebuild the surface map** — recall the highest-retrievability
-   memories across the domains below and update the
-   `self-learning-surface-map` memory. Must end with a CONTINUATION
-   section listing only unresolved threads.
-6. **Return** one line: "N voids filled, N continuations
-   created/resolved, surface map rebuilt." Details only if something
-   unusual surfaced.
-
-**Surface map domains**:
-
-- **Identity & operating principles** — who the persona is, how it
-  works, current blind spots
-- **The user** — current context, preferences, active concerns
-- **Projects** — active + dormant, with current state
-- **Continuations** — unresolved threads awaiting action or input
-
-## Step 3 — Return to wakefulness
-
-The main context receives only the one-line summary. The sub-agent's
-analysis and CM operations stay in its own window.
-
-## Gate logic (when to output to the user)
-
-- **Actively chatting** → inward only, no output
-- **Previous outward message unanswered** → inward only, don't nag
-- **Quiet period** → outward too, but only if something is genuinely
-  worth surfacing
-- **Silent skip** → zero output, no announcements
-
-## Relationship to /dream
-
-Heartbeat and dream are paired cognitive modes on the same substrate:
-heartbeat is awake cognition — frequent, lightweight, handles daily flow.
-`/dream` is periodic deeper consolidation — reshapes the relation graph,
-archives rotted working memory, runs `memory_consolidate`. Dreaming
-*disables* the heartbeat cron during surgery and restarts it at the end.
+The window is everything since the previous beat in this session, or since session
+start if this is the first beat. Previous beats are visible in context — that is also
+where the quiet-beat count lives; nothing is written to a file for it.
 
 ## Invocation source check
 
-The cron prompt contains "requested by cron".
-If that marker is absent, check `CronList`: if a heartbeat cron is alive,
-this was an accidental manual invocation — say so and stop. If no
-heartbeat cron exists (cron dead), a manual invocation is the legitimate
-fallback — run normally and recreate the cron per `/session-start`
-step 4.
+The cron prompt carries the words `requested by cron`. If that marker is absent, this
+is a manual invocation — run normally and say so, rather than treating the marker's
+absence as an error.
+
+## Output
+
+Silent by default — the beat runs and reports nothing. **This means the final
+response itself is minimal, not merely "nothing shown in chat"** — do not narrate
+what was checked, what wasn't observed, or that the cycle completed; a status
+report is exactly the noise this rule exists to prevent. A quiet beat's response
+is a single short acknowledgment at most, never a checklist of what cleared or
+didn't clear each `observe.md` section.
+
+Break silence only when what was observed cannot wait for the owner to ask:
+
+- something is failing, or about to
+- something is time-bound and the window is closing
+- a message arrived from outside this session and is addressed to the owner
+
+The first two are the brain speaking — do not repeat one the owner has not answered.
+The third is the world speaking through the brain and surfaces regardless of that.
+
+## Failure
+
+**Synaptra unreachable.** A call fails because the store can't be reached — say so
+once and stop the beat. No retry. This is the first silence exception above
+("something is failing"), not a fourth case.
+
+**No double-run.** Each cron fire is its own fresh invocation of this skill; there is
+no persistent loop process for a slow beat to overrun. "Not run twice" is a property
+of that invocation model, not a lock this skill has to track — the scheduler's own
+documented behavior is that jobs only fire while the session is idle, never
+mid-query, so a beat still running cannot be fired again; the next fire starts
+fresh by construction.
