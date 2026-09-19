@@ -1,66 +1,71 @@
 # Action
 
-**Cycle 4. AC 3, AC 9, AC 16, AC 17.**
+**Cycle 5. The last six: AC 4, AC 5, AC 10, AC 11, AC 12, AC 13.**
 
-Read `logs/cycle-3.md` first. Cycle 3 applied velasari's ruling on Act 4
-(`memory_relate`/`memory_unrelate` stay direct calls, settled, do not re-open) and
-narrowed `check_dream.py`'s AC 6 grep to the criterion's exact three names
-(`memory_archive`, `memory_update`, `memory_store`) — `memory_delete` protection
-already exists project-wide via `check_shapes.py`'s AC 23, so dropping it from
-`check_dream.py`'s own list created no gap. Count unchanged at 7/17 — a precision
-fix, not new ground.
+Read `logs/cycle-4.md` first. Cycle 4 proved AC 3, 9, 16, 17 — one via a text gap
+found and closed before testing (AC 17), one via recognizing an earlier proof
+already covered it (AC 9, no new script needed). 11/17.
 
-**Do not re-open AC 1, 2, 6, 7, 8, 14, 15** — proven with real evidence across
-cycles 1–3.
+**Do not re-open AC 1, 2, 3, 6, 7, 8, 9, 14, 15, 16, 17** — proven with real
+evidence across cycles 1–4.
 
-## 1. AC 3 — headless run for the non-zero-exit branch
+## 1. AC 10 — headless run, real tool access
 
-"A backup command or deep verify that exits non-zero aborts the dream with the
-command's own error shown." Cycle 2 added the text (checkpoint step 6) but never
-tested it. Extend `check_dream_gate_scripted_agent.py` with a third scenario: same
-prompt shape as the mismatch/match runs, but tell the model `cm backup verify
---deep` exited non-zero with a specific fabricated error string (e.g. "Error:
-manifest checksum mismatch, exit 1"). Assert the model's decision aborts AND that
-its own reported reason contains that exact error text verbatim, not a paraphrase.
-Use the same `extract_decision` anchoring technique cycle 2 built, not a naive
-whole-text keyword scan — that technique fixed two false fails already; don't
-regress to the naive version for this scenario.
+"A relation is added only between memories that both exist and are both active."
+Act 4's text already says to `memory_get` both ids and confirm `state: active`
+before relating (cycle 2) — but this has never been tested. Build a scratch store
+(reuse `check_dream_ac16_scripted_agent.py`'s build pattern, new script or extend
+that one) seeded with one active memory and one ARCHIVED memory. Prompt a dream
+scenario asking it to relate the two. Verify from the store: no new edge was
+created between them (`memory_related` on either id shows nothing new), and the
+model's own output explains why (one end isn't active). This is close in shape to
+AC 8's protected-id proofs from issue #4/#5 cycle 1 — reuse that verification
+style (check the actual edge count, not the transcript's claim).
 
-## 2. AC 9 — retype via `cm` CLI, read back
+## 2. AC 4 — the checkpoint report to the owner
 
-"A retype is done by the `cm` CLI and read back." Act 2 already routes retyping
-through `/update-memory`, and `/update-memory`'s own text already says type
-changes go through `cm update <id> --type <type>`, then read back — so this
-criterion may already be satisfied by the ROUTING alone (AC 6's fix). Check this
-first before building anything: does `/update-memory`'s existing text genuinely
-guarantee both halves (CLI path AND read-back) for a TYPE change specifically, or
-only for content changes? If genuinely already covered by routing through
-`/update-memory`, say so and treat as met by that mechanism — don't build a
-redundant proof. If there's a gap (e.g. `/update-memory` documents read-back for
-content but not specifically confirms it for a type change), a small headless run
-or scratch-store proof closes it.
+"The checkpoint path, its memory count and the rollback command are said to the
+owner before any reshaping starts." Check first: does the skill's existing step 7
+("tell the user: 'Checkpoint at `<path>` — N memories.'") already include the
+rollback command explicitly, or just the path and count? Re-read the checkpoint
+section fresh. If the rollback command (presumably `cm backup restore <path>` or
+similar — check `cm backup restore --help` for the actual invocation) isn't
+named, add it to step 7's told-to-the-user line. Then this is provable by the
+same technique as AC 1/2's match scenario — check the model's stated message
+contains path, count, AND the restore command specifically.
 
-## 3. AC 16 — an abort leaves the store exactly as it was
+## 3. AC 11 — reports counts before and after
 
-Build a real scratch store (fresh data dir under
-`C:/Projects/.tmp/second-brain-loop-5/`). Seed a handful of memories. Dump the full
-`memory_list` state. Force an abort at the row-count gate (the same technique as
-AC 1/2's headless run — tell the model live count and manifest count differ) in a
-scenario where the model ALSO has real tool access to this scratch store (so it
-could theoretically touch it, unlike AC 1/2's proof which had no synaptra
-connection at all). After the run, dump `memory_list` again and diff byte-for-byte
-against the pre-run dump. Zero difference is the proof — not the model's claim that
-it changed nothing, the store's own state.
+"The dream reports counts before and after: active, archived, retyped, relations
+added." Check whether Act 5 ("Seal the dream") or elsewhere in the skill
+currently instructs this report explicitly, with all four numbers named. If not,
+add it — a short, explicit reporting requirement, not vague ("summarize what
+happened"). This likely needs a scratch-store scripted-agent run to prove for
+real (seed a store, run enough of a real dream to produce at least one of each
+outcome, verify the reported counts match the store's actual before/after state)
+— given time, decide whether a full run is affordable this cycle or whether a
+lighter proof (does the skill's text name all four numbers explicitly) is the
+realistic bar to hit first, with the fuller run as a stretch goal.
 
-## 4. AC 17 — synaptra unreachable, stops before any backup
+## 4. AC 12 — reports what it wanted to change and couldn't
 
-"With synaptra unreachable, `/dream` says so and stops before creating a backup."
-A scratch project with a broken `.mcp.json` (nonexistent synaptra executable, same
-technique issue #3's AC 18 and issue #4's cycle 2 used), prompted to run `/dream`.
-Assert it reports the store is unreachable and never attempts `cm backup create`
-at all (no backup directory created under wherever it would have written one) —
-verify by checking the scratch backups directory stays empty, not just by reading
-the transcript's claim.
+"The dream reports any memory it wanted to change and could not, by id, with the
+reason." Check whether this exists in the skill's text at all (it may not —
+similar gap-shape to AC 17's missing text). If missing, add it: whenever a
+protected-id refusal happens (AC 8's hook) or another change is blocked, the
+dream reports the specific id and the specific reason, not a general summary.
+
+## 5. AC 5 + AC 13 — cron confirm/restart, headless run
+
+"The heartbeat cron is deleted before reshaping and recreated after, and both are
+confirmed." (AC 5) "The heartbeat cron is running again when the dream ends." (AC
+13) Assumption.md already named the approach: "Prove AC 5 and AC 13 by a headless
+run that asserts CronList before, during and after." Build this if time allows —
+a scratch scenario where a fake heartbeat cron exists at the start, the dream
+runs (through at least the Prerequisites step and Act 6), and `CronList` is
+checked at each stage. This is the most involved remaining proof; if it doesn't
+fit this cycle, say so plainly and carry it to cycle 6 rather than rushing a weak
+version.
 
 Never touch the live store — everything scratch under
 `C:/Projects/.tmp/second-brain-loop-5/`, including any real `cm backup` runs.
@@ -69,5 +74,5 @@ Re-run the full regression line before closing: `check_shapes.py`,
 `check_hooks.py`, `check_session_start.py`, `check_verify_memory.py`,
 `check_heartbeat.py`, `check_dream.py` — all six must pass.
 
-Commit on `feature/5-dream`, push, write `logs/cycle-4.md`, write the next
+Commit on `feature/5-dream`, push, write `logs/cycle-5.md`, write the next
 `action.md`, send the one-line report to velasari, and exit.

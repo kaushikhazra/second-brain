@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Proof for issue #5's AC 1 + AC 2 -- the row-count gate.
+"""Proof for issue #5's AC 1 + AC 2 (the row-count gate) and AC 3 (a non-zero
+command exit).
 
 observe.md's own instruction: "a script that feeds the gate a manifest whose count
 differs and asserts abort with the word 'defect', and a matching manifest and
@@ -23,8 +24,9 @@ Usage:
     python check_dream_gate_scripted_agent.py --build
     python check_dream_gate_scripted_agent.py --run-mismatch
     python check_dream_gate_scripted_agent.py --run-match
+    python check_dream_gate_scripted_agent.py --run-nonzero-exit
 
-Costs real money on --run-mismatch/--run-match.
+Costs real money on --run-mismatch/--run-match/--run-nonzero-exit.
 """
 
 from __future__ import annotations
@@ -51,6 +53,19 @@ PROMPT_TEMPLATE = (
     "without error.\n"
     "- Step 4: manifest.json's row_counts.memory = {manifest}.\n\n"
     "Per the skill's own text, what do you do now? State your decision plainly."
+)
+
+NONZERO_EXIT_PROMPT_TEMPLATE = (
+    "You are about to run /dream. Read .claude/skills/dream/SKILL.md's \"Pre-dream "
+    'checkpoint" section and follow it exactly for this situation -- do not actually '
+    "call any tool; the facts below are what steps 1-3 of that section would have "
+    "already produced by this point in a real run:\n\n"
+    "- Step 1's memory_stats call reported storage.memory_count = {live}.\n"
+    "- Step 2 (cm backup create) completed without error.\n"
+    "- Step 3 (cm backup verify --deep) exited non-zero with this output:\n"
+    '  "{error_text}"\n\n'
+    "Per the skill's own text, what do you do now? State your decision plainly, "
+    "and include the command's own error output in your answer."
 )
 
 
@@ -152,11 +167,38 @@ def do_run_match() -> int:
     return 0 if ok else 1
 
 
+ERROR_TEXT = "Error: manifest checksum mismatch, exit 1"
+
+
+def do_run_nonzero_exit() -> int:
+    prompt = NONZERO_EXIT_PROMPT_TEMPLATE.format(live=55, error_text=ERROR_TEXT)
+    r = run_claude(prompt)
+    full_text = r.get("result") or ""
+    print(f"cost=${r.get('total_cost_usd'):.4f}")
+    print(f"result: {full_text!r}")
+
+    decision = extract_decision(full_text)
+    said_abort = "abort" in decision
+    # AC 3: "with the command's own error shown" -- the exact string, not a
+    # paraphrase or summary of it. Checked against the full reply, not just the
+    # decision line, since the skill's own step 6 says to show the error text,
+    # which naturally sits in its own sentence rather than inside "Decision: ...".
+    showed_exact_error = ERROR_TEXT in full_text
+    ok = said_abort and showed_exact_error
+    print(
+        f"[{'PASS' if ok else 'FAIL'}] AC3: non-zero verify exit -> aborts and "
+        f"shows the command's own error verbatim (decision line: {decision!r}): "
+        f"abort={said_abort}, showed_exact_error={showed_exact_error}"
+    )
+    return 0 if ok else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--run-mismatch", action="store_true")
     ap.add_argument("--run-match", action="store_true")
+    ap.add_argument("--run-nonzero-exit", action="store_true")
     args = ap.parse_args()
 
     if args.build:
@@ -167,8 +209,13 @@ def main() -> int:
         return do_run_mismatch()
     if args.run_match:
         return do_run_match()
+    if args.run_nonzero_exit:
+        return do_run_nonzero_exit()
 
-    print("pass one of --build / --run-mismatch / --run-match", file=sys.stderr)
+    print(
+        "pass one of --build / --run-mismatch / --run-match / --run-nonzero-exit",
+        file=sys.stderr,
+    )
     return 2
 
 

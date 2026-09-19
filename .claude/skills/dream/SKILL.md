@@ -81,7 +81,10 @@ brain moved or was provisioned differently, that file is the truth.
 ### The steps
 
 1. `memory_stats` — record `storage.memory_count`. **This is the number
-   the backup must match.**
+   the backup must match.** **If this call errors as unreachable, say so
+   once and stop — do not proceed to step 2.** No live count means no
+   number for the backup to match, and no backup means no dream; there
+   is nothing left to check before giving up here.
 2. `cm backup create` — record the backup path from stdout.
 3. `cm backup verify --deep <backup_path>` — deep verify (~30 s).
 4. **Row-count check (the one that actually matters).** Read
