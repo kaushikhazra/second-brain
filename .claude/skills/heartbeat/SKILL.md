@@ -45,7 +45,12 @@ absence as an error.
 
 ## Output
 
-Silent by default — the beat runs and reports nothing.
+Silent by default — the beat runs and reports nothing. **This means the final
+response itself is minimal, not merely "nothing shown in chat"** — do not narrate
+what was checked, what wasn't observed, or that the cycle completed; a status
+report is exactly the noise this rule exists to prevent. A quiet beat's response
+is a single short acknowledgment at most, never a checklist of what cleared or
+didn't clear each `observe.md` section.
 
 Break silence only when what was observed cannot wait for the owner to ask:
 
