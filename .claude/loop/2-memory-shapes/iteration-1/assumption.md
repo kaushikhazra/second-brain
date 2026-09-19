@@ -70,3 +70,8 @@ Observe.
      #75 recorded AC 15 and 16 per model.
   The hook is a settings change, so it is part of this story's artifact; commit it with
   the skill. `.claude/settings.json` exists already; add to it, do not replace it.
+
+- **Narrowed after cycle 7, confirming the agent's call.** The session-end exclusion above
+  admits exactly one exception: the conformance scan step for AC 24 (one new step, one new
+  script, nothing existing in `session-end` changed). Everything else in `session-end` is
+  #3's.
