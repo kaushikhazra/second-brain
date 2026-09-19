@@ -231,6 +231,23 @@ at the user unprompted.
 continue. A brain's first-ever session and a brain that has never run
 `/session-end` both land here; that is expected, not an error.
 
+**Write the protected-ids record.** After steps 3 and 5 resolve, write
+`.claude/.protected-ids.json` (gitignored, machine-local, rewritten every
+boot — never appended to):
+
+```
+{"self_map_holder": <step 3a's holder id or null>,
+ "surface_map_holder": <step 3b's holder id or null>,
+ "handoff_id": <step 5's most recent handoff id or null>,
+ "written_at": "<iso8601>"}
+```
+
+Write it even when a holder or the handoff is absent — `null` is the
+correct value there, not an error to work around. This is what lets
+`memory_guard.py` refuse a dream (issue #5) that tries to archive, retype
+or unrelate any of the three; a stale record from a prior session is why
+this must be rewritten every boot, not written once and left.
+
 ## 6. Report
 
 One line, in character: persona active, self map and surface map

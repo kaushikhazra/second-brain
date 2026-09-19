@@ -81,16 +81,32 @@ brain moved or was provisioned differently, that file is the truth.
 ### The steps
 
 1. `memory_stats` — record `storage.memory_count`. **This is the number
-   the backup must match.**
+   the backup must match.** **If this call errors as unreachable, say so
+   once and stop — do not proceed to step 2.** No live count means no
+   number for the backup to match, and no backup means no dream; there
+   is nothing left to check before giving up here.
 2. `cm backup create` — record the backup path from stdout.
 3. `cm backup verify --deep <backup_path>` — deep verify (~30 s).
 4. **Row-count check (the one that actually matters).** Read
    `manifest.json` in the backup directory and compare
    `row_counts.memory` against step 1's count. **They must be equal.**
-5. **Any step fails, or the counts differ → ABORT the dream.** Surface
-   the error. No rollback means no dream.
-6. All pass → tell the user: "Checkpoint at `<path>` — N memories." That
-   path is this dream's rollback point.
+5. **A mismatch here is a defect, not a warning — ABORT the dream and
+   call it that.** Say the two numbers plainly (live count vs. backup
+   count) and the word "defect" — this is not a caveat to note and
+   continue past, it is the exact failure mode that produced a
+   1-of-55-memories backup that passed every other check. No rollback
+   means no dream.
+6. **A `cm backup create` or `cm backup verify --deep` that exits
+   non-zero → ABORT the dream, showing that command's own error text
+   verbatim.** A tool failure is reported in the tool's own words, not
+   paraphrased or summarized past.
+7. All pass → tell the user the path, the count, AND the exact rollback
+   command, all three, before touching anything: **"Checkpoint at
+   `<path>` — N memories. To roll back: `cm backup restore <path>
+   --target <SYNAPTRA_DB path> --force`."** That path is this dream's
+   rollback point — stating the restore command alongside it means the
+   owner has it in hand before any reshaping starts, not something they
+   have to look up later if something goes wrong.
 
 ### Why step 4 exists — three green lights on a useless backup
 
@@ -127,10 +143,22 @@ Fall back to a filesystem copy of the `SYNAPTRA_DB` directory and say
 plainly that it was taken with the MCP servers live, so it may catch a
 mid-write moment. Better than no rollback; not equivalent to a clean one.
 
+## Refuses to run during an active conversation
+
+Before anything else — before the pre-dream checkpoint, before disabling
+the heartbeat, before any reshaping — check whether this is an **active
+conversation**: has the owner sent a message in this session within the
+last **10 minutes**? If so, `/dream` refuses and says why. Deep
+reshaping and an ongoing exchange do not share a session well; wait for
+a genuine lull rather than interrupting one.
+
 ## Prerequisites
 
 1. **Disable the heartbeat cron** (`CronList` → `CronDelete`). Memory
-   must be quiet during surgery. Restart it at the end (Act 6).
+   must be quiet during surgery. **Confirm the deletion with a second
+   `CronList`** — it returning no heartbeat job is what proves the
+   delete landed, not the delete call's own return value. Restart it
+   at the end (Act 6).
 2. **Valid `rel_type` vocabulary only**: `causes`, `follows`,
    `contradicts`, `supports`, `relates_to`, `supersedes`, `part_of`.
    Custom strings will fail.
@@ -151,13 +179,25 @@ Walk the at-risk list:
 
 | Action | When |
 |--------|------|
-| `memory_archive(id)` | Resolved continuation, superseded snapshot, dated summary no longer load-bearing |
+| `/delete-memory` (archive) | Resolved continuation, superseded snapshot, dated summary no longer load-bearing |
 | `/update-memory` (type change) | Mistyped — change to the type whose decay profile matches the content's actual longevity |
 | Keep as-is | Genuinely still pending, active continuation |
 
+**The archive rule, stated explicitly**: a memory is archived only if its
+retrievability is below **0.2** (matching `memory_consolidate`'s own
+archive line) **and** it is on neither boot list **and** is not the
+current handoff. The first condition is what makes it a candidate at
+all; the second and third are never overridden by the first — an
+id on the self map, the surface map, or carrying the most recent
+session's `handoff` tag is never archived by a dream regardless of how
+low its retrievability reads. `memory_guard.py`'s protected-ids rule
+refuses the call if this is ever gotten wrong; this line is what keeps
+it from being attempted in the first place.
+
 Make every judgment inline first; bulk execution may be dispatched to a
 Haiku sub-agent with the decisions pre-made. The main agent does the
-thinking; the sub-agent does the calls.
+thinking; the sub-agent does the calls — always through `/delete-memory`
+and `/update-memory`, never a raw call to either's underlying tool.
 
 ### Act 3 — Run consolidation
 
@@ -185,15 +225,27 @@ For each constellation to weave:
    `relates_to` as fallback. Most links are `supports` or `part_of`.
 4. **Show the user the sketch** before executing. Load-bearing structure
    deserves a second read.
-5. **Execute** — one `memory_relate(full_id, full_id, rel_type)` per
-   link. Always pass full IDs verbatim; if dispatching execution to a
-   sub-agent, never let it resolve ID prefixes itself (it will
-   hallucinate).
+5. **Execute** — one `memory_relate(full_id, full_id, rel_type)` per link,
+   following the exact discipline `/create-memory`'s own step 6 ("Link
+   it") states for the same call: full uuids on both ends (refuse a short
+   id rather than send it), and `rel_type` from the same closed
+   vocabulary. `/create-memory` has no standalone mode for relating two
+   memories it did not just create — its relate step is part of writing
+   a *new* one — so this is not a call the dream routes elsewhere; it is
+   the same call, held to the same rule. **Before calling it, confirm
+   both ids currently resolve and are `state: active`** (`memory_get`
+   each) — a relation is added only between two memories that both exist
+   and are both active (AC 10); a dream does not add a link on faith that
+   an id from an earlier step is still good. Always pass full IDs
+   verbatim; if dispatching execution to a sub-agent, never let it
+   resolve ID prefixes itself (it will hallucinate).
 6. **Verify, don't trust.** Recount edges via `memory_related` /
    `memory_stats` after the batch. Trust the edge-count delta, not a
    sub-agent's "N/N success" report.
 7. **Fix backwards `part_of`.** It is source-into-target; if the
-   direction is wrong, `memory_unrelate` and re-relate.
+   direction is wrong, `memory_unrelate` and re-relate, same discipline
+   as step 5. `memory_guard.py`'s protected-ids rule refuses either call
+   if one end is a protected id.
 
 **Process every orphan**, domain cluster by domain cluster. For each:
 weave / archive / delete / mark hub. No skipping. Stop only when every
@@ -201,11 +253,26 @@ orphan has a decision.
 
 ### Act 5 — Seal the dream
 
-- Store a `semantic` memory (importance 0.9) capturing what was woven,
-  key insights, and any reframing the user taught mid-dream. Tags:
-  `dream`, `consolidation`, `synaptra`.
-- Update the `self-learning-surface-map` memory with completed
-  constellations and any remaining ones awaiting weave.
+- Through `/create-memory`, store a `semantic` memory (importance 0.9)
+  capturing what was woven, key insights, and any reframing the user
+  taught mid-dream. Tags: `dream`, `consolidation`, `synaptra`.
+- **Report four counts, before and after: active, archived, retyped,
+  relations added.** Record the active count from Act 1's `memory_stats`
+  as "before," and re-run it here for "after." Archived, retyped, and
+  relations-added are simple tallies kept as Acts 2 and 4 run, not
+  reconstructed from memory afterward. State all four plainly — not a
+  narrative summary standing in for the numbers.
+- **Report every memory the dream wanted to change and could not, by
+  id, with the reason.** A protected-id refusal (`memory_guard.py`'s
+  AC 8 rule), a relate attempt where one side wasn't active (AC 10), or
+  any other blocked change — each one named specifically, not folded
+  into a general "some items were skipped." An empty list is a valid
+  report; a vague one is not.
+
+There is no surface-map update here. The surface map is the id-list
+holder the heartbeat maintains incrementally, every beat (#3, #4) — a
+dream never writes it, and `memory_guard.py`'s protected-ids rule
+refuses the attempt if one is ever made.
 
 ### Act 6 — Restart the heartbeat
 
@@ -221,6 +288,10 @@ CronCreate(
 )
 ```
 
+**Confirm it landed with a `CronList` afterward** — the heartbeat is
+running again when the dream ends, and that final `CronList`'s own
+result is what proves it, not the create call's own return value.
+
 If `memory_recall` returns empty after heavy writes (stale read index),
 the CM service may need a restart — that's machine-local operations (see
 CLAUDE.md); tell the user rather than restarting services yourself.
@@ -231,10 +302,11 @@ Session-end takes precedence — but leave the graph honest first:
 
 1. Finish the *current link batch or triage decision* only; don't start
    new constellations.
-2. Run a partial Act 5: seal what was woven so far, and store a
-   `continuation` (per the heartbeat's convention, importance 0.8+)
-   listing the remaining backlog — the next dream starts there, so the
-   convergence rule's debt is recorded, not silently dropped.
+2. Run a partial Act 5: seal what was woven so far, and through
+   `/create-memory`, store a `continuation` (per the heartbeat's
+   convention, importance 0.8+) listing the remaining backlog — the next
+   dream starts there, so the convergence rule's debt is recorded, not
+   silently dropped.
 3. **Skip Act 6** — do not restart the heartbeat. `/session-end` owns
    shutdown, and end-of-day means zero scheduled work.
 4. Proceed to `/session-end` as normal.

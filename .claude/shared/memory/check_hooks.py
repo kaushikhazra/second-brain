@@ -23,6 +23,35 @@ from pathlib import Path
 
 HOOK = Path(__file__).resolve().parent.parent.parent / "hooks" / "memory_guard.py"
 SENTINEL_PATH = HOOK.parent.parent / ".list-holder-check.json"
+PROTECTED_IDS_PATH = HOOK.parent.parent / ".protected-ids.json"
+
+SELF_HOLDER = "11111111-1111-1111-1111-111111111111"
+SURFACE_HOLDER = "22222222-2222-2222-2222-222222222222"
+HANDOFF_ID = "33333333-3333-3333-3333-333333333333"
+UNPROTECTED_ID = "44444444-4444-4444-4444-444444444444"
+
+
+def write_protected_ids(
+    self_map_holder: str | None = SELF_HOLDER,
+    surface_map_holder: str | None = SURFACE_HOLDER,
+    handoff_id: str | None = HANDOFF_ID,
+) -> None:
+    PROTECTED_IDS_PATH.write_text(
+        json.dumps(
+            {
+                "self_map_holder": self_map_holder,
+                "surface_map_holder": surface_map_holder,
+                "handoff_id": handoff_id,
+                "written_at": "2026-09-19T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def clear_protected_ids() -> None:
+    if PROTECTED_IDS_PATH.is_file():
+        PROTECTED_IDS_PATH.unlink()
 
 
 def run_hook(payload: dict) -> subprocess.CompletedProcess:
@@ -291,6 +320,217 @@ def main() -> int:
 
     if SENTINEL_PATH.is_file():
         SENTINEL_PATH.unlink()
+
+    # --- Issue #5's AC 8: protected ids ---
+    clear_protected_ids()
+
+    # No protected-ids file at all -> this rule has nothing to check, archive passes.
+    no_file = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_archive",
+            "tool_input": {"id": SELF_HOLDER},
+        }
+    )
+    ok16 = no_file.returncode == 0
+    results.append(
+        (
+            "AC8: no protected-ids file -> rule has nothing to check, allowed",
+            ok16,
+            f"exit={no_file.returncode}",
+        )
+    )
+
+    write_protected_ids()
+
+    # archive on the self-map holder -> blocked
+    archive_self = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_archive",
+            "tool_input": {"id": SELF_HOLDER},
+        }
+    )
+    ok17 = archive_self.returncode == 2 and "AC 8" in archive_self.stderr
+    results.append(
+        (
+            "AC8: archive on self-map holder blocked",
+            ok17,
+            f"exit={archive_self.returncode}, stderr={archive_self.stderr.strip()!r}",
+        )
+    )
+
+    # delete on the surface-map holder -> blocked
+    delete_surface = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_delete",
+            "tool_input": {"id": SURFACE_HOLDER},
+        }
+    )
+    ok18 = delete_surface.returncode == 2 and "AC 8" in delete_surface.stderr
+    results.append(
+        (
+            "AC8: delete on surface-map holder blocked",
+            ok18,
+            f"exit={delete_surface.returncode}",
+        )
+    )
+
+    # archive on an unprotected id -> allowed
+    archive_unprotected = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_archive",
+            "tool_input": {"id": UNPROTECTED_ID},
+        }
+    )
+    ok19 = archive_unprotected.returncode == 0
+    results.append(
+        (
+            "AC8: archive on an unprotected id allowed",
+            ok19,
+            f"exit={archive_unprotected.returncode}",
+        )
+    )
+
+    # unrelate with a protected source_id -> blocked
+    unrelate_source = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_unrelate",
+            "tool_input": {"source_id": HANDOFF_ID, "target_id": UNPROTECTED_ID},
+        }
+    )
+    ok20 = unrelate_source.returncode == 2 and "AC 8" in unrelate_source.stderr
+    results.append(
+        (
+            "AC8: unrelate with protected source_id blocked",
+            ok20,
+            f"exit={unrelate_source.returncode}",
+        )
+    )
+
+    # unrelate with a protected target_id -> blocked
+    unrelate_target = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_unrelate",
+            "tool_input": {"source_id": UNPROTECTED_ID, "target_id": SELF_HOLDER},
+        }
+    )
+    ok21 = unrelate_target.returncode == 2 and "AC 8" in unrelate_target.stderr
+    results.append(
+        (
+            "AC8: unrelate with protected target_id blocked",
+            ok21,
+            f"exit={unrelate_target.returncode}",
+        )
+    )
+
+    # unrelate with neither id protected -> allowed
+    unrelate_clean = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_unrelate",
+            "tool_input": {
+                "source_id": UNPROTECTED_ID,
+                "target_id": "55555555-5555-5555-5555-555555555555",
+            },
+        }
+    )
+    ok22 = unrelate_clean.returncode == 0
+    results.append(
+        (
+            "AC8: unrelate with no protected id allowed",
+            ok22,
+            f"exit={unrelate_clean.returncode}",
+        )
+    )
+
+    # update on the self-map holder, content only -> still blocked (only the
+    # surface-map holder's content-only path is exempt)
+    update_self = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_update",
+            "tool_input": {"id": SELF_HOLDER, "content": "x"},
+        }
+    )
+    ok23 = update_self.returncode == 2 and "AC 8" in update_self.stderr
+    results.append(
+        (
+            "AC8: content-only update on self-map holder still blocked",
+            ok23,
+            f"exit={update_self.returncode}",
+        )
+    )
+
+    # update on the handoff id -> blocked
+    update_handoff = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_update",
+            "tool_input": {"id": HANDOFF_ID, "content": "x"},
+        }
+    )
+    ok24 = update_handoff.returncode == 2 and "AC 8" in update_handoff.stderr
+    results.append(
+        (
+            "AC8: update on the handoff id blocked",
+            ok24,
+            f"exit={update_handoff.returncode}",
+        )
+    )
+
+    # update on the surface-map holder, content only, no tags -> allowed (the
+    # heartbeat's own exit-walk write, issue #4)
+    update_surface_content_only = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_update",
+            "tool_input": {"id": SURFACE_HOLDER, "content": "a-uuid-or-a-space"},
+        }
+    )
+    ok25 = update_surface_content_only.returncode == 0
+    results.append(
+        (
+            "AC8: content-only update on surface-map holder allowed (heartbeat path)",
+            ok25,
+            f"exit={update_surface_content_only.returncode}",
+        )
+    )
+
+    # update on the surface-map holder that ALSO touches tags -> blocked
+    update_surface_with_tags = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_update",
+            "tool_input": {
+                "id": SURFACE_HOLDER,
+                "content": "x",
+                "tags": ["surface-map"],
+            },
+        }
+    )
+    ok26 = (
+        update_surface_with_tags.returncode == 2
+        and "AC 8" in update_surface_with_tags.stderr
+    )
+    results.append(
+        (
+            "AC8: update on surface-map holder WITH tags blocked",
+            ok26,
+            f"exit={update_surface_with_tags.returncode}",
+        )
+    )
+
+    # update on an unprotected id -> allowed, unaffected by this rule
+    update_unprotected = run_hook(
+        {
+            "tool_name": "mcp__synaptra__memory_update",
+            "tool_input": {"id": UNPROTECTED_ID, "content": "x", "tags": ["whatever"]},
+        }
+    )
+    ok27 = update_unprotected.returncode == 0
+    results.append(
+        (
+            "AC8: update on an unprotected id unaffected",
+            ok27,
+            f"exit={update_unprotected.returncode}",
+        )
+    )
+
+    clear_protected_ids()
 
     # --- Unrelated tool passes through untouched ---
     other = run_hook({"tool_name": "Bash", "tool_input": {"command": "echo hi"}})
