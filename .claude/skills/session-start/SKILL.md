@@ -118,18 +118,64 @@ session, and note how the user wants to be addressed and communicated with.
 If either file is missing, run `/init-brain` first, then continue from
 step 2.
 
-## 2. Verify Synaptra
+## 2. Activation
+
+Needs no synaptra connection — reads `VERSION` at the brain root and the
+git-ignored activation record, nothing else. Runs even on a memory-less
+start, and runs on a fresh brain's very first session (the `/init-brain`
+path above lands here next).
+
+Shared by every habit that asks the owner to opt in once — currently
+`curiosity` (issue #6); a later habit (issue #7, `news`) registers a second
+entry in the same record through the same step, not a second block of prose
+here.
+
+```python
+from activation import brain_root, record_path, load_record, save_record, needs_ask, set_answer
+```
+
+(`.claude/shared/activation.py` — resolve the import path from this brain's
+own root, not a frozen path.)
+
+For each registered habit (`["curiosity"]` today):
+
+1. Read `VERSION` at the brain root (strip whitespace).
+2. `record = load_record(record_path())`.
+3. If `needs_ask(record, habit, version)` is false, skip this habit — already
+   answered for the current `VERSION`.
+4. Otherwise, ask **once**, with `AskUserQuestion`: *"Switch curiosity on?
+   When idle, your brain will go to the root of something in memory, read
+   outside the graph, and lay down provisional connections."* (or the
+   equivalent question for whichever habit is being asked about — the
+   question text is the habit's own, not this step's).
+   - **A non-interactive (headless) session counts as no answer** — if
+     `AskUserQuestion` is unavailable or errors, treat exactly like a
+     declined question rather than retrying or blocking the boot.
+   - **Yes** → `record = set_answer(record, habit, version, active=True)`.
+   - **No, or no answer** → `record = set_answer(record, habit, version, active=False)`,
+     and print the habit's one-line hint for switching it on later
+     (`/curiosity on` for curiosity).
+5. `save_record(record_path(), record)` once, after all habits in the loop
+   above are resolved — not once per habit, so a boot that asks about two
+   habits writes the record a single time.
+
+The question is asked **once per habit per `VERSION`** — declined or
+unanswered, it is not asked again until `VERSION` changes, per the record's
+`answered_at_version` field. Report what was asked and what was recorded in
+step 7, not silently.
+
+## 3. Verify Synaptra
 
 Confirm the synaptra tools are available in this session (look for
 `mcp__synaptra__*` in the tool or deferred-tool list). If they are
 missing, report all three boot-list fetches (self map, surface map,
 handoff) as skipped for this reason, and continue on `persona.md` and
-`user.md` alone — step 4 (heartbeat cron) still runs. If the tools are
-present but a specific fetch in step 3 or 5 errors anyway (the server
+`user.md` alone — step 5 (heartbeat cron) still runs. If the tools are
+present but a specific fetch in step 4 or 6 errors anyway (the server
 was up at this check but drops mid-boot), report that one fetch by
 name and move on to the next rather than aborting the rest.
 
-## 3. The two boot lists
+## 4. The two boot lists
 
 **Why this exists.** `persona.md` gives static identity; the self map is
 the session's confirmation that synaptra still agrees, and the surface
@@ -144,7 +190,7 @@ prose relevance, and a list of bare uuids has no prose to match against.
 Boot needs a deterministic, exact-tag fetch, not a ranked guess — that
 is what `memory_list(tags=[...], state="active")` is for.
 
-### 3a. Self map
+### 4a. Self map
 
 ```
 memory_list(tags=["self-map"], state="active")
@@ -177,7 +223,7 @@ memory_list(tags=["self-map"], state="active")
     any that resolved to a different type — a self-map entry that isn't
     `identity` is a finding, not something to load quietly.
 
-### 3b. Surface map
+### 4b. Surface map
 
 ```
 memory_list(tags=["surface-map"], state="active")
@@ -197,7 +243,7 @@ not a finding to flag the way an empty self map is. The self map's
 surface map, and keeping it within the cap, is the heartbeat's job, not
 this skill's to enforce at boot.
 
-## 4. Start the heartbeat cron
+## 5. Start the heartbeat cron
 
 Check `CronList` first — skip if a heartbeat cron already exists.
 Otherwise:
@@ -212,7 +258,7 @@ CronCreate(
 The `"requested by cron"` marker lets `/heartbeat` confirm the invocation
 source and hold its silent-output rule unconditionally.
 
-## 5. Pick up the handoff
+## 6. Pick up the handoff
 
 ```
 memory_list(tags=["handoff"], state="active")
@@ -231,14 +277,14 @@ at the user unprompted.
 continue. A brain's first-ever session and a brain that has never run
 `/session-end` both land here; that is expected, not an error.
 
-**Write the protected-ids record.** After steps 3 and 5 resolve, write
+**Write the protected-ids record.** After steps 4 and 6 resolve, write
 `.claude/.protected-ids.json` (gitignored, machine-local, rewritten every
 boot — never appended to):
 
 ```
-{"self_map_holder": <step 3a's holder id or null>,
- "surface_map_holder": <step 3b's holder id or null>,
- "handoff_id": <step 5's most recent handoff id or null>,
+{"self_map_holder": <step 4a's holder id or null>,
+ "surface_map_holder": <step 4b's holder id or null>,
+ "handoff_id": <step 6's most recent handoff id or null>,
  "written_at": "<iso8601>"}
 ```
 
@@ -248,10 +294,13 @@ correct value there, not an error to work around. This is what lets
 or unrelate any of the three; a stale record from a prior session is why
 this must be rewritten every boot, not written once and left.
 
-## 6. Report
+## 7. Report
 
 One line, in character: persona active, self map and surface map
 counts (or why either didn't load), heartbeat live, and what's on deck
-from the handoff (if anything). Any finding from step 3 (malformed
+from the handoff (if anything). Any finding from step 4 (malformed
 content, an unresolved id, a wrong type, more than one holder) gets
-said here too, not buried in a log the user never reads.
+said here too, not buried in a log the user never reads. If step 2 asked
+anything this boot, say what was asked and what was recorded — silently
+writing the record and saying nothing is exactly the "buried in a log"
+failure this line exists to prevent.
