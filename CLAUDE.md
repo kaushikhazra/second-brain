@@ -184,15 +184,19 @@ persona and user are whoever `persona.md` and `user.md` currently define.)
 - **Remove**: route through `/delete-memory` — archive by default, delete
   only when never-true or a duplicate. Never call `memory_delete` directly.
 
-**Memory types and decay**:
+**Memory types and decay** — initial stability in days, read from
+`synaptra.decay` and identical to the figures in
+`.claude/shared/memory/memory-shapes.md`'s "Synaptra specifics" section (one
+number, stated in both places, not two that can drift apart):
 
-| Type | Use for | Decay rate |
-|------|---------|------------|
-| `working` | Transient task context, current session notes | Fast (hours) |
-| `episodic` | Events, conversations, experiences, milestones | Moderate (days) |
-| `semantic` | Facts, decisions, architecture knowledge, preferences | Slow (weeks) |
-| `procedural` | How-to knowledge, workflows, processes | Very slow (months) |
-| `identity` | Self-knowledge, core operating principles | Very slow |
+| Type | Use for | Decay rate | Initial stability (days) |
+|------|---------|------------|---------------------------|
+| `working` | Transient task context, current session notes | Fast | 0.04 |
+| `episodic` | Events, conversations, experiences, milestones | Moderate | 2.0 |
+| `semantic` | Facts, decisions, architecture knowledge, preferences | Slow | 14.0 |
+| `procedural` | How-to knowledge, workflows, processes | Very slow | 60.0 |
+| `person` | The owner, or another person the brain models | Very slow | 90.0 |
+| `identity` | Self-knowledge, core operating principles | Very slow | 365.0 |
 
 **Rules**:
 

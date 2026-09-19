@@ -1,61 +1,64 @@
 # Action
 
-**Cycle 6. The `PreToolUse` hook for AC 12 and AC 26 — `assumption.md`'s Route 1.**
+**Cycle 7. AC 24 — the session-end conformance scan.**
 
-Cycle 5 finished the four skills, the shapes file, and `CLAUDE.md`'s routing (AC 1–4,
-23 all pass by script). What's left splits into: skill-judgment criteria needing either
-a mechanism (AC 12, AC 26 — this cycle) or a scripted-agent run (AC 8, and arguably AC
-5/11/13/15 — a later cycle), and AC 24 (session-end's conformance scan — untouched,
-also a later cycle). This cycle does exactly one thing well rather than three things
-thinly: the hook.
+Cycle 6 finished the last mechanism-backed pair (AC 12, AC 26 via the hook). What
+remains splits into skill-judgment criteria with no designed proof route yet (AC 5, 11,
+13, 15–17, 20–22 — leave these alone; `assumption.md` never promised a mechanism for
+them and inventing one isn't this cycle's job) and AC 24, which — unlike those — is
+concrete: `CLAUDE.md`'s own loop-engineering section already names
+`session-end/verify_memory.py` as "the seed" for this kind of check, and `session-end`
+currently has no such script.
 
 Read the issue's criteria fresh (`gh issue view 2 -R kaushikhazra/second-brain`) before
-the diff and before `logs/cycle-5.md`. Re-read `assumption.md` fresh — its post-cycle-2
-addendum is the spec for this cycle; re-read it rather than working from memory of it.
+the diff and before `logs/cycle-6.md`. Re-read `assumption.md` fresh.
 
-## 1. Confirm the hook mechanism before writing one
+## 1. Solve the actual design question first: how does a SCAN see a violation?
 
-Do not assume `PreToolUse` hooks work the way a general Claude Code doc might describe
-them without checking this project's own setup. `.claude/settings.json` currently has
-no `hooks` key at all (confirmed cycle 5) — this is a genuinely new addition, not an
-edit to something existing. Find a real example in this machine's other Claude Code
-projects or the product docs before writing the schema from memory; a wrong hook
-schema that silently fails to fire is worse than no hook, because the check script
-would then be validating a hook that never runs against the real tool calls.
+AC 24's text: "A direct store made outside the four skills is found by the session-end
+conformance scan and reported by id." The hook (cycle 6) prevents a *future* one; this
+scan is about *detecting* one that happened — different job, and it can only work from
+what's actually recorded on a memory, since synaptra doesn't tag a memory with "which
+skill wrote this."
 
-## 2. Write the hook
+Investigate before designing: what does `/create-memory` actually pass as `source` on
+every store (check the skill and cycle 2's `check_create_memory.py` runs for the
+convention already in use)? If `/create-memory` has a consistent, identifiable
+`source` marker and an ad-hoc direct call would plausibly NOT set it the same way, the
+scan is: list recent active memories, flag any whose `source` doesn't match the known
+marker, report by id. **If no such reliable signal exists, say so plainly** rather than
+building a scan that can't actually distinguish a compliant store from a violation —
+same discipline as AC 12/26 before the hook existed: a check that can't really test the
+thing is worse than an honest "not provable this way yet."
 
-Two checks, one hook (or two hooks — decide based on what the schema actually
-supports):
+## 2. Write `.claude/skills/session-end/verify_memory.py`
 
-- **AC 12**: on `mcp__synaptra__memory_store` or `mcp__synaptra__memory_update`, if the
-  call's `tags` includes `self-map` or `surface-map`, block it and state the rule
-  (`-design` suffix exists for a reason to write about the list).
-- **AC 26**: on `mcp__synaptra__memory_relate`, if `source_id` or `target_id` is
-  shorter than a full uuid (36 chars, hyphenated), block it and state the full-uuid
-  rule.
+Stdlib + the venv's synaptra client (talking to the **live** store this time — this is
+the one script in this story that's supposed to run against `.claude/synaptra-data`,
+because its whole job is auditing what's actually there; still never write anything to
+it, read-only). Scans memories from some recent window, reports any that look like a
+direct-call violation by id, per whatever signal step 1 finds.
 
-Keep the refusal text in `/create-memory` too (already there) — the hook is the
-backstop, not the only place the rule is stated, same relationship AC 23's conformance
-scan (AC 24) will have to the skills once that's built.
+## 3. Wire it into `/session-end`'s own SKILL.md
 
-## 3. Prove it with a script that invokes the hook directly
+`session-end` currently doesn't name any memory tool directly (confirmed cycle 6 — its
+prose is high-level, "store the day's learnings," no literal `memory_store` string, so
+AC 23's grep doesn't even see it). Add a step that runs the scan and surfaces its
+findings, without inventing new session-end mechanics beyond that one step — this
+loop's scope is issue #2, not a session-end rewrite.
 
-Per `assumption.md`: "the check is a script that invokes the hook with a bad payload
-and asserts it exits non-zero, and with a good payload and asserts it passes." Write
-`.claude/shared/memory/check_hooks.py` (stdlib, no synaptra import needed — this tests
-the hook script itself, not a live store) with one bad/good pair per criterion.
+## 4. Prove it with a script
 
-## 4. Run `check_shapes.py` too
+`.claude/shared/memory/check_conformance_scan.py` (or extend `check_shapes.py` if it
+fits the existing pattern better) — store one memory the "compliant" way (matching
+whatever marker step 1 settled on) and one the "violation" way, against a **scratch**
+store, run the scan against it, confirm it flags only the second by id. Never the live
+store for this proof, even though the scan itself targets the live store in production.
 
-Confirm nothing regressed (it shouldn't — this cycle doesn't touch skills or
-`CLAUDE.md`).
+## 5. Commit, push, log, write cycle 8's action.md, exit
 
-## 5. Commit, push, log, write cycle 7's action.md, exit
-
-If AC 12 and AC 26 both land and prove out, the number should move to 16/27. Next
-cycle's candidates, to weigh with fresh eyes rather than decided here: AC 24 (the
-session-end conformance scan — concrete, no new mechanism type needed) or the
-scripted-agent run for AC 8 (and possibly bundling AC 5/11/13/15 into the same headless
-run, since `assumption.md` describes one run per cycle that touches the skill, not one
-run per criterion).
+If this lands and proves out, the number moves to 17/27 — the last one with a
+plausible mechanism. What's left after this cycle is genuinely just the skill-judgment
+list with no assigned route; say that plainly in `logs/cycle-7.md` rather than
+inventing new mechanism-hunting busywork, and let a future cycle (or Velasari) decide
+whether any of them get a scripted-agent pass like AC 8's planned one.

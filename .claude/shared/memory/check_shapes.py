@@ -198,7 +198,50 @@ def check_ac4() -> tuple[bool, str]:
         if missing_pointers:
             parts.append(f"missing pointer(s) to: {', '.join(missing_pointers)}")
         detail = "; ".join(parts)
-    return ok, detail
+    if not ok:
+        return ok, detail
+
+    # Also confirm the stability-days NUMBERS match the shapes file's — the point of
+    # putting them in both places is that they can't silently drift apart.
+    claude_stability: dict[str, float] = {}
+    for m in re.finditer(
+        r"^\|\s*`([\w-]+)`\s*\|.*\|.*\|\s*([\d.]+)\s*\|\s*$", text, re.MULTILINE
+    ):
+        claude_stability[m.group(1)] = float(m.group(2))
+
+    shapes_text = (
+        SHAPES_FILE.read_text(encoding="utf-8") if SHAPES_FILE.is_file() else ""
+    )
+    stability_block_m = re.search(
+        r"Initial stability by type.*?:\*\*(.*?)\.\s*$",
+        shapes_text,
+        re.MULTILINE | re.DOTALL,
+    )
+    shapes_stability: dict[str, float] = {}
+    if stability_block_m:
+        for m in re.finditer(r"`([\w-]+)`\s+([\d.]+)", stability_block_m.group(1)):
+            shapes_stability[m.group(1)] = float(m.group(2))
+
+    mismatches = []
+    all_types = set(claude_stability) | set(shapes_stability)
+    for t in sorted(all_types):
+        c, s = claude_stability.get(t), shapes_stability.get(t)
+        if c is None:
+            mismatches.append(f"{t}: missing from CLAUDE.md's table")
+        elif s is None:
+            mismatches.append(f"{t}: missing from the shapes file's stability line")
+        elif c != s:
+            mismatches.append(f"{t}: CLAUDE.md={c} vs shapes file={s}")
+
+    if mismatches:
+        return (
+            False,
+            f"routing text OK, but stability numbers disagree: {'; '.join(mismatches)}",
+        )
+    return (
+        True,
+        f"{detail}; stability numbers match the shapes file for all {len(all_types)} types",
+    )
 
 
 def main() -> int:
