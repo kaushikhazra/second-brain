@@ -10,7 +10,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__synaptra__memory_store|mcp__synaptra__memory_update|mcp__synaptra__memory_relate",
+        "matcher": "mcp__synaptra__memory_store|mcp__synaptra__memory_update|mcp__synaptra__memory_relate|mcp__synaptra__memory_archive|mcp__synaptra__memory_delete|mcp__synaptra__memory_unrelate",
         "hooks": [
           {
             "type": "command",
