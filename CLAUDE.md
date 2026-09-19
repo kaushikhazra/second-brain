@@ -135,6 +135,7 @@ improvise or replicate its steps from here.
 | A self-contained build/edit/research task that a local model can carry alone | `/local-agent` |
 | User wants to create a new Claude Code subagent | `/agent-creator` |
 | User asks for it, when memory feels flat or a major arc closed — never scheduled | `/dream` |
+| Owner references a past session by regex, not something already in cognitive memory | `/recall-session` |
 
 ## Structure
 
@@ -149,6 +150,7 @@ improvise or replicate its steps from here.
 | `.claude/skills/dream/` | Deep memory consolidation — graph reshaping, user-invoked. |
 | `.claude/skills/local-agent/` | Hands a whole task to a local ollama model that runs its own agentic loop and returns one typed result. |
 | `.claude/skills/agent-creator/` | Interactively creates a real Claude Code subagent — six-question flow, generates `.claude/agents/*.md`, indexes it below. |
+| `.claude/skills/recall-session/` | Regex search across this brain's own Claude Code session transcripts, scoped to this project only. |
 
 ## Synaptra
 
