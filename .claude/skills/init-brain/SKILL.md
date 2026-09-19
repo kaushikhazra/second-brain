@@ -362,6 +362,44 @@ answer (Neutral → they/them):
 elaboration.}
 ```
 
+## Seed the boot lists
+
+**Gate first, every time:** `memory_list(tags=["self-map"], state="active")`. Any
+active result → **skip this whole round** — a restored brain, or one that already
+ran it (AC 16). Only a genuinely empty result proceeds.
+
+If clear: store 3 `identity`, `persona`-shaped memories via `/create-memory` (route
+through the skill, never a raw store call — issue #2's AC 23 still holds), each one
+node, per `.claude/shared/memory/memory-shapes.md`'s own `persona` section:
+1. **Name and nature** — from `persona.md`'s Identity (Name, Character).
+2. **Roles** — from `persona.md`'s Roles table.
+3. **Voice** — from `persona.md`'s Voice.
+
+Collect the 3 returned ids. Before storing the self map itself, write the exemption
+sentinel `memory_guard.py` expects (`.claude/.list-holder-check.json`,
+`{"tag": "self-map", "existing_holder_id": null, "written_at": <epoch seconds now>}`
+— match its documented shape exactly, don't reconstruct from memory), then
+`/create-memory` one more memory: content = the 3 ids, one per line, nothing else,
+tags=`["self-map"]`, **type explicitly `identity`.**
+
+**Then the surface map, empty** (AC 15's other half): sentinel again
+(`{"tag": "surface-map", "existing_holder_id": null, ...}`), then `/create-memory`
+with content = `""`, tags=`["surface-map"]`, **type explicitly `identity`** here too.
+
+⛔ **Both list holders MUST be typed `identity`, not left to auto-classify.** A bare
+uuid list (or empty string) carries no content signal `/create-memory`'s classifier
+can read as identity — left unspecified, it lands `episodic` (confirmed against a
+live run: 2-day stability). `/dream`'s consolidation archives low-retrievability
+memories on sight, and an `episodic` boot-list holder would decay past that threshold
+within days of the owner not starting a session — silently breaking `/session-start`'s
+entire boot mechanism the next time they did. The two lists are infrastructure the
+brain depends on every session, not incidental content; `identity`'s 365-day
+stability is what "exactly one active holder" (AC 1, AC 2) actually needs to hold
+true over time, not just at the moment of creation.
+
+`persona.md`/`user.md` stay exactly as written above — this round adds a synaptra
+record of them, it does not touch either file (AC 17).
+
 ## Finish
 
 Summarize what was created in 2-3 lines and offer refinements (e.g.,
