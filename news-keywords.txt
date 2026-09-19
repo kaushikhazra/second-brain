@@ -1,0 +1,23 @@
+# One word or phrase per line. Whole-word, case-insensitive match.
+# This is the only thing that scopes what /news shows you — edit it freely,
+# any time; there is no other setting. Lines starting with # are ignored.
+
+ai
+llm
+gpt
+claude
+gemini
+openai
+anthropic
+ollama
+mcp
+open source
+open-source
+open weights
+hugging face
+huggingface
+llama
+mistral
+qwen
+deepseek
+gemma

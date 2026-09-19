@@ -137,6 +137,7 @@ improvise or replicate its steps from here.
 | User asks for it, when memory feels flat or a major arc closed — never scheduled | `/dream` |
 | Owner references a past session by regex, not something already in cognitive memory | `/recall-session` |
 | Owner wants to switch idle curiosity on/off/check its state, or run one pass by hand — otherwise fires only from the heartbeat's quiet cycles | `/curiosity` |
+| Owner wants to switch the morning news on/off/check its state, or wants the list right now — otherwise it runs once daily, after `/session-start`, when active | `/news` |
 
 ## Structure
 
@@ -153,6 +154,7 @@ improvise or replicate its steps from here.
 | `.claude/skills/agent-creator/` | Interactively creates a real Claude Code subagent — six-question flow, generates `.claude/agents/*.md`, indexes it below. |
 | `.claude/skills/recall-session/` | Regex search across this brain's own Claude Code session transcripts, scoped to this project only. |
 | `.claude/skills/curiosity/` | Idle cognitive mode — reads outside the memory graph, stores what comes back, wanders across distant memories, opt-in via the activation record. |
+| `.claude/skills/news/` | Morning news list — headlines and links, web search plus YouTube subscriptions, opt-in via the same activation record. |
 
 ## Synaptra
 

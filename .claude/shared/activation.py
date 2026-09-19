@@ -103,8 +103,44 @@ def answered_at_version(record: dict, habit: str) -> str | None:
 def set_answer(record: dict, habit: str, version: str, active: bool) -> dict:
     """Returns a NEW record with `habit`'s entry set to `(version, active)`.
     Pure -- does not touch disk. A pure function is what keeps every caller
-    (the session-start step, `/curiosity on|off`) producing the exact same
-    entry shape instead of three slightly different ones."""
+    (the session-start step, `/curiosity on|off`, `/news on|off`) producing
+    the exact same entry shape instead of three slightly different ones.
+
+    Resets `last_run` (issue #7) -- a fresh answer is a fresh start, and a
+    habit that was just re-asked (a VERSION change) should be free to run
+    again today rather than staying silent because of a run recorded under
+    the old answer."""
     updated = dict(record)
     updated[habit] = {"answered_at_version": str(version), "active": bool(active)}
+    return updated
+
+
+def last_run(record: dict, habit: str) -> str | None:
+    """The ISO date (`YYYY-MM-DD`) `habit` last ran on, or None if it has
+    never run (or the record predates issue #7 and has no such field)."""
+    entry = _entry(record, habit)
+    if entry is None:
+        return None
+    v = entry.get("last_run")
+    return v if isinstance(v, str) else None
+
+
+def ran_today(record: dict, habit: str, today: str | None = None) -> bool:
+    """True when `habit`'s `last_run` is today's date. `today` is injectable
+    for tests; real callers omit it and get the local calendar date."""
+    today = today or datetime.now().date().isoformat()
+    return last_run(record, habit) == today
+
+
+def set_last_run(record: dict, habit: str, today: str | None = None) -> dict:
+    """Returns a NEW record with `habit`'s `last_run` set to today's date,
+    leaving `answered_at_version`/`active` untouched. Raises if `habit` has
+    no entry yet -- a habit that was never activated has nothing to stamp a
+    run against."""
+    entry = _entry(record, habit)
+    if entry is None:
+        raise ValueError(f"set_last_run: {habit!r} has no activation entry yet")
+    today = today or datetime.now().date().isoformat()
+    updated = dict(record)
+    updated[habit] = {**entry, "last_run": today}
     return updated
