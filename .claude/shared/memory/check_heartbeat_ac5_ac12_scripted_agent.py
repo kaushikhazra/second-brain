@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -49,8 +50,40 @@ WINDOW = (
 
 
 def build_scratch_project() -> None:
+    # goal.md's empty-content write instructs resolving `cm` from THIS BRAIN'S OWN
+    # .claude/.venv/Scripts/, walked up from the brain root -- same discipline as
+    # /session-start's step 0. A scratch project has no .venv of its own (copying one
+    # is slow and pointless), so give it a real one via a directory JUNCTION to the
+    # actual repo's .venv, rather than telling the model an out-of-band absolute path.
+    #
+    # SAFETY: a Windows junction inside a tree that later gets shutil.rmtree'd is a
+    # real hazard -- shutil.rmtree does not treat a junction as a symlink (Python's
+    # os.path.islink() returns False for it) and can walk straight through it,
+    # deleting the REAL target's contents: the live repo's actual .venv. So the
+    # junction is ALWAYS detached with os.rmdir() (which only removes the reparse
+    # point itself, never recurses into the target) BEFORE any rmtree of this tree
+    # ever runs, on every rebuild, not just the first.
+    venv_link = SCRATCH_PROJECT / ".claude" / ".venv"
+    if venv_link.is_dir():
+        os.rmdir(venv_link)
+
     if SCRATCH_PROJECT.exists():
         shutil.rmtree(SCRATCH_PROJECT)
+
+    (SCRATCH_PROJECT / ".claude").mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            "cmd",
+            "/c",
+            "mklink",
+            "/J",
+            str(venv_link),
+            str(REPO_ROOT / ".venv"),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
 
     for skill in ("create-memory", "update-memory", "read-memory", "heartbeat"):
         dest = SCRATCH_PROJECT / ".claude" / "skills" / skill
@@ -200,7 +233,7 @@ def do_run(holder_id: str, entry_id: str) -> None:
         cwd=str(SCRATCH_PROJECT),
         capture_output=True,
         text=True,
-        timeout=180,
+        timeout=280,
     )
     if proc.returncode != 0:
         raise RuntimeError(

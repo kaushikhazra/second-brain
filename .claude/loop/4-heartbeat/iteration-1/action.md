@@ -1,68 +1,69 @@
 # Action
 
-**Cycle 3. Root-cause the AC 5/12 write failure, then fix it.**
+**Cycle 4. AC 13 (entry test) and AC 16's mechanism (self map never written by a beat).**
 
-Read `logs/cycle-2.md` first. Cycle 2 proved AC 8 and AC 19 (5/20 total) but AC 5/12's
-headless run failed: the beat correctly judged the seeded surface-map entry closed,
-but 10 consecutive `memory_update` attempts against the holder came back
-`InputValidationError`, and the write never landed (confirmed against the actual
-store, not the transcript). A direct `cm update <id> --content ""` against the same
-holder worked fine, which rules out "empty content itself is invalid" — so the cause
-is in how the SCRIPTED AGENT constructed or routed that specific call, not in
-synaptra itself. Two candidates, undistinguished by the evidence cycle 2 had:
+Read `logs/cycle-3.md` first. Cycle 3 fixed and proved AC 5 + AC 12 (7/20 total) —
+the surface-map write now routes empty-content updates through `cm` (via Bash,
+resolved from the brain's own `.claude/.venv/Scripts/cm`, never a frozen path) instead
+of the raw MCP tool, which reproducibly failed to encode an empty JSON string.
+Cycle 3's own stretch goals (AC 13, AC 16) were deferred — the AC 5/12 investigation
+took the whole cycle. They're this cycle's plan.
 
-1. `/update-memory`'s own text tells every caller to re-fetch and re-pass the full
-   tag list on every update. Followed literally for the surface-map write, that means
-   passing `tags=["surface-map"]` on a call `goal.md § surface-map` says must be
-   content-only — which `memory_guard.py` would then refuse. Against this: the
-   hook's block message ("BLOCKED (AC 12): tag(s)...") doesn't match what cycle 2's
-   run actually reported.
-2. A malformed call shape from the model itself (e.g. `content` passed as something
-   other than a plain string), repeated identically without self-correction.
+## 1. AC 13 — headless run
 
-1. **Re-run AC 5/12 with `--output-format stream-json`** instead of `json`, against a
-   freshly-seeded copy of the same scenario (same scratch data shape as cycle 2's
-   script, new data dir so the failed run's data doesn't contaminate this one).
-   Capture the actual tool-call arguments and tool-result content for every
-   `memory_update` / `mcp__synaptra__memory_update` attempt — that is the one thing
-   cycle 2's `--output-format json` run didn't give you. This tells you which of the
-   two candidates (or something else) it actually was. Record the real payload in
-   `logs/cycle-3.md`, not a guess.
+"An entry is added only if it has a date, is still open, and is typed `working`,
+`episodic` or `semantic`; unclear on any of the three, it is not added."
 
-2. **Fix whatever it turns out to be.**
-   - If it's candidate 1 (the tags carve-out): this is now the cycle to add it.
-     One sentence in `/update-memory`'s own table — the surface-map beat write is
-     maintenance the list exists for, not the "merely untidy → do nothing" case — so
-     the skill's own text stops instructing a caller to re-pass `tags` on this one
-     kind of call. This is the exception cycle 1 and cycle 2 both already pointed at;
-     touching `/update-memory` this cycle is the plan, not a scope violation of the
-     earlier "don't touch it yet" rule, which was written before this evidence
-     existed.
-   - If it's candidate 2 (a malformed call shape): fix is in `goal.md § surface-map`'s
-     "Writing it" section — state the exact call shape more explicitly (content as a
-     plain newline-joined string of the ids, nothing structured) if the current text
-     is genuinely ambiguous about that.
-   - If it's neither, say so plainly rather than forcing one of the two onto the
-     evidence.
+Seed a scratch store with a `procedural` memory that reads as recent (a date-like
+phrase in its content, but typed `procedural`) and a window that plausibly suggests
+it belongs on the surface map. Run a beat, verify from the store afterward that the
+surface-map holder's content does NOT include that memory's id — the type exclusion
+held even though the content read as timely. Same "verify against the store, not the
+transcript" discipline as every prior proof. New scratch data dir under
+`C:/Projects/.tmp/second-brain-loop-4/`, built the same way as the AC 5/12 scratch
+project (reuse `check_heartbeat_ac5_ac12_scripted_agent.py`'s `build_scratch_project`
+shape — heartbeat + create-memory + update-memory + read-memory — as a template for a
+new `check_heartbeat_ac13_scripted_agent.py`, including the same junction-safety
+discipline for `cm` resolution: detach with `os.rmdir()` before any `shutil.rmtree`,
+every rebuild, not just the first — copy that safety pattern exactly, don't
+re-derive it from scratch and risk missing it).
 
-3. **Re-run `check_heartbeat_ac5_ac12_scripted_agent.py` end to end** (fresh seed,
-   stop the seed server, run, verify against the store) to confirm the write now
-   lands: the holder's content after the beat should be empty (the one seeded id was
-   closed and nothing replaced it).
+## 2. AC 16 — mechanism, mirroring #3's holder-exemption hook
 
-4. **If time remains after that**: AC 13 (entry test rejects an unclear-type item —
-   seed a `procedural` memory that looks recent, confirm it is not added to the map)
-   and AC 16's mechanism (self-map holder update refused unless the sentinel says
-   init-brain is running — try extending `memory_guard.py`'s existing holder
-   exemption with the narrower rule `assumption.md`/`observe.md` describe; fall back
-   to a headless-run proof and say why if it's too entangled with #3's sentinel
-   design).
+"The self map is never written by a beat; a beat that concludes something belongs on
+it says so to the owner and changes nothing."
+
+`observe.md`'s own proof standard names the approach: extend `memory_guard.py`'s
+existing holder-exemption logic (issue #3) with a narrower rule — a `memory_update`
+whose target id is the **self-map** holder is refused unless the sentinel
+(`.claude/.list-holder-check.json`) says `/init-brain` is the one running it (the
+sentinel already carries `tag`; check whether it needs a new field, e.g. a `skill`
+or `writer` name, to distinguish "init-brain legitimately updating the self-map
+holder" from "anything else touching that same id" — the current sentinel schema was
+built for issue #3's create-or-update-the-holder case, not for "which skill is
+calling," so read `memory_guard.py`'s docstring and `check_holder_exemption()`
+carefully before assuming the existing fields are enough).
+
+- If a narrow addition to the hook is clean: add it, extend `check_hooks.py` with the
+  new cases (a `memory_update` against the self-map holder id, with and without a
+  qualifying sentinel), confirm `check_hooks.py` still shows N/N passing with the new
+  count.
+- If it's too entangled with #3's sentinel design to do cleanly in one cycle: say so
+  plainly, fall back to a headless-run proof instead (seed a self-map holder, run a
+  beat with a window that plausibly suggests something belongs on the self map,
+  verify from the store that the holder's content is unchanged and that the beat's
+  output said so to the owner rather than silently writing).
+
+Do not touch `/update-memory`, `/create-memory`, `/read-memory`, or `CLAUDE.md` this
+cycle beyond what's already landed — this cycle's scope is `memory_guard.py` (if the
+mechanism route is taken) and new check scripts only.
 
 Never the live store — scratch under `C:/Projects/.tmp/second-brain-loop-4/`, fresh
-data dirs for anything re-seeded, started and stopped explicitly.
+data dirs for anything re-seeded, started and stopped explicitly, junction-safety
+discipline copied from the AC 5/12 script wherever a scratch project needs `cm`.
 
 Re-run `check_shapes.py`, `check_hooks.py`, `check_session_start.py` and
 `check_heartbeat.py` before closing the cycle — all four must still pass.
 
-Commit on `feature/4-heartbeat`, push, write `logs/cycle-3.md`, write the next
+Commit on `feature/4-heartbeat`, push, write `logs/cycle-4.md`, write the next
 `action.md`, send the one-line report to velasari, and exit.
