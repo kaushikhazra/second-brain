@@ -44,9 +44,23 @@ times.
 
 ## Producing the list
 
-1. **Search the web, live, for today's news** scoped by the keyword file
-   below. No cache — a source older than today's run is not shown as
-   today's news.
+1. **Search the web, live, for the current news** scoped by the keyword file
+   below. No cache — never reuse a result from an earlier run, and never
+   answer from a training-data memory of what was current then. "Live" is
+   about the search itself, not the article's publish date: a genuinely
+   current item from a day or two ago is real news, not stale; a quiet day
+   (below) is about how much is actually happening, not an artificial
+   same-calendar-day filter.
+   - **The keyword file is a filter on what gets shown, not only a guide for
+     the search query.** Use the keywords to shape the search, then keep
+     only the results whose own headline matches one of them, whole word,
+     case-insensitive — the same mechanical rule the YouTube half already
+     uses. A result that is plainly *about* a keyword's subject but never
+     says so in its own headline does not pass; adjust the headline choice
+     or skip the item, but do not let a topical judgement stand in for the
+     word actually being there. This is what keeps AC 12 true: the file is
+     the *only* thing that changes what gets through, and a mechanical
+     match is checkable in a way "seemed relevant" is not.
 2. **Run the YouTube half:**
    ```
    python <this skill's directory>/scripts/youtube_subs.py --days 2 --limit 0
