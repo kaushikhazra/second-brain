@@ -16,9 +16,14 @@ Observe.
   it has an **owner** and a **brain**, not a named person.
 - **The store is synaptra, not cognitive-memory.** Tools are `mcp__synaptra__memory_*`,
   same names and same arguments. The CLI is `cm`, installed with synaptra under
-  `.claude/.venv`; `cm update <id> --type <type>` is how a type is changed, because
-  `memory_update` ignores `memory_type`. Verify this against the installed synaptra before
-  writing it into a skill: `cm --help`.
+  `.claude/.venv`.
+  **Corrected after cycle 1, from the installed engine (synaptra 2.0.0):** an explicit
+  `memory_type` on store is honoured as given; classification runs only when the type is
+  omitted. `update_memory` in the engine applies a type argument. The MCP tool surface
+  may not expose it. So the read-back after every store (AC 7) still matters for the
+  omitted-type path and for any later version that reclassifies; and AC 19 stands as
+  written, type changes go through `cm update <id> --type <type>`, which is verified to
+  exist. The shapes file states the verified behaviour and marks it version-specific.
 - **Reserved tags are `self-map` and `surface-map`.** They are defined here, in #2, even
   though the lists themselves arrive in #3. The shapes file carries the table; the
   holders' ids are unknown until #3 creates them, so the rule in this story is "one
@@ -29,9 +34,13 @@ Observe.
   under `C:/Projects/.tmp/second-brain-loop-2/`.** Never the live store at
   `.claude/synaptra-data`. If a check needs a running MCP server, start one against the
   scratch directory and stop it when the check ends.
-- **`dream` and `heartbeat` keep their logic.** Only their direct calls to `memory_store`
-  / `memory_update` / `memory_archive` are rerouted through the four skills, so AC 23 can
-  hold. Their rewrite is #4 and #5.
+- **`dream` and `heartbeat` keep their logic, and THIS story reroutes their call sites.**
+  Cycle 1 read this as "untouched"; it is not. AC 23 is a criterion of #2 and cannot hold
+  while those two files name `memory_store` or `memory_update`. The edit is narrow: each
+  sentence that tells the assistant to call `memory_store`, `memory_update` or
+  `memory_archive` directly becomes "through `/create-memory`" (or update / delete), and
+  nothing else in either file changes. No restructuring, no new steps. Their full rewrite
+  is #4 and #5. Do this in cycle 2 or 3, not last.
 - **`CLAUDE.md`'s Synaptra section is in scope for AC 4.** Replace the *Store / Update /
   Relate* bullets with routing to the four skills; keep the tool list and the DB/install
   paragraphs.
