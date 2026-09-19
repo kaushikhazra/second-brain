@@ -138,24 +138,38 @@ them at boot — a beat re-reads only the ones it needs to judge closure on.
   tidiness that skill's own rule warns against — it is the reason the list exists —
   but that carve-out is not yet stated in `/update-memory` itself; a later cycle adds
   it there by name.
-- ⚠ **A known, unresolved issue: writing an empty string** (the last remaining id
-  closing, dropping the list to zero) **is unreliable via `memory_update`.** A
-  scripted-agent run (issue #4, cycle 3) found the MCP tool call reproducibly
-  emitting malformed JSON (`"content": ` with nothing after the colon)
-  specifically when the value being sent is the empty string. A `cm update
-  <holder-id> --content ""` via Bash was tried as a workaround and does NOT
-  actually solve this: `cm` is an HTTP-only client (`--url`, default
-  `http://127.0.0.1:8050/mcp`) and this brain's synaptra runs over **stdio**,
-  spawned inline per-session with no listening port at all — there is no `cm
-  --url` that can ever reach it (confirmed by a scripted-agent run, issue #4,
-  cycle 4, after the CLI route was believed fixed on the strength of a broken
-  verification script — see that cycle's log). **Until a real fix lands**: try
-  the `memory_update` call once; if it fails, try rephrasing the call once
-  (not a blind identical retry); if it still fails, this is the SKILL.md
-  Failure section's case — say so once and stop, don't keep guessing at
-  workarounds. A non-empty content string (removing one id but leaving others)
-  is unaffected and goes through `memory_update` normally — only the
-  drops-to-zero case is unreliable.
+- ⚠ **Writing an empty string** (the last remaining id closing, dropping the list to
+  zero) **has been unreliable via a single `memory_update` call.** A scripted-agent
+  run (issue #4, cycle 3) found the MCP tool call reproducibly emitting malformed
+  JSON (`"content": ` with nothing after the colon) specifically when the value
+  being sent is the empty string, byte-for-byte identical on every blind retry — a
+  `cm update <holder-id> --content ""` via Bash CLI workaround does NOT solve this
+  either: `cm` is HTTP-only and this brain's synaptra runs over **stdio** with no
+  listening port, in scratch tests and the live brain alike (issue #4, cycle 4).
+  **Tried and did NOT fix it (issue #4, cycle 5)**: splitting into two calls — a
+  single-space `memory_update` first, confirmed landed, then a follow-up call to
+  the true empty string. The single space always lands fine; the follow-up
+  empty-string call fails the same identical way. The glitch is specific to
+  generating the empty-string VALUE itself, not to an identical retry or a
+  single-field payload shape.
+  **Also tried and did NOT fix it (issue #4, cycle 5)**: passing the holder's
+  current `importance` alongside `content: ""` in the same call, on the theory
+  that a different payload shape might avoid the glitch. It didn't — the
+  malformed JSON reproduced identically with the extra field present. **This
+  looks like a Claude Code / MCP tool-call generation quirk specific to
+  generating a literal empty-string value, not something fixable by rewording
+  this skill's instructions** — flagged to velasari and Kaushik rather than
+  guessed at further.
+  **Until a real fix lands (a harness update, or a different approach neither
+  cycle 3 nor cycle 5 tried)**: attempt the empty-content `memory_update` call;
+  if it fails, **stop — this is the `SKILL.md` Failure section's case** — say so
+  once and leave the holder on its last valid (non-malformed) state. Do not
+  retry blindly and do not keep improvising new payload shapes per beat; the
+  two documented attempts above are enough evidence that this needs a fix
+  upstream of what a beat can do about it in the moment. A non-empty content
+  string (removing one id but leaving others) is unaffected and goes through
+  `memory_update` normally — only the drops-to-zero case is affected, and it
+  stays a known, reported, unresolved limitation until fixed elsewhere.
 - Ids only, newline-separated, nothing else. No prose, no labels, no stamp.
 - Say "removed from the map", never "evicted" or "forgotten" — removing an id does
   not remove the memory. It stays in memory proper, fully retrievable; it is simply

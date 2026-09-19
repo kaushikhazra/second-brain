@@ -1,62 +1,77 @@
 # Action
 
-**Cycle 5. Find a real fix for the empty-content `memory_update` failure (AC 5, AC 12).**
+**Cycle 6. Park AC 5/12 as flagged-and-blocked; move to AC 3, AC 4, AC 6, AC 7, and AC 10/11 if time allows.**
 
-Read `logs/cycle-4.md` first — it retracted cycle 3's "AC 5/12 fixed" claim after
-finding the verification script itself was broken (a `cm get` JSON-nesting bug that
-made every `do_verify()` in this story's scripts structurally incapable of reporting
-FAIL). That bug is fixed now, and every store-check function needs staying honest:
-after any `--verify` call, also do a raw `cm get` read by eye and confirm
-`updated_at` actually differs from `created_at` when a write was expected to land —
-don't trust a convenience script's PASS/FAIL alone again this story.
+Read `logs/cycle-5.md` first. Cycle 5 ruled out both mitigations action.md queued
+for the AC 5/12 empty-content write failure — a two-step write and a payload-shape
+variant, both tried with stream-json evidence, both failed identically. `goal.md`
+now states this plainly as likely a Claude Code / MCP tool-call generation quirk,
+not something a skill's prose can fix. **Do not attempt a third workaround this
+cycle** — that ground is covered. If a genuinely new idea surfaces (not a variant of
+the two already tried), note it in the log but don't spend the whole cycle on it;
+this criterion may need Kaushik or Velasari's input, or an upstream fix, neither of
+which this loop can produce by itself.
 
-The real, still-open problem: `mcp__synaptra__memory_update` reproducibly fails to
-encode a JSON `content` value of the empty string (`"content": ` with nothing after
-the colon, byte-for-byte identical on every retry in cycle 3's trace). The `cm` CLI
-route cycle 3 proposed is a dead end — `cm` is HTTP-only and this brain's synaptra
-runs over stdio with no listening port, in the scratch tests AND in the live brain
-alike. Do not re-try that route.
+Stay at 7/20 on AC 5/12 specifically unless a NEW idea (not the two already
+exhausted) gets tried and actually lands — verified against the store with a raw
+`cm get`, `updated_at` vs `created_at`, same discipline as every prior proof this
+story.
 
-## Things worth trying, in order
+## 1. AC 3 — headless run
 
-1. **A deliberately different second attempt, not an identical retry.** Cycle 3's 12
-   failures were byte-for-byte identical — the model never varied its own generation
-   between attempts. Test whether an EXPLICIT instruction to rephrase (e.g., "if the
-   first `memory_update` call for empty content fails, do not repeat it verbatim —
-   restate the same call with the arguments in a different order, or split it across
-   two calls: first set content to a single space, confirm that landed, then a
-   second call to strip it to empty") breaks the pattern. Build
-   `check_heartbeat_ac5_ac12_v2_scripted_agent.py` (copy the junction-safety and
-   scratch discipline from the existing AC 5/12 script) with `goal.md` updated to
-   give this explicit two-step instruction, and test whether the SECOND call (empty
-   content, not the intermediate single space) actually succeeds — a single space
-   surviving as the final state is not a pass; verify_memory.py's contract from
-   issue #3 requires actual emptiness for a fully-drained list, not a stray
-   character.
-2. **If (1) doesn't work**: try whether the MCP tool succeeds when `content` is
-   passed together with an unrelated no-op field change (e.g., re-passing the
-   current `importance` value) — sometimes a JSON-encoding glitch is specific to a
-   single-field payload shape, not the value itself.
-3. **If neither works**: this is very possibly a Claude Code / MCP tool-call
-   generation quirk, not something this skill's prose can fix by rewording. Say so
-   plainly in the log and to velasari rather than trying a fourth workaround under
-   time pressure. `SendFeedback`-style investigation is not this loop's job, but
-   flagging it clearly on crosschat is.
+"The beat never edits `observe.md` or `goal.md`; a change it concludes is needed is
+stored as a memory and the beat stops."
 
-## While at it
+Seed a scratch store (fresh data dir), give the beat a window that plausibly
+suggests one of the four sections should change (e.g., "the quiet-cycles threshold
+of three feels too low, it fires too often"). Verify from the FILE SYSTEM, not the
+transcript: `observe.md` and `goal.md` in the scratch project are byte-identical to
+what was copied in at build time. Verify from the STORE: a memory was created
+recording the proposed change. New `check_heartbeat_ac3_scripted_agent.py`, same
+junction-safety and scratch discipline as the existing scripts.
 
-Re-run AC 13 and AC 16's checks once more with the corrected `do_verify()` (they
-already passed the corrected version once this cycle, but re-confirming costs little
-against how much cycle 3's false confidence cost) — quick reruns against their
-existing scratch data (`ac13-scratch-data`, `ac16-scratch-data`), not full rebuilds,
-unless something looks off.
+## 2. AC 6 + AC 7 — headless runs
+
+"The beat prints nothing unless something is failing, something time-bound is
+closing, or a message from outside the session is addressed to the owner." /
+"The beat's cron prompt carries the words `requested by cron`, and a beat invoked
+without them still runs and says it was invoked by hand."
+
+Two small scenarios, can share one script: (a) a genuinely quiet window with no
+failure/deadline/outside-message — verify the beat's own final output is silent or
+near-silent (no unprompted narration); (b) the SAME prompt but WITHOUT the
+"requested by cron" marker — verify the beat still runs (not refused) and its output
+says it was invoked by hand, per `SKILL.md`'s invocation-source-check text.
+
+## 3. AC 4 — headless run, if time allows
+
+"Each beat reads the window since the previous beat, or since session start on the
+first." Harder to prove cleanly in a single-shot scripted-agent run (there's no real
+"previous beat" boundary in a fresh `claude -p` invocation) — think about whether a
+two-turn prompt (simulate two beats in one session, second beat's window should
+exclude what the first beat already captured) is buildable cheaply, or whether this
+is better proven as a text/design check for now and flagged for a later cycle if
+the scripted-agent construction gets expensive. Judgement call, proceed either way
+and say which you chose.
+
+## 4. AC 10 + AC 11 — headless runs, if time allows
+
+"When the owner says a claim was wrong, the beat writes the mechanism as a learning:
+an instance node with the detail, a bare rule node, typed `procedural`." /
+"A commitment about future work is stored typed `episodic`, never `working`."
+
+Two windows in one script: one with an explicit correction ("that's wrong, the
+actual behavior is X"), verify the resulting store is `procedural`-typed with an
+instance+rule shape; one with a future commitment ("we'll revisit this next
+sprint"), verify it lands `episodic`, never `working`. Reuse the AC 8 script's
+build as a template — it's the closest existing shape (plain `capture`-adjacent
+store verification, no surface/self map involved).
 
 Never the live store — scratch under `C:/Projects/.tmp/second-brain-loop-4/`, fresh
-data dirs for anything re-seeded, started and stopped explicitly, junction-safety
-discipline copied exactly from the existing scripts.
+data dirs, junction-safety discipline copied exactly from the existing scripts.
 
 Re-run `check_shapes.py`, `check_hooks.py`, `check_session_start.py` and
 `check_heartbeat.py` before closing the cycle — all four must still pass.
 
-Commit on `feature/4-heartbeat`, push, write `logs/cycle-5.md`, write the next
+Commit on `feature/4-heartbeat`, push, write `logs/cycle-6.md`, write the next
 `action.md`, send the one-line report to velasari, and exit.
