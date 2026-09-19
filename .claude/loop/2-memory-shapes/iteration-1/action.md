@@ -1,64 +1,53 @@
 # Action
 
-**Cycle 10. Batch B — AC 13, AC 15 (`/read-memory`'s tool-naming and boundary-first
-discipline).**
+**Cycle 11. Batch C — AC 16, AC 21, AC 22 (refuse a tidiness-only update, archive-vs-delete
+judgment, refuse partial constellation removal).**
 
-Batch A (cycle 9) proved AC 5, 11, 17, 20 — 22/27 total. Same methodology, reused: a
-scratch project, seed directly (never through the agent), run small focused headless
-scenarios, verify against ground truth where the criterion is about *stored state*, and
-say plainly when a criterion is about *order of operations during the response* instead
-— cycle 9 already hit this once (AC 20) and counted it on transcript evidence with the
-caveat stated. AC 15 is the same kind of claim, more so: "pulls the boundary **before**
-the rule is applied" is entirely about sequencing inside one response, not anything a
-final store state can show.
+Batch B (cycle 10) closed AC 13 cleanly and produced genuinely mixed evidence for AC 15
+— recorded, not forced into a verdict. 23/27, plus one documented-but-uncounted
+criterion. This is the last batch; after this cycle every one of the nine is either
+proved, or has real recorded evidence either way.
 
 Read the issue's criteria fresh (`gh issue view 2 -R kaushikhazra/second-brain`) before
-the diff and before `logs/cycle-9.md`. Re-read `assumption.md` fresh — check whether
-Velasari corrected the AC 11 batching call before proceeding further with the pattern.
+the diff and before `logs/cycle-10.md`. Re-read `assumption.md` fresh — check whether
+Velasari weighed in on AC 15's mixed result before deciding how to record it further.
 
-## 1. Solve the sequencing-evidence question before building
+## Build
 
-`--output-format json` (used for every run so far) only returns a final summary — no
-per-turn tool-call trace. Check `claude -p --help` again for `--output-format
-stream-json` (seen in the help text, not yet used) and `--include-hook-events` /
-`--forward-subagent-text` — one of these should expose the actual sequence of tool
-calls (does `memory_recall`/`memory_related` happen, then does the response text
-reference the boundary, before the rule is stated). Test the shape on a throwaway
-prompt first, the same way `-p`'s flags were confirmed before Batch A, rather than
-assuming a format from the flag name alone.
+`update-memory` + `delete-memory` (+ `create-memory` to seed). Fresh scratch data
+directory (`batch-c-scratch-data`). Use `--output-format json` (plain, like AC 8 and
+Batch A) unless a scenario turns out to need sequencing evidence the way AC 15 did —
+judge per scenario, don't default to `stream-json` everywhere out of habit.
 
-If no reasonably reachable output actually exposes ordering, say so plainly and score
-AC 15 the way AC 20 was scored last cycle — on the response text's own structure
-(does the boundary appear before the rule is stated, in the text itself) as the best
-available evidence, not a manufactured proof it doesn't have.
+## Three scenarios, seeded directly, never through the agent
 
-## 2. Build the scratch project
+1. **AC 16** — seed one ordinary `fact`. Ask for a purely cosmetic edit (e.g. a typo
+   fix that changes nothing substantive). Expect: refusal, with a stated reason
+   (stability-reinforcement cost, not just "I don't feel like it"). Verify against the
+   store: content unchanged, no version bump.
+2. **AC 22** — seed a full `learning` constellation (instance + procedure + boundary,
+   same pattern as Batch B). Ask it to remove just the procedure node, leaving the
+   instance and boundary. Expect: refusal, citing the constellation rule. Verify: all
+   three nodes still active afterward.
+3. **AC 21** — seed two cases: one superseded-but-was-true fact (a measurement replaced
+   by a newer one) and one never-true fact (asserted something that was wrong from the
+   start). Ask it to clean up both. Expect: the superseded one archived (not deleted),
+   the never-true one deleted, and it says which operation applies to which and why.
+   Verify: one ends up `state=archived` (still `memory_get`-able, restorable), the
+   other genuinely gone (`memory_get` fails).
 
-`read-memory` + `create-memory` (needed to seed a `learning` with a boundary — seed
-directly via `cm`, not through the agent, same as Batch A). Fresh scratch data
-directory, distinct from `batch-a-scratch-data` and `ac8-scratch-data`.
+Three small scenarios, not one contrived prompt — same lesson from Batch A.
 
-Seed one `learning` constellation directly: an instance node (what happened,
-verbatim-ish), a bare procedure node (the rule), a boundary node (when it does NOT
-apply) — `instance —supports→ procedure`, `boundary —part_of→ procedure`, all three the
-same store type.
+## Verify against ground truth, keep the running cost total
 
-## 3. Run the scenario(s)
+Running total before this cycle: ≈$1.16 (cycles 8–10). Add this cycle's cost.
 
-Ask a question that should land on the instance via recall. Check:
-- **AC 13**: does the response say which retrieval tool it used?
-- **AC 15**: does the boundary get pulled (referenced) before the rule is stated as
-  applying — in the response text's own order, and in the tool-call sequence if step 1
-  found a way to see it?
+## Commit, push, log, exit
 
-## 4. Verify, record, keep the running cost total
-
-Ground-truth where possible (nothing new should be *stored* by a read-only scenario —
-confirm the store is unchanged after, which is itself a useful check: a `/read-memory`
-call that accidentally wrote something would be a real bug). Add this cycle's cost to
-the running total from `logs/cycle-9.md` (≈$1.04 so far).
-
-## 5. Commit, push, log, write cycle 11's action.md, exit
-
-Queue Batch C (AC 16, 21, 22) for cycle 11 if Batch B doesn't leave time to start it —
-same "one thing well" discipline as every prior cycle.
+This closes Batch C. Write `logs/cycle-11.md` summing up where all 27 stand: met
+cleanly, met with a stated caveat (AC 20, AC 14, AC 25 precedent), and AC 15's mixed
+evidence specifically — don't let it quietly vanish from the tally just because it
+isn't a clean number. Write `action.md` for cycle 12 based on what's actually left,
+not assumed — if AC 15 is still the only unresolved one, cycle 12's job is deciding
+what to do about a criterion with real evidence on both sides, not building anything
+new.
