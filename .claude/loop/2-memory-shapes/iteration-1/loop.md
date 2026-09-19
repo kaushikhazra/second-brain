@@ -9,7 +9,7 @@ Artifact under test: C:/Projects/second-brain/.claude/shared/memory/  and  .clau
 Branch:              feature/2-memory-shapes
 Issue:               https://github.com/kaushikhazra/second-brain/issues/2
 
-Every 20 minutes, ONE iteration:
+Every 15 minutes, ONE iteration:
   - Action:  work on the skills and the checks, as action.md asks
   - Observe: check against the goal, using observe.md
   - If goal met:     stop the loop, delete the cron, comment on issue #2 with the numbers,
@@ -49,4 +49,4 @@ A blocked cycle says what blocks it on the same channel rather than only in the 
 **Read the clock rather than assuming it.** `date "+%Y-%m-%d %H:%M %z"`.
 
 **First run: on the cron's first fire after 2026-09-19 16:00 +0530. Fail-safe deadline:
-2026-09-19 23:30 +0530.** Cycles every 20 minutes — about 22 before the deadline.
+2026-09-19 23:30 +0530.** Cycles every 15 minutes, changed from 20 at 16:25 on Kaushik's instruction.
