@@ -106,8 +106,13 @@ months · `identity` years.
 
 ### 4. Write it
 
-- **Pass `source`** as the identifier of the model or process making the
-  call — this is the memory's `rater` for importance comparisons.
+- **Pass `source` as `"create-memory:<model-or-process-id>"`** — e.g.
+  `create-memory:claude-sonnet-5` or `create-memory:heartbeat-subagent`. The
+  `create-memory:` prefix is load-bearing, not decoration: it is the only
+  signal that tells a store apart from one made by a direct call outside
+  this skill (AC 24's conformance scan looks for exactly this prefix). The
+  part after the colon is still the rater for importance comparisons, same
+  as before.
 - **Set `importance` explicitly only at 0.8 and above.** Below that, leave
   it unset and let the store score it (AC 6).
 - **Tag it.** Tags are the only exact filter `memory_list`/`cm list` has.

@@ -54,7 +54,16 @@ Set `importance` to 0.8+ anyway (it governs ranking, which matters for
 recall), but the type is what makes the handoff survive. `episodic`
 decays days-scale and still ages out naturally once consumed.
 
-## 4. Sign off
+## 4. Run the memory conformance scan
+
+Fetch active memories (`memory_list(state="active")`), write the result to a
+temp JSON file, then run
+`python .claude/skills/session-end/verify_memory.py <that file>`. It flags
+any active memory whose `source` doesn't start with `create-memory:` —
+evidence of a store made outside `/create-memory`. Report any violation by
+id; it does not block sign-off, but it must be said, not buried in a log.
+
+## 5. Sign off
 
 One short line, in character: crons killed, learnings stored, handoff
 stored, what tomorrow starts with.
