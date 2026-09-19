@@ -38,11 +38,24 @@ one of them changes the operation entirely.
 point** — which still ranks, still surfaces, and is worse than nothing. Its boundary
 becomes an exception to a rule that no longer exists.
 
-⇒ ⛔ **Take the constellation or take none of it.** `memory_delete` cascades *edges*,
-not nodes — so it **creates** these orphans rather than preventing them (AC 22).
+🔴 **The reverse is the LIKELIER mistake, not a safer one.** Since the shapes file's
+instance-ranks inversion, the instance is the node recall actually lands on — it is
+never "safe either way" to remove and leave the bare procedure standing. A tidy-up
+instinct reads the instance as the disposable long story and the procedure as the
+important bare rule; that instinct is backwards. Losing the instance is the more
+damaging loss, not the lesser one.
 
-**Before removing a procedure node:** run `memory_related` on it, collect the whole
-constellation, act on all of them together.
+⇒ ⛔ **Take the constellation or take none of it — and that is the only choice
+offered, not one option among several.** `memory_delete` cascades *edges*, not nodes —
+so it **creates** these orphans rather than preventing them (AC 22). ⛔ **Do not
+present a partial removal as something the owner can pick.** "Delete just the
+procedure, leave the rest" or "delete just the instance, leave the rest" are not
+menu options to surface — they are the outcome this rule refuses. State the refusal
+and name the constellation rule; offer only "remove the whole constellation" or
+"remove nothing."
+
+**Before removing any node of a constellation:** run `memory_related` on it, collect
+the whole constellation, act on all of them together — or not at all.
 
 ---
 

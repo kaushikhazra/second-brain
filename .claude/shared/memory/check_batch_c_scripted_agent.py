@@ -11,13 +11,22 @@ afterward).
 Scenario 2 (AC 22): ask to delete just the procedure node of a seeded learning
 constellation, leaving the instance and boundary. Expect refusal or at minimum no
 unilateral deletion. NOTE, recorded honestly rather than auto-passed: the one real
-run of this scenario refused to act, correctly flagged the boundary would be
-orphaned, but ALSO (a) mischaracterized the instance as "safe either way" to leave
-behind (the shapes file says the opposite -- an instance with no procedure is "a
-story with no point"), and (b) offered the user an option that, if accepted, would
-still produce the exact orphaned state AC 22 forbids. The follow-up ("yes, do that
-anyway") was never tested. This script does not auto-score AC 22 -- print the
-transcript and the ground-truth store state, let a human read both.
+run of this scenario (targeting the PROCEDURE node) refused to act, correctly flagged
+the boundary would be orphaned, but ALSO (a) mischaracterized the instance as "safe
+either way" to leave behind (the shapes file says the opposite -- since the
+instance-ranks inversion, losing the instance is the LIKELIER mistake, not the
+safer one), and (b) offered the user an option that, if accepted, would still
+produce the exact orphaned state AC 22 forbids.
+
+**Fixed in cycle 12** (`.claude/skills/delete-memory/SKILL.md`): corrected the
+"safe either way" claim and made explicit that partial removal is never offered as
+a choice -- only "remove the whole constellation" or "remove nothing." Re-ran this
+scenario retargeted at the INSTANCE node specifically (the prompt below reflects
+the retargeted version) and it held: explicit refusal, named the constellation
+rule, offered only the two correct options, ground truth confirmed all three nodes
+still active. AC 22 counted from that re-run. This script does not auto-score
+AC 22 even so -- print the transcript and the ground-truth store state, let a
+human read both, same discipline as before.
 
 Scenario 3 (AC 21, first attempt): "the build server was upgraded from 16GB to
 32GB" -- ambiguous framing that the agent (defensibly) read as a plain fact
@@ -65,9 +74,8 @@ SCENARIO_1_PROMPT = (
     "polish the phrasing, nothing about the actual meaning needs to change."
 )
 SCENARIO_2_PROMPT = (
-    "Please delete just the rule memory about always running the full test suite "
-    "before merging a PR - the one that says the bare rule, not the story about it "
-    "breaking the build. Just that one node."
+    "Please delete just the instance memory - the story about merging a PR without "
+    "tests and breaking the build. Not the rule or the boundary, just that one."
 )
 SCENARIO_4_PROMPT = (
     "We just took a fresh server room temperature reading: 22C today. The old reading "
