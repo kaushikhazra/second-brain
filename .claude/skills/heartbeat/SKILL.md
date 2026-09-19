@@ -69,4 +69,7 @@ once and stop the beat. No retry. This is the first silence exception above
 
 **No double-run.** Each cron fire is its own fresh invocation of this skill; there is
 no persistent loop process for a slow beat to overrun. "Not run twice" is a property
-of that invocation model, not a lock this skill has to track.
+of that invocation model, not a lock this skill has to track — the scheduler's own
+documented behavior is that jobs only fire while the session is idle, never
+mid-query, so a beat still running cannot be fired again; the next fire starts
+fresh by construction.
