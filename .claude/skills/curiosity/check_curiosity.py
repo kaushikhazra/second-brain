@@ -94,8 +94,14 @@ def main() -> int:
         and next_version_reasks
         and not act.is_active(r_no, "curiosity")
     )
-    hint_in_session_start = (
-        "hint for switching it on later" in SESSION_START_MD.read_text(encoding="utf-8")
+    # Checks for the CONCRETE hint command, not a generic phrase -- issue #7
+    # turned session-start's activation step into a table shared by two
+    # habits, and a generic "hint for switching it on later" sentence
+    # regressed to a table-relative one ("that habit's one-line hint from
+    # the table above"), which is still correct but no longer matches a
+    # fixed phrase. The command itself is the part that must not go missing.
+    hint_in_session_start = "/curiosity on" in SESSION_START_MD.read_text(
+        encoding="utf-8"
     )
     hint_in_skill = "/curiosity on" in SKILL_MD.read_text(encoding="utf-8")
     ok3 = ok3 and hint_in_session_start and hint_in_skill

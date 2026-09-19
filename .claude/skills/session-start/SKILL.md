@@ -125,10 +125,10 @@ git-ignored activation record, nothing else. Runs even on a memory-less
 start, and runs on a fresh brain's very first session (the `/init-brain`
 path above lands here next).
 
-Shared by every habit that asks the owner to opt in once — currently
-`curiosity` (issue #6); a later habit (issue #7, `news`) registers a second
-entry in the same record through the same step, not a second block of prose
-here.
+Shared by every habit that asks the owner to opt in once — `curiosity`
+(issue #6) and `news` (issue #7) today, registered in the same record
+through this same step; a future habit is one more entry in the table
+below, not a second block of prose here.
 
 ```python
 from activation import brain_root, record_path, load_record, save_record, needs_ask, set_answer
@@ -137,26 +137,30 @@ from activation import brain_root, record_path, load_record, save_record, needs_
 (`.claude/shared/activation.py` — resolve the import path from this brain's
 own root, not a frozen path.)
 
-For each registered habit (`["curiosity"]` today):
+**Registered habits** — habit key, the question to ask, and the hint for a
+no/no-answer:
+
+| Habit | Question | Hint |
+|-------|----------|------|
+| `curiosity` | "Switch curiosity on? When idle, your brain will go to the root of something in memory, read outside the graph, and lay down provisional connections." | `/curiosity on` |
+| `news` | "Switch on the morning news? Once a day, after this step, you'll get today's headlines and links from your keyword list." | `/news on` |
+
+For each row in that table:
 
 1. Read `VERSION` at the brain root (strip whitespace).
 2. `record = load_record(record_path())`.
 3. If `needs_ask(record, habit, version)` is false, skip this habit — already
    answered for the current `VERSION`.
-4. Otherwise, ask **once**, with `AskUserQuestion`: *"Switch curiosity on?
-   When idle, your brain will go to the root of something in memory, read
-   outside the graph, and lay down provisional connections."* (or the
-   equivalent question for whichever habit is being asked about — the
-   question text is the habit's own, not this step's).
+4. Otherwise, ask **once**, with `AskUserQuestion`, using that habit's own
+   question text from the table above.
    - **A non-interactive (headless) session counts as no answer** — if
      `AskUserQuestion` is unavailable or errors, treat exactly like a
      declined question rather than retrying or blocking the boot.
    - **Yes** → `record = set_answer(record, habit, version, active=True)`.
    - **No, or no answer** → `record = set_answer(record, habit, version, active=False)`,
-     and print the habit's one-line hint for switching it on later
-     (`/curiosity on` for curiosity).
-5. `save_record(record_path(), record)` once, after all habits in the loop
-   above are resolved — not once per habit, so a boot that asks about two
+     and print that habit's one-line hint from the table above.
+5. `save_record(record_path(), record)` once, after every habit in the table
+   above is resolved — not once per habit, so a boot that asks about two
    habits writes the record a single time.
 
 The question is asked **once per habit per `VERSION`** — declined or
@@ -304,3 +308,30 @@ said here too, not buried in a log the user never reads. If step 2 asked
 anything this boot, say what was asked and what was recorded — silently
 writing the record and saying nothing is exactly the "buried in a log"
 failure this line exists to prevent.
+
+## 8. Daily habits
+
+After the report above, not before it — a habit's own output should never
+push the boot's own status further down the transcript.
+
+For each registered habit that runs once daily when active (currently
+`news`, issue #7):
+
+```python
+from activation import brain_root, record_path, load_record, save_record, is_active, ran_today, set_last_run
+```
+
+1. `record = load_record(record_path())`.
+2. If `is_active(record, "news")` is false, skip — nothing runs, nothing is
+   printed (the habit's own off-state rule, not this step's to relax).
+3. If `ran_today(record, "news")` is true, skip silently — already ran today,
+   and asking again is what "not again that day unless asked" (AC 11)
+   forbids.
+4. Otherwise, run `/news`. **A failure here is caught and reported in one
+   line — it never stops this session from having completed** (AC 19); this
+   step is deliberately last, after everything else this skill does, so a
+   news failure has nothing left of the boot to take down with it.
+5. Whether `/news` succeeded or failed, `save_record(record_path(),
+   set_last_run(record, "news"))` — a failed attempt still counts as today's
+   attempt; a broken source retried every few minutes for the rest of the
+   day would be its own kind of failure.
