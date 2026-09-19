@@ -152,24 +152,36 @@ them at boot — a beat re-reads only the ones it needs to judge closure on.
   empty-string call fails the same identical way. The glitch is specific to
   generating the empty-string VALUE itself, not to an identical retry or a
   single-field payload shape.
-  **Also tried and did NOT fix it (issue #4, cycle 5)**: passing the holder's
-  current `importance` alongside `content: ""` in the same call, on the theory
-  that a different payload shape might avoid the glitch. It didn't — the
-  malformed JSON reproduced identically with the extra field present. **This
-  looks like a Claude Code / MCP tool-call generation quirk specific to
-  generating a literal empty-string value, not something fixable by rewording
-  this skill's instructions** — flagged to velasari and Kaushik rather than
-  guessed at further.
-  **Until a real fix lands (a harness update, or a different approach neither
-  cycle 3 nor cycle 5 tried)**: attempt the empty-content `memory_update` call;
-  if it fails, **stop — this is the `SKILL.md` Failure section's case** — say so
-  once and leave the holder on its last valid (non-malformed) state. Do not
-  retry blindly and do not keep improvising new payload shapes per beat; the
-  two documented attempts above are enough evidence that this needs a fix
-  upstream of what a beat can do about it in the moment. A non-empty content
-  string (removing one id but leaving others) is unaffected and goes through
-  `memory_update` normally — only the drops-to-zero case is affected, and it
-  stays a known, reported, unresolved limitation until fixed elsewhere.
+  **The `cm` CLI route was re-tested at velasari's explicit request (issue #4,
+  cycle 6) and confirmed dead, not a wording problem.** Definitive: `cm --help`
+  lists exactly one connection option, `--url` (an HTTP endpoint, default
+  `http://127.0.0.1:8050/mcp`) — no file-mode, no stdio-mode, nothing that
+  reads a `SYNAPTRA_DB` path directly. This brain's synaptra always runs over
+  **stdio** (`.mcp.json`: `synaptra.exe --transport stdio`), spawned inline
+  per session with no listening port at all — there is categorically no URL
+  for `cm` to point at. Cycle 2's original proof that `cm update --content ""`
+  succeeds was run against a SEPARATE scratch HTTP server started for seeding
+  and verification — never the same connection a beat's own live session
+  holds. A cycle-4 trace showed `cm` defaulting to an unrelated port and
+  reporting the live entry "not found"; passing `SYNAPTRA_DB` as an env var to
+  `cm` did not help, because `cm` has no code path that reads it. This is a
+  protocol fact (stdio has no network endpoint), not a bug this skill's prose
+  can route around, and not an artifact of cycle 4's now-fixed verify-script
+  bug — that bug affected only how the RESULT was read back, not whether the
+  write itself landed.
+  **This looks like a Claude Code / MCP tool-call generation quirk specific to
+  producing a literal empty-string value** — three approaches (direct call,
+  two-step, payload-shape variant) and the CLI route have now all been tried
+  and ruled out with direct evidence against the store, not assumption.
+  **Until a real fix lands**: attempt the empty-content `memory_update` call;
+  if it fails, **stop — this is the `SKILL.md` Failure section's case** — say
+  so once and leave the holder on its last valid (non-malformed) state. Do not
+  retry blindly, do not reach for `cm`, and do not keep improvising new
+  payload shapes per beat; this needs a fix upstream of what a beat can do
+  about it in the moment. A non-empty content string (removing one id but
+  leaving others) is unaffected and goes through `memory_update` normally —
+  only the drops-to-zero case is affected, and it stays a known, reported,
+  unresolved limitation until fixed elsewhere.
 - Ids only, newline-separated, nothing else. No prose, no labels, no stamp.
 - Say "removed from the map", never "evicted" or "forgotten" — removing an id does
   not remove the memory. It stays in memory proper, fully retrievable; it is simply
