@@ -152,7 +152,7 @@ Walk the at-risk list:
 | Action | When |
 |--------|------|
 | `memory_archive(id)` | Resolved continuation, superseded snapshot, dated summary no longer load-bearing |
-| `memory_update(id, memory_type=...)` | Mistyped — change to the type whose decay profile matches the content's actual longevity |
+| `/update-memory` (type change) | Mistyped — change to the type whose decay profile matches the content's actual longevity |
 | Keep as-is | Genuinely still pending, active continuation |
 
 Make every judgment inline first; bulk execution may be dispatched to a

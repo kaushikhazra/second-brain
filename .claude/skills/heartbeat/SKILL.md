@@ -59,8 +59,8 @@ The sub-agent:
    existing memory instead of duplicating.
 2. **Detect continuations** — commitments about future work; also check
    whether previously noted continuations are now resolved.
-3. **Fill voids** — `memory_store` each with the appropriate type, tags,
-   and importance (per CLAUDE.md's Synaptra rules).
+3. **Fill voids** — call `/create-memory` for each, with the appropriate
+   type, tags, and importance (per CLAUDE.md's Synaptra rules).
 4. **Handle continuations** — new ones: **`episodic`** memory tagged
    `continuation`, `importance` 0.8+. Resolved ones: a `working` memory
    tagged `continuation-end`, related to the original via `memory_relate`

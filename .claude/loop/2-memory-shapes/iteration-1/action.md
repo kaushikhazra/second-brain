@@ -1,78 +1,65 @@
 # Action
 
-**Cycle 2. Prove `create-memory` against a live scratch store — nothing claimed this
-cycle rests on "the skill file says so."**
+**Cycle 3. Build `/read-memory`.**
 
-Cycle 1 landed the shapes file, `/create-memory`, and a structural check script
-(`check_shapes.py`, proves AC 1 and AC 3 only). Its constraint: AC 5–12, 25–27 are
-written into the skill but **unexercised** — no scripted synaptra session has run yet.
-That is this cycle's move.
+Cycle 2's constraint: the five criteria still stuck on `create-memory` (AC 5, 8, 11, 12,
+26) are stuck because they test the **skill's own judgment** — a raw script driving
+`cm` directly cannot exercise a prose-driven decision (recall-before-store, refusing a
+tag, refusing a short id). Proving those needs a scripted-**agent** session, not a
+scripted synaptra session, and is a heavier, different-shaped check than
+`check_create_memory.py`. Chasing it further this cycle would be diminishing return;
+the bigger and more tractable win right now is AC 2's other three skills and AC 13–22,
+which are plain forward construction, same as cycle 1's `create-memory` work.
 
 Read the issue's criteria fresh (`gh issue view 2 -R kaushikhazra/second-brain`) before
-the diff and before `logs/cycle-1.md`, per observe.md's ordering rule.
+the diff and before `logs/cycle-2.md`.
 
-## 1. Stand up a scratch synaptra server
+## 1. Read the source, generalise, land it
 
-**Never the live store at `.claude/synaptra-data`.** Start a synaptra MCP server
-against a scratch data dir, on a port that isn't the default (avoid colliding with any
-real synaptra instance a session has running):
+`C:/Projects/ai-persona/Velasari/.claude/skills/read-memory/SKILL.md` — same treatment
+as cycle 1: strip every named person, incident, date and CM-specific id; keep the
+mechanism. Two things in the source will NOT port cleanly — decide, don't default:
 
-```
-SYNAPTRA_BACKEND=surrealkv-file SYNAPTRA_DB=C:/Projects/.tmp/second-brain-loop-2/data \
-  <venv-python> -m synaptra.server --transport http --port <scratch-port>
-```
+- **The "fall back to `/recall-session`" step** (in "when recall comes back empty or
+  wrong"). Second brain has no `/recall-session` skill. Do not invent one. Either drop
+  the step (say a null result plainly, per AC 14, and stop there) or name what this
+  brain actually has for finding something outside synaptra (session transcripts, the
+  harness auto-memory) — check `CLAUDE.md`'s Structure table before assuming either
+  way.
+- **The negative-strength-edge section** ("curiosity lays provisional edges..."). This
+  describes a mechanism second-brain's `CLAUDE.md`, `dream` and `heartbeat` never
+  mention. Check whether anything in this repo creates such edges before porting a
+  section about handling them — if nothing does, leave it out rather than describing a
+  feature that doesn't exist here.
 
-Confirm the exact CLI flags with `python -m synaptra.server --help` first — do not
-assume `--transport`/`--port` are real flags; cycle 1 did not check this file. If the
-server only speaks stdio, drive it with a small Python MCP client instead of `cm`, or
-find whatever transport `cm --url` actually expects and match it. Stop the server (and
-confirm the process exited) when the check script ends, success or failure — a leaked
-scratch server on cycle N+1's port is a self-inflicted failure.
+Implements, from the issue: AC 13 (pick recall/list/get/related from the question,
+name which), AC 14 (null result reported as not-found, never as non-existence), AC 15
+(pull the boundary before applying a learning's rule).
 
-## 2. Write `.claude/shared/memory/check_create_memory.py`
+## 2. Point at the shapes file, restate nothing (AC 3, once this skill exists too)
 
-A scripted session against the scratch server (via `cm --url http://127.0.0.1:<port>/mcp`
-or a direct MCP client — whichever `cm`'s `--url` turns out to expect) that exercises,
-and records pass/fail for:
+Same discipline as `create-memory`.
 
-- **AC 6** — store with `source` (rater), `tags`, no `importance` passed → read back,
-  confirm importance was store-assigned, not left null.
-- **AC 7** — store with an explicit `type`, read back, confirm it landed as given (per
-  cycle 1's verified engine behaviour — this is expected to *pass* trivially for the
-  explicit-type path; also store with `type` omitted and confirm `classify()` assigns
-  something, to exercise the path AC 7's verification step actually guards).
-- **AC 8** — store a `fact`, confirm one node, no split.
-- **AC 9** — store an instance node and a bare procedure node, `memory_relate` them
-  `supports`, both same `type`; read the edge back via `memory_related`.
-- **AC 10** — add a boundary node, `part_of` to the procedure; read it back.
-- **AC 12** — this one is **skill-level, not synaptra-level**: raw `memory_store` does
-  not itself refuse the reserved tags. Say so plainly rather than forcing a synaptra-side
-  check that doesn't exist — AC 12 is provable only by exercising the skill's own logic
-  (out of reach for a non-agentic script) or is deferred to a scripted-agent check later.
-  Do not claim it met by a check that doesn't actually test the refusal.
-- **AC 25** — store, then immediately `memory_get` the returned id — confirm it reads
-  back. (Proving the *negative* — a store that reports success but doesn't land — needs
-  a fault injection this cycle may not have time for; if skipped, say so and leave AC 25
-  in "implemented but not proved.")
-- **AC 26** — call `memory_relate` with a short (non-uuid) id directly against the
-  scratch server and **observe what actually happens** — cycle 1 found no server-side
-  length check in `engine.create_relationship`. If the server accepts it, AC 26 is
-  proven only by the **skill's** pre-call refusal, not by synaptra rejecting it — say
-  this plainly rather than assuming either way.
-- **AC 27** — stop the scratch server, attempt a call, confirm it fails as unreachable
-  (connection error, not a hang).
+## 3. Extend `check_shapes.py` — no new script needed
 
-Run the script, record real output verbatim in `logs/cycle-2.md` — not a paraphrase.
+Its AC 2 and AC 3 checks already iterate `MEMORY_SKILLS`; landing
+`.claude/skills/read-memory/SKILL.md` with correct frontmatter and a pointer to the
+shapes file should flip both checks further toward passing without touching the script
+(AC 2 stays failing until all four exist — confirm that's still true, don't assume).
+Run it and record the real output, not the predicted one.
 
-## 3. Update the criteria count
+## 4. If time remains: a scratch-store proof for AC 13–15
 
-Only move a criterion into "met" if this cycle's script demonstrably exercised it and
-it held. AC 12 almost certainly stays in "implemented but not proved" — say why, per
-observe.md's five-that-will-be-got-wrong list.
+Same scratch-server pattern as cycle 2 (`SYNAPTRA_PORT=8051`, `.claude/shared/memory/`
+scripts, never the live store). AC 13 and AC 15 are partly skill-judgment (same
+limitation as AC 5/8/11/12/26) — say so rather than forcing a script to claim more than
+it tested. AC 14 (null recall on a query that matches nothing → confirm the tool
+returns empty, not an error) is fully provable by a raw script. Do only what's real;
+leave the rest "implemented but not proved" and say why, same as cycle 2 did for AC 12
+and AC 26.
 
-## 4. Commit, push, log, write cycle 3's action.md, exit
+## 5. Commit, push, log, write cycle 4's action.md, exit
 
-Same discipline as cycle 1: one commit, pushed, `logs/cycle-2.md` written and left
-immutable, `action.md` rewritten for cycle 3, one crosschat line to `velasari` before
-exit. Do not start on `/read-memory` this cycle — proving what's already built comes
-first.
+Same discipline as cycles 1 and 2: one commit, pushed, `logs/cycle-3.md` written and
+left immutable, `action.md` rewritten for cycle 4, one crosschat line to `velasari`
+before exit.
