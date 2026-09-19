@@ -138,19 +138,24 @@ them at boot — a beat re-reads only the ones it needs to judge closure on.
   tidiness that skill's own rule warns against — it is the reason the list exists —
   but that carve-out is not yet stated in `/update-memory` itself; a later cycle adds
   it there by name.
-- **When the write would set content to an empty string** (the last remaining id
-  closing, dropping the list to zero): use `cm update <holder-id> --content ""` via
-  Bash instead of the raw `memory_update` MCP tool call — the same file/CLI route
-  `/update-memory` already documents for large content. Resolve `cm` from this
-  brain's own `.claude/.venv/Scripts/cm` (`.exe` on Windows), found by walking up
-  from the current directory to the brain root the same way `/session-start`'s step
-  0 does — never a frozen absolute path. Confirmed by a scripted-agent run
-  (issue #4, cycle 3): the MCP tool call reproducibly emits malformed JSON
-  (`"content": ` with nothing after the colon) specifically when the value being
-  sent is the empty string, failing identically on every retry — the CLI route
-  sends the same empty content as a shell argument instead of a JSON tool-call
-  value, and does not hit this. A non-empty content string (removing one id but
-  leaving others) is unaffected and goes through `memory_update` normally.
+- ⚠ **A known, unresolved issue: writing an empty string** (the last remaining id
+  closing, dropping the list to zero) **is unreliable via `memory_update`.** A
+  scripted-agent run (issue #4, cycle 3) found the MCP tool call reproducibly
+  emitting malformed JSON (`"content": ` with nothing after the colon)
+  specifically when the value being sent is the empty string. A `cm update
+  <holder-id> --content ""` via Bash was tried as a workaround and does NOT
+  actually solve this: `cm` is an HTTP-only client (`--url`, default
+  `http://127.0.0.1:8050/mcp`) and this brain's synaptra runs over **stdio**,
+  spawned inline per-session with no listening port at all — there is no `cm
+  --url` that can ever reach it (confirmed by a scripted-agent run, issue #4,
+  cycle 4, after the CLI route was believed fixed on the strength of a broken
+  verification script — see that cycle's log). **Until a real fix lands**: try
+  the `memory_update` call once; if it fails, try rephrasing the call once
+  (not a blind identical retry); if it still fails, this is the SKILL.md
+  Failure section's case — say so once and stop, don't keep guessing at
+  workarounds. A non-empty content string (removing one id but leaving others)
+  is unaffected and goes through `memory_update` normally — only the
+  drops-to-zero case is unreliable.
 - Ids only, newline-separated, nothing else. No prose, no labels, no stamp.
 - Say "removed from the map", never "evicted" or "forgotten" — removing an id does
   not remove the memory. It stays in memory proper, fully retrievable; it is simply

@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
-"""Proof for issue #4's AC 5 + AC 12 -- the surface-map exit walk runs even when the
-window held nothing else that would fire `capture`.
+"""Proof for issue #4's AC 13 -- "An entry is added only if it has a date, is still
+open, and is typed `working`, `episodic` or `semantic`; unclear on any of the three,
+it is not added."
 
-Seeds a scratch store with ONE surface-map entry whose own content describes
-something that is now closed (a support ticket), a window that reports the closure
-and nothing else worth capturing, then a beat run and a check of whether the surface
-map's content afterward still lists that id.
+Seeds a scratch store with ONE candidate memory typed `procedural` whose content
+reads as recent (a dated phrase) and still-open on its face -- everything about it
+LOOKS timely except the type, which the entry test excludes. The window names that
+memory directly as a candidate for the surface map (same "name the candidate
+explicitly" technique as the AC 5 + AC 12 proof, so this tests the entry-test RULE
+itself, not whatever a beat's own recall/discovery might or might not surface).
 
-Same three-phase discipline as issue #2's AC 8 proof: seed via an HTTP server
-against the scratch data dir, STOP that server, run `claude -p` (spawns its own
-stdio synaptra against the same data dir), then start the HTTP server again to
-verify -- never two processes on the same SurrealKV file at once.
+Same three-phase discipline and the same junction-safety pattern for resolving `cm`
+as check_heartbeat_ac5_ac12_scripted_agent.py -- copied exactly, not re-derived, per
+cycle 4's action.md.
 
 Usage:
-    python check_heartbeat_ac5_ac12_scripted_agent.py --build
-    python check_heartbeat_ac5_ac12_scripted_agent.py --seed --url http://127.0.0.1:8062/mcp
+    python check_heartbeat_ac13_scripted_agent.py --build
+    python check_heartbeat_ac13_scripted_agent.py --seed --url http://127.0.0.1:8064/mcp
         (run with the scratch HTTP server UP, against a fresh data dir)
-    python check_heartbeat_ac5_ac12_scripted_agent.py --run --holder-id <id> --entry-id <id>
+    python check_heartbeat_ac13_scripted_agent.py --run --holder-id <id> --candidate-id <id>
         (run with the scratch HTTP server STOPPED)
-    python check_heartbeat_ac5_ac12_scripted_agent.py --verify --url http://127.0.0.1:8062/mcp --holder-id <id> --entry-id <id>
+    python check_heartbeat_ac13_scripted_agent.py --verify --url http://127.0.0.1:8064/mcp --holder-id <id> --candidate-id <id>
         (run with the scratch HTTP server UP again, against the SAME data dir)
 
 Never the live store, never the live project. Costs real money on --run.
@@ -36,33 +38,21 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-4")
-SCRATCH_PROJECT = SCRATCH_ROOT / "ac5-ac12-scratch-project"
-SCRATCH_DATA = SCRATCH_ROOT / "ac5-ac12-scratch-data"
+SCRATCH_PROJECT = SCRATCH_ROOT / "ac13-scratch-project"
+SCRATCH_DATA = SCRATCH_ROOT / "ac13-scratch-data"
 
-ENTRY_CONTENT = (
-    "2026-09-10: Opened a support ticket with the hosting provider because the SSL "
-    "certificate renewal was failing on the staging domain."
-)
-WINDOW = (
-    "The hosting provider replied this morning: the SSL certificate issue on "
-    "staging is fixed and the site is serving correctly again."
+CANDIDATE_CONTENT = (
+    "2026-09-18: Documented the runbook step for rotating API keys during an "
+    "incident -- still the reference doc the on-call team follows."
 )
 
 
 def build_scratch_project() -> None:
-    # goal.md's empty-content write instructs resolving `cm` from THIS BRAIN'S OWN
-    # .claude/.venv/Scripts/, walked up from the brain root -- same discipline as
-    # /session-start's step 0. A scratch project has no .venv of its own (copying one
-    # is slow and pointless), so give it a real one via a directory JUNCTION to the
-    # actual repo's .venv, rather than telling the model an out-of-band absolute path.
-    #
-    # SAFETY: a Windows junction inside a tree that later gets shutil.rmtree'd is a
-    # real hazard -- shutil.rmtree does not treat a junction as a symlink (Python's
-    # os.path.islink() returns False for it) and can walk straight through it,
-    # deleting the REAL target's contents: the live repo's actual .venv. So the
-    # junction is ALWAYS detached with os.rmdir() (which only removes the reparse
-    # point itself, never recurses into the target) BEFORE any rmtree of this tree
-    # ever runs, on every rebuild, not just the first.
+    # Same junction-safety discipline as check_heartbeat_ac5_ac12_scripted_agent.py:
+    # detach the .venv junction with os.rmdir() (never recurses into the target)
+    # BEFORE any shutil.rmtree of this tree runs, on every rebuild -- shutil.rmtree
+    # does not treat a Windows junction as a symlink and can walk straight through
+    # it into the real repo's actual .venv otherwise.
     venv_link = SCRATCH_PROJECT / ".claude" / ".venv"
     if venv_link.is_dir():
         os.rmdir(venv_link)
@@ -139,9 +129,9 @@ def build_scratch_project() -> None:
         "# Test User\n\n## Personal\n\n- **Name**: Test User\n", encoding="utf-8"
     )
     (SCRATCH_PROJECT / "CLAUDE.md").write_text(
-        "# CLAUDE.md\n\nScratch test for issue #4's AC 5 + AC 12 proof (heartbeat's "
-        "surface-map exit walk). Route all memory storage through /create-memory and "
-        "all memory changes through /update-memory -- never memory_store or "
+        "# CLAUDE.md\n\nScratch test for issue #4's AC 13 proof (heartbeat's "
+        "surface-map entry test). Route all memory storage through /create-memory "
+        "and all memory changes through /update-memory -- never memory_store or "
         "memory_update directly. There is no session-start here; assume the surface "
         "map holder id has already been fetched for you and is named in the prompt.\n",
         encoding="utf-8",
@@ -180,15 +170,15 @@ def cm(cm_path: str, url: str, *args: str) -> dict:
 
 
 def do_seed(cm_path: str, url: str) -> None:
-    entry = cm(
+    candidate = cm(
         cm_path,
         url,
         "store",
-        ENTRY_CONTENT,
+        CANDIDATE_CONTENT,
         "--type",
-        "episodic",
+        "procedural",
         "--tags",
-        "staging,ssl",
+        "runbook,api-keys",
         "--source",
         "create-memory:seed",
     )["data"]["id"]
@@ -196,7 +186,7 @@ def do_seed(cm_path: str, url: str) -> None:
         cm_path,
         url,
         "store",
-        entry,
+        "",
         "--type",
         "identity",
         "--tags",
@@ -204,15 +194,18 @@ def do_seed(cm_path: str, url: str) -> None:
         "--source",
         "create-memory:seed",
     )["data"]["id"]
-    print(f"seeded entry id={entry}")
-    print(f"seeded surface-map holder id={holder}")
+    print(f"seeded candidate id={candidate} (type=procedural)")
+    print(f"seeded EMPTY surface-map holder id={holder}")
 
 
-def do_run(holder_id: str, entry_id: str) -> None:
+def do_run(holder_id: str, candidate_id: str) -> None:
     prompt = (
         'Run /heartbeat "requested by cron". The surface map (tag surface-map) is '
-        f"memory {holder_id}, content = one id, {entry_id}. The window since the "
-        f"last beat: {WINDOW}"
+        f"memory {holder_id}, content = empty (no ids on it yet). The window since "
+        f"the last beat: wrapped up documenting the runbook step for rotating API "
+        f"keys during an incident -- already stored as memory {candidate_id} "
+        f"(type `procedural`, dated 2026-09-18, still the reference doc the on-call "
+        f"team follows). Consider whether it belongs on the surface map."
     )
     proc = subprocess.run(
         [
@@ -244,24 +237,21 @@ def do_run(holder_id: str, entry_id: str) -> None:
     print(f"result: {result.get('result')!r}")
 
 
-def do_verify(cm_path: str, url: str, holder_id: str, entry_id: str) -> int:
-    # `cm get` nests the memory under data.memory (unlike `cm store`/`cm list`,
-    # which put the fields directly under data) -- reading data.content directly
-    # silently returns None -> "" regardless of the real value, which made every
-    # prior call of this function report a rigged PASS. Caught mid-cycle 4
-    # (issue #4) after AC 16's do_verify showed the same bug; fixed here too, and
-    # every AC 5/12 "PASS" claimed on the strength of this function before this fix
-    # needs re-verifying, not trusted retroactively.
+def do_verify(cm_path: str, url: str, holder_id: str, candidate_id: str) -> int:
+    # Same nesting bug as the AC5/12 and AC16 scripts' do_verify -- `cm get` nests
+    # the memory under data.memory, so reading data.content directly always
+    # silently reported "" (a rigged PASS) regardless of the real value. Fixed
+    # here; the AC 13 "PASS" claimed before this fix needs re-verifying.
     holder = cm(cm_path, url, "get", holder_id)["data"]["memory"]
     content = (holder.get("content") or "").strip()
-    ids_left = [line for line in content.splitlines() if line.strip()]
-    removed = entry_id not in ids_left
+    ids_present = [line for line in content.splitlines() if line.strip()]
+    excluded = candidate_id not in ids_present
     print(f"holder content after the beat: {content!r}")
     print(
-        f"[{'PASS' if removed else 'FAIL'}] AC5+AC12: closed entry removed by the "
-        f"exit walk on a window with no other capture: {ids_left}"
+        f"[{'PASS' if excluded else 'FAIL'}] AC13: the procedural-typed candidate "
+        f"was NOT added despite reading as dated and open: {ids_present}"
     )
-    return 0 if removed else 1
+    return 0 if excluded else 1
 
 
 def main() -> int:
@@ -271,9 +261,9 @@ def main() -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--cm", default=str(REPO_ROOT / ".venv" / "Scripts" / "cm.exe"))
-    ap.add_argument("--url", default="http://127.0.0.1:8062/mcp")
+    ap.add_argument("--url", default="http://127.0.0.1:8064/mcp")
     ap.add_argument("--holder-id")
-    ap.add_argument("--entry-id")
+    ap.add_argument("--candidate-id")
     args = ap.parse_args()
 
     if args.build:
@@ -284,10 +274,10 @@ def main() -> int:
         do_seed(args.cm, args.url)
         return 0
     if args.run:
-        do_run(args.holder_id, args.entry_id)
+        do_run(args.holder_id, args.candidate_id)
         return 0
     if args.verify:
-        return do_verify(args.cm, args.url, args.holder_id, args.entry_id)
+        return do_verify(args.cm, args.url, args.holder_id, args.candidate_id)
 
     print("pass one of --build / --seed / --run / --verify", file=sys.stderr)
     return 2

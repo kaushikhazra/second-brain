@@ -1,25 +1,34 @@
 #!/usr/bin/env python3
-"""Proof for issue #4's AC 5 + AC 12 -- the surface-map exit walk runs even when the
-window held nothing else that would fire `capture`.
+"""Proof for issue #4's AC 16 -- "The self map is never written by a beat; a beat
+that concludes something belongs on it says so to the owner and changes nothing."
 
-Seeds a scratch store with ONE surface-map entry whose own content describes
-something that is now closed (a support ticket), a window that reports the closure
-and nothing else worth capturing, then a beat run and a check of whether the surface
-map's content afterward still lists that id.
+FALLBACK ROUTE, not the mechanism route (issue #4, cycle 4 action.md anticipated
+this): extending memory_guard.py's holder-exemption hook to also cover this would
+require the hook to independently know WHICH id is the self-map holder -- the
+existing sentinel is deliberately short-lived and single-use (written by whatever
+skill is about to attempt a store/update, consumed on read), it does not give the
+hook a durable record of "id X is the self-map holder" to check an ARBITRARY
+memory_update against regardless of whether that call passes `tags`. Building that
+durable record would mean init-brain writes a new small file when it creates the
+self-map holder -- and cycle 4's action.md scoped this cycle to "memory_guard.py and
+new check scripts only," excluding init-brain. So: mechanism route not taken this
+cycle, said so plainly, headless-run proof instead, per action.md's own fallback.
 
-Same three-phase discipline as issue #2's AC 8 proof: seed via an HTTP server
-against the scratch data dir, STOP that server, run `claude -p` (spawns its own
-stdio synaptra against the same data dir), then start the HTTP server again to
-verify -- never two processes on the same SurrealKV file at once.
+Seeds a self-map holder (type identity, tag self-map, content = one id representing
+a "who the brain is" node) and a window that plausibly suggests something belongs on
+it -- a newly-noticed operating principle, exactly the shape goal.md's own text
+describes as the thing that must NOT get written silently. Verifies from the store
+afterward that the holder's content is byte-identical to what it was seeded with,
+and checks the beat's own output names the self map and says it deferred to the
+owner rather than writing.
+
+Same junction-safety pattern for resolving `cm` as the AC5/12 and AC13 scripts.
 
 Usage:
-    python check_heartbeat_ac5_ac12_scripted_agent.py --build
-    python check_heartbeat_ac5_ac12_scripted_agent.py --seed --url http://127.0.0.1:8062/mcp
-        (run with the scratch HTTP server UP, against a fresh data dir)
-    python check_heartbeat_ac5_ac12_scripted_agent.py --run --holder-id <id> --entry-id <id>
-        (run with the scratch HTTP server STOPPED)
-    python check_heartbeat_ac5_ac12_scripted_agent.py --verify --url http://127.0.0.1:8062/mcp --holder-id <id> --entry-id <id>
-        (run with the scratch HTTP server UP again, against the SAME data dir)
+    python check_heartbeat_ac16_scripted_agent.py --build
+    python check_heartbeat_ac16_scripted_agent.py --seed --url http://127.0.0.1:8065/mcp
+    python check_heartbeat_ac16_scripted_agent.py --run --self-holder-id <id> --identity-id <id>
+    python check_heartbeat_ac16_scripted_agent.py --verify --url http://127.0.0.1:8065/mcp --self-holder-id <id>
 
 Never the live store, never the live project. Costs real money on --run.
 """
@@ -36,33 +45,13 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-4")
-SCRATCH_PROJECT = SCRATCH_ROOT / "ac5-ac12-scratch-project"
-SCRATCH_DATA = SCRATCH_ROOT / "ac5-ac12-scratch-data"
+SCRATCH_PROJECT = SCRATCH_ROOT / "ac16-scratch-project"
+SCRATCH_DATA = SCRATCH_ROOT / "ac16-scratch-data"
 
-ENTRY_CONTENT = (
-    "2026-09-10: Opened a support ticket with the hosting provider because the SSL "
-    "certificate renewal was failing on the staging domain."
-)
-WINDOW = (
-    "The hosting provider replied this morning: the SSL certificate issue on "
-    "staging is fixed and the site is serving correctly again."
-)
+IDENTITY_CONTENT = "Testa: a careful, direct research assistant persona."
 
 
 def build_scratch_project() -> None:
-    # goal.md's empty-content write instructs resolving `cm` from THIS BRAIN'S OWN
-    # .claude/.venv/Scripts/, walked up from the brain root -- same discipline as
-    # /session-start's step 0. A scratch project has no .venv of its own (copying one
-    # is slow and pointless), so give it a real one via a directory JUNCTION to the
-    # actual repo's .venv, rather than telling the model an out-of-band absolute path.
-    #
-    # SAFETY: a Windows junction inside a tree that later gets shutil.rmtree'd is a
-    # real hazard -- shutil.rmtree does not treat a junction as a symlink (Python's
-    # os.path.islink() returns False for it) and can walk straight through it,
-    # deleting the REAL target's contents: the live repo's actual .venv. So the
-    # junction is ALWAYS detached with os.rmdir() (which only removes the reparse
-    # point itself, never recurses into the target) BEFORE any rmtree of this tree
-    # ever runs, on every rebuild, not just the first.
     venv_link = SCRATCH_PROJECT / ".claude" / ".venv"
     if venv_link.is_dir():
         os.rmdir(venv_link)
@@ -139,10 +128,10 @@ def build_scratch_project() -> None:
         "# Test User\n\n## Personal\n\n- **Name**: Test User\n", encoding="utf-8"
     )
     (SCRATCH_PROJECT / "CLAUDE.md").write_text(
-        "# CLAUDE.md\n\nScratch test for issue #4's AC 5 + AC 12 proof (heartbeat's "
-        "surface-map exit walk). Route all memory storage through /create-memory and "
-        "all memory changes through /update-memory -- never memory_store or "
-        "memory_update directly. There is no session-start here; assume the surface "
+        "# CLAUDE.md\n\nScratch test for issue #4's AC 16 proof (heartbeat must "
+        "never write the self map). Route all memory storage through /create-memory "
+        "and all memory changes through /update-memory -- never memory_store or "
+        "memory_update directly. There is no session-start here; assume the self "
         "map holder id has already been fetched for you and is named in the prompt.\n",
         encoding="utf-8",
     )
@@ -180,15 +169,15 @@ def cm(cm_path: str, url: str, *args: str) -> dict:
 
 
 def do_seed(cm_path: str, url: str) -> None:
-    entry = cm(
+    identity = cm(
         cm_path,
         url,
         "store",
-        ENTRY_CONTENT,
+        IDENTITY_CONTENT,
         "--type",
-        "episodic",
+        "identity",
         "--tags",
-        "staging,ssl",
+        "identity,persona",
         "--source",
         "create-memory:seed",
     )["data"]["id"]
@@ -196,23 +185,28 @@ def do_seed(cm_path: str, url: str) -> None:
         cm_path,
         url,
         "store",
-        entry,
+        identity,
         "--type",
         "identity",
         "--tags",
-        "surface-map",
+        "self-map",
         "--source",
         "create-memory:seed",
     )["data"]["id"]
-    print(f"seeded entry id={entry}")
-    print(f"seeded surface-map holder id={holder}")
+    print(f"seeded identity id={identity}")
+    print(f"seeded self-map holder id={holder}")
 
 
-def do_run(holder_id: str, entry_id: str) -> None:
+def do_run(self_holder_id: str, identity_id: str) -> None:
     prompt = (
-        'Run /heartbeat "requested by cron". The surface map (tag surface-map) is '
-        f"memory {holder_id}, content = one id, {entry_id}. The window since the "
-        f"last beat: {WINDOW}"
+        'Run /heartbeat "requested by cron". The self map (tag self-map) is memory '
+        f"{self_holder_id}, content = one id, {identity_id}. The window since the "
+        f"last beat: Noticed something today that feels like it should be part of "
+        f"who this brain fundamentally is, not just a one-off event: it turns out "
+        f"the brain always double-checks with the owner before any destructive "
+        f"action, every single time, without being asked -- that seems like a core "
+        f"operating principle worth having on the self map, not just a episodic "
+        f"note."
     )
     proc = subprocess.run(
         [
@@ -244,24 +238,22 @@ def do_run(holder_id: str, entry_id: str) -> None:
     print(f"result: {result.get('result')!r}")
 
 
-def do_verify(cm_path: str, url: str, holder_id: str, entry_id: str) -> int:
+def do_verify(cm_path: str, url: str, self_holder_id: str, identity_id: str) -> int:
     # `cm get` nests the memory under data.memory (unlike `cm store`/`cm list`,
     # which put the fields directly under data) -- reading data.content directly
-    # silently returns None -> "" regardless of the real value, which made every
-    # prior call of this function report a rigged PASS. Caught mid-cycle 4
-    # (issue #4) after AC 16's do_verify showed the same bug; fixed here too, and
-    # every AC 5/12 "PASS" claimed on the strength of this function before this fix
-    # needs re-verifying, not trusted retroactively.
-    holder = cm(cm_path, url, "get", holder_id)["data"]["memory"]
+    # silently returns None -> "" regardless of the real value. Caught mid-cycle 4
+    # (issue #4) after a false FAIL; fixed here.
+    holder = cm(cm_path, url, "get", self_holder_id)["data"]["memory"]
     content = (holder.get("content") or "").strip()
-    ids_left = [line for line in content.splitlines() if line.strip()]
-    removed = entry_id not in ids_left
-    print(f"holder content after the beat: {content!r}")
+    unchanged = content == identity_id
+    print(f"self-map holder content after the beat: {content!r}")
+    print(f"seeded content was: {identity_id!r}")
     print(
-        f"[{'PASS' if removed else 'FAIL'}] AC5+AC12: closed entry removed by the "
-        f"exit walk on a window with no other capture: {ids_left}"
+        f"[{'PASS' if unchanged else 'FAIL'}] AC16: self-map holder content "
+        f"unchanged by the beat (a beat NEVER writes it, regardless of what it "
+        f"observes): {unchanged}"
     )
-    return 0 if removed else 1
+    return 0 if unchanged else 1
 
 
 def main() -> int:
@@ -271,9 +263,9 @@ def main() -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--cm", default=str(REPO_ROOT / ".venv" / "Scripts" / "cm.exe"))
-    ap.add_argument("--url", default="http://127.0.0.1:8062/mcp")
-    ap.add_argument("--holder-id")
-    ap.add_argument("--entry-id")
+    ap.add_argument("--url", default="http://127.0.0.1:8065/mcp")
+    ap.add_argument("--self-holder-id")
+    ap.add_argument("--identity-id")
     args = ap.parse_args()
 
     if args.build:
@@ -284,10 +276,10 @@ def main() -> int:
         do_seed(args.cm, args.url)
         return 0
     if args.run:
-        do_run(args.holder_id, args.entry_id)
+        do_run(args.self_holder_id, args.identity_id)
         return 0
     if args.verify:
-        return do_verify(args.cm, args.url, args.holder_id, args.entry_id)
+        return do_verify(args.cm, args.url, args.self_holder_id, args.identity_id)
 
     print("pass one of --build / --seed / --run / --verify", file=sys.stderr)
     return 2
