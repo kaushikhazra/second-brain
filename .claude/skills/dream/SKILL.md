@@ -100,8 +100,13 @@ brain moved or was provisioned differently, that file is the truth.
    non-zero → ABORT the dream, showing that command's own error text
    verbatim.** A tool failure is reported in the tool's own words, not
    paraphrased or summarized past.
-7. All pass → tell the user: "Checkpoint at `<path>` — N memories." That
-   path is this dream's rollback point.
+7. All pass → tell the user the path, the count, AND the exact rollback
+   command, all three, before touching anything: **"Checkpoint at
+   `<path>` — N memories. To roll back: `cm backup restore <path>
+   --target <SYNAPTRA_DB path> --force`."** That path is this dream's
+   rollback point — stating the restore command alongside it means the
+   owner has it in hand before any reshaping starts, not something they
+   have to look up later if something goes wrong.
 
 ### Why step 4 exists — three green lights on a useless backup
 
@@ -150,7 +155,10 @@ a genuine lull rather than interrupting one.
 ## Prerequisites
 
 1. **Disable the heartbeat cron** (`CronList` → `CronDelete`). Memory
-   must be quiet during surgery. Restart it at the end (Act 6).
+   must be quiet during surgery. **Confirm the deletion with a second
+   `CronList`** — it returning no heartbeat job is what proves the
+   delete landed, not the delete call's own return value. Restart it
+   at the end (Act 6).
 2. **Valid `rel_type` vocabulary only**: `causes`, `follows`,
    `contradicts`, `supports`, `relates_to`, `supersedes`, `part_of`.
    Custom strings will fail.
@@ -248,6 +256,18 @@ orphan has a decision.
 - Through `/create-memory`, store a `semantic` memory (importance 0.9)
   capturing what was woven, key insights, and any reframing the user
   taught mid-dream. Tags: `dream`, `consolidation`, `synaptra`.
+- **Report four counts, before and after: active, archived, retyped,
+  relations added.** Record the active count from Act 1's `memory_stats`
+  as "before," and re-run it here for "after." Archived, retyped, and
+  relations-added are simple tallies kept as Acts 2 and 4 run, not
+  reconstructed from memory afterward. State all four plainly — not a
+  narrative summary standing in for the numbers.
+- **Report every memory the dream wanted to change and could not, by
+  id, with the reason.** A protected-id refusal (`memory_guard.py`'s
+  AC 8 rule), a relate attempt where one side wasn't active (AC 10), or
+  any other blocked change — each one named specifically, not folded
+  into a general "some items were skipped." An empty list is a valid
+  report; a vague one is not.
 
 There is no surface-map update here. The surface map is the id-list
 holder the heartbeat maintains incrementally, every beat (#3, #4) — a
@@ -267,6 +287,10 @@ CronCreate(
   prompt='Run /heartbeat "requested by cron"'
 )
 ```
+
+**Confirm it landed with a `CronList` afterward** — the heartbeat is
+running again when the dream ends, and that final `CronList`'s own
+result is what proves it, not the create call's own return value.
 
 If `memory_recall` returns empty after heavy writes (stale read index),
 the CM service may need a restart — that's machine-local operations (see

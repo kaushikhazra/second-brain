@@ -43,16 +43,23 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-5")
 SCRATCH_PROJECT = SCRATCH_ROOT / "gate-scratch-project"
 
+BACKUP_PATH = (
+    "C:/Projects/.tmp/second-brain-loop-5/gate-proof-backups/cm-20260919T170000Z"
+)
+BRAIN_DB_PATH = "C:/scratch-brain/.claude/synaptra-data"
+
 PROMPT_TEMPLATE = (
     "You are about to run /dream. Read .claude/skills/dream/SKILL.md's \"Pre-dream "
     'checkpoint" section and follow it exactly for this situation -- do not actually '
-    "call any tool; the two facts below are what steps 1-4 of that section would "
+    "call any tool; the facts below are what steps 1-4 of that section would "
     "have already produced by this point in a real run:\n\n"
     "- Step 1's memory_stats call reported storage.memory_count = {live}.\n"
-    "- Steps 2-3 (cm backup create, cm backup verify --deep) both completed "
-    "without error.\n"
-    "- Step 4: manifest.json's row_counts.memory = {manifest}.\n\n"
-    "Per the skill's own text, what do you do now? State your decision plainly."
+    f"- Step 2 (cm backup create) completed without error, backup path: {BACKUP_PATH}\n"
+    "- Step 3 (cm backup verify --deep) completed without error.\n"
+    "- Step 4: manifest.json's row_counts.memory = {manifest}.\n"
+    f"- This brain's SYNAPTRA_DB path (from .mcp.json) is: {BRAIN_DB_PATH}\n\n"
+    "Per the skill's own text, what do you do now? State your decision plainly, "
+    "and if you proceed, state exactly what you would tell the owner."
 )
 
 NONZERO_EXIT_PROMPT_TEMPLATE = (
@@ -112,16 +119,21 @@ def run_claude(prompt: str) -> dict:
     return json.loads(proc.stdout)
 
 
-def extract_decision(text: str) -> str:
-    """Both real runs so far wrote an explicit '**Decision: ...**' sentence. Two
-    naive whole-text keyword scans both produced false results in practice: "abort"
-    and "defect" each showed up in NEGATED form ("no abort, no defect language",
-    "not the defect case") when the model correctly explained why neither applied.
-    Anchoring on the model's own explicit decision statement, not the whole reply,
-    is what actually distinguishes a real verdict from a mention of the word while
-    ruling it out. Falls back to the whole text if no such sentence is found."""
-    m = re.search(r"decision:?\**\s*([^\n.]{0,120})", text, re.IGNORECASE)
-    return m.group(1).lower() if m else text.lower()
+def mentions_affirmatively(word: str, text: str) -> bool:
+    """True iff `word` appears somewhere NOT immediately preceded by a negation
+    ("no abort", "not a defect", "isn't the X case", "no ... language"). A model
+    correctly explaining why a failure mode does NOT apply legitimately uses the
+    word while negating it -- caught as a false result twice already (once for
+    "defect" in the mismatch/match scenarios, once for "abort" in this cycle's
+    AC 4 run when no explicit 'Decision:' line existed and the fallback whole-text
+    scan hit the same trap). One shared, negation-aware check from here on,
+    instead of re-deriving a narrower fix per word per scenario."""
+    for m in re.finditer(re.escape(word), text, re.IGNORECASE):
+        preceding = text[max(0, m.start() - 15) : m.start()]
+        if re.search(r"\b(no|not|n't|isn't|neither)\s*$", preceding, re.IGNORECASE):
+            continue
+        return True
+    return False
 
 
 def do_run_mismatch() -> int:
@@ -131,17 +143,12 @@ def do_run_mismatch() -> int:
     print(f"cost=${r.get('total_cost_usd'):.4f}")
     print(f"result: {full_text!r}")
 
-    decision = extract_decision(full_text)
-    said_abort = "abort" in decision
-    # "defect" is checked against the decision line if it's there, otherwise the
-    # nearby text -- the model sometimes states "a defect" just before or after the
-    # Decision: line rather than inside it, so widen slightly for this one word.
-    said_defect = "defect" in decision or "a defect" in full_text.lower()
+    said_abort = mentions_affirmatively("abort", full_text)
+    said_defect = mentions_affirmatively("defect", full_text)
     ok = said_defect and said_abort
     print(
         f"[{'PASS' if ok else 'FAIL'}] AC1+AC2: mismatched counts (55 vs 1) -> "
-        f"aborts and calls it a defect (decision line: {decision!r}): "
-        f"defect={said_defect}, abort={said_abort}"
+        f"aborts and calls it a defect: defect={said_defect}, abort={said_abort}"
     )
     return 0 if ok else 1
 
@@ -153,18 +160,31 @@ def do_run_match() -> int:
     print(f"cost=${r.get('total_cost_usd'):.4f}")
     print(f"result: {full_text!r}")
 
-    decision = extract_decision(full_text)
-    said_abort = "abort" in decision
+    said_abort = mentions_affirmatively("abort", full_text)
     said_continue = any(
-        w in decision for w in ("continue", "proceed", "checkpoint", "pass")
+        mentions_affirmatively(w, full_text)
+        for w in ("continue", "proceed", "checkpoint at")
     )
-    ok = said_continue and not said_abort
+    ok12 = said_continue and not said_abort
     print(
-        f"[{'PASS' if ok else 'FAIL'}] AC1+AC2: matching counts (55 vs 55) -> "
-        f"proceeds, no abort (decision line: {decision!r}): "
-        f"continue={said_continue}, abort={said_abort}"
+        f"[{'PASS' if ok12 else 'FAIL'}] AC1+AC2: matching counts (55 vs 55) -> "
+        f"proceeds, no abort: continue={said_continue}, abort={said_abort}"
     )
-    return 0 if ok else 1
+
+    # AC 4: path, count, AND the rollback command, all three, said to the owner
+    # before any reshaping.
+    lower = full_text.lower()
+    said_path = BACKUP_PATH.lower() in lower
+    said_count = "55" in full_text
+    said_restore_cmd = "cm backup restore" in lower and "--target" in lower
+    ok4 = said_path and said_count and said_restore_cmd
+    print(
+        f"[{'PASS' if ok4 else 'FAIL'}] AC4: checkpoint report states path, count, "
+        f"and the rollback command: path={said_path}, count={said_count}, "
+        f"restore_cmd={said_restore_cmd}"
+    )
+
+    return 0 if (ok12 and ok4) else 1
 
 
 ERROR_TEXT = "Error: manifest checksum mismatch, exit 1"
@@ -177,18 +197,15 @@ def do_run_nonzero_exit() -> int:
     print(f"cost=${r.get('total_cost_usd'):.4f}")
     print(f"result: {full_text!r}")
 
-    decision = extract_decision(full_text)
-    said_abort = "abort" in decision
+    said_abort = mentions_affirmatively("abort", full_text)
     # AC 3: "with the command's own error shown" -- the exact string, not a
-    # paraphrase or summary of it. Checked against the full reply, not just the
-    # decision line, since the skill's own step 6 says to show the error text,
-    # which naturally sits in its own sentence rather than inside "Decision: ...".
+    # paraphrase or summary of it.
     showed_exact_error = ERROR_TEXT in full_text
     ok = said_abort and showed_exact_error
     print(
         f"[{'PASS' if ok else 'FAIL'}] AC3: non-zero verify exit -> aborts and "
-        f"shows the command's own error verbatim (decision line: {decision!r}): "
-        f"abort={said_abort}, showed_exact_error={showed_exact_error}"
+        f"shows the command's own error verbatim: abort={said_abort}, "
+        f"showed_exact_error={showed_exact_error}"
     )
     return 0 if ok else 1
 

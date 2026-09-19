@@ -16,7 +16,7 @@ Every 15 minutes, ONE iteration:
                      and say so on crosschat to velasari
   - If goal not met: write the next action.md, then exit this run
 
-Fail-safe: at 2026-09-20 02:00 +0530, stop and delete the cron, converged or not, and
+Fail-safe: at 2026-09-20 06:00 +0530, stop and delete the cron, converged or not, and
 say on crosschat to velasari where it stopped and why.
 ```
 
@@ -48,4 +48,4 @@ say so and proceed.
 **Read the clock rather than assuming it.** `date "+%Y-%m-%d %H:%M %z"`.
 
 **First run: now, 2026-09-19 ~22:30 +0530, by hand, then the cron. Fail-safe deadline:
-2026-09-20 02:00 +0530.**
+2026-09-20 06:00 +0530.**
