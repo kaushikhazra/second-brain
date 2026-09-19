@@ -41,8 +41,12 @@ sys.path.insert(0, str(ACTIVATION_PY.parent))
 
 
 def build_scratch_brain() -> Path:
-    if SCRATCH_ROOT.exists():
-        shutil.rmtree(SCRATCH_ROOT)
+    # Clean only this script's OWN subtree -- SCRATCH_ROOT is shared with
+    # check_curiosity_pass_scripted_agent.py's scratch project and data dirs;
+    # wiping the whole root would delete siblings mid-use (found the hard way
+    # in cycle 2).
+    if SCRATCH_BRAIN.exists():
+        shutil.rmtree(SCRATCH_BRAIN)
     SCRATCH_BRAIN.mkdir(parents=True)
     (SCRATCH_BRAIN / ".claude").mkdir()
     (SCRATCH_BRAIN / "CLAUDE.md").write_text("# scratch brain\n", encoding="utf-8")

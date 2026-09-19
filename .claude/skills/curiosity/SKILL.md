@@ -89,9 +89,22 @@ activation flag.
    - **No network** → record that the outside read failed, store nothing,
      stop the pass here (AC 19). This is a normal, reportable outcome, not
      an error to retry.
-3. **Store what comes back through `/create-memory`** — its own shape and
-   type rules apply unchanged; the source link goes in the stored content
-   (AC 12). An unstored read is a read that never happened.
+3. **Store what comes back through `/create-memory`, as its own NEW memory** —
+   its own shape and type rules apply unchanged; the source link goes in the
+   stored content (AC 12). If useful, relate the new memory back to the one
+   that sent the pass looking (a normal `/create-memory` constellation edge,
+   at ordinary positive strength — this is not Act 2's provisional edge).
+   An unstored read is a read that never happened.
+   - ⛔ **Even when the outside read corrects or updates what the recalled
+     memory said, this is still a new memory, never an edit to the one
+     recalled.** No raw synaptra update call, and no routing through the
+     skill that owns updates, on the memory that sent the pass looking —
+     that would be this skill rewriting an existing memory, which the
+     Boundaries section below forbids without exception.
+     A stale claim gets a new memory that supersedes it in the reader's
+     judgement, not a silent rewrite of the old one; the old memory is left
+     exactly as it was, for the owner or a later pass to notice and reconcile
+     if they choose.
 4. **One root per pass.** Reading is unbounded; the pass is not (AC 18).
 
 ## Act 2 — the wander
@@ -113,13 +126,21 @@ activation flag.
 4. **One binding attempt per pass.** If it fails review, the pass produces
    zero — do not reach for a second pair to fill the slot.
 5. **Lay the edge at negative strength** — `memory_relate(source, target,
-   rel_type, strength)` with `strength` negative: highly-likely-but-unverified
-   around −0.9, speculative around −0.4. Sign carries verification status;
-   magnitude carries confidence. The edge is **inert until an outside source
-   confirms it** — a later Act 1 read that independently corroborates the
-   structure, or the owner confirming unprompted — and the memory's own
-   content says so explicitly (AC 13). Never promote a negative edge to
-   positive for age, or because it still reads well.
+   rel_type, strength)`, directly between the two sampled memories, with
+   `strength` negative: highly-likely-but-unverified around −0.9, speculative
+   around −0.4. Sign carries verification status; magnitude carries
+   confidence. The edge is **inert until an outside source confirms it** — a
+   later Act 1 read that independently corroborates the structure, or the
+   owner confirming unprompted. Never promote a negative edge to positive for
+   age, or because it still reads well.
+   - **And says so in a memory** (AC 13) — not by rewriting either of the two
+     sampled memories (Boundaries below forbids that with no exception), but
+     by storing, through `/create-memory`, one small new memory documenting
+     the binding itself: the structural claim in one or two sentences, both
+     endpoint ids, and the explicit words **"provisional, inert until
+     confirmed."** This is the pass's second stored memory this pass — Act
+     1's root-read memory is the first — and AC 18's "one wander" bound is
+     about the one binding *attempt*, not the count of memories it produces.
 6. **No scoring.** A pass never asks the owner for a number, never leaves a
    score slot in the record, and never ranks candidates against each other —
    the review in step 3 is coherence-only (AC 16).
@@ -128,7 +149,12 @@ activation flag.
 
 - **Never scores, ranks, or rewrites existing memories** (AC 16). Both acts
   only add — a new memory in Act 1, a new edge in Act 2. Nothing already
-  stored is edited or re-weighted by this skill.
+  stored is edited or re-weighted by this skill — **including the memory
+  that sent Act 1 looking, even when the outside read shows it is stale or
+  wrong.** No raw synaptra update call, and no routing through the skill
+  that owns updates, on it. This applies with no exception carved out for
+  "correcting" it; that is exactly the rewrite this boundary exists to
+  forbid.
 - **Never edits `observe.md`, `goal.md`, `persona.md` or `user.md`** (AC 17) —
   this skill's write surface is `curiosity/`, one new memory, and at most one
   new edge.
@@ -156,6 +182,9 @@ pair from being resampled by the duplicate check above.
 - Skip Act 1 because the graph feels sufficient — that feeling is exactly
   the fluency-without-knowledge signal Act 1 exists to correct.
 - Read without storing.
+- "Correct" or update the memory that sent Act 1 looking, even when the
+  outside read shows it is stale or wrong — store a new memory instead, and
+  leave the old one exactly as it was.
 - Screen candidates for plausibility, or for what the owner is likely to
   accept — that returns this brain's own priors dressed up as an external
   finding.
