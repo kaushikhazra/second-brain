@@ -76,8 +76,11 @@ nobody asked for, and it is wasted if it is spent waiting instead.
 
 ### Instructions
 
-- If `/curiosity` is present and active, run it.
-- If `/curiosity` is not present, or not active, do nothing — and reset the count.
+- If `/curiosity` is present and active — active meaning `.claude/activations.json`
+  (read via `.claude/shared/activation.py`'s `is_active`) says so — run it with
+  `/curiosity "requested by heartbeat"`.
+- If `/curiosity` is not present, or the record says inactive, do nothing — and reset
+  the count.
 - Not while the owner is active, and not while the brain is mid-autonomous work with
   them. Idle is the condition, not the opportunity.
 

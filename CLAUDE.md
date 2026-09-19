@@ -128,7 +128,7 @@ improvise or replicate its steps from here.
 
 | When | Invoke |
 |------|--------|
-| First action of every new conversation | `/session-start` |
+| First action of every new conversation — includes the once-per-`VERSION` activation ask for opt-in idle habits | `/session-start` |
 | User signals stopping for the day | `/session-end` |
 | `persona.md` or `user.md` missing, or user asks to re-initialize | `/init-brain` |
 | Never manually — cron-fired only (see the skill for the fallback rule) | `/heartbeat` |
@@ -136,6 +136,7 @@ improvise or replicate its steps from here.
 | User wants to create a new Claude Code subagent | `/agent-creator` |
 | User asks for it, when memory feels flat or a major arc closed — never scheduled | `/dream` |
 | Owner references a past session by regex, not something already in cognitive memory | `/recall-session` |
+| Owner wants to switch idle curiosity on/off/check its state, or run one pass by hand — otherwise fires only from the heartbeat's quiet cycles | `/curiosity` |
 
 ## Structure
 
@@ -151,6 +152,7 @@ improvise or replicate its steps from here.
 | `.claude/skills/local-agent/` | Hands a whole task to a local ollama model that runs its own agentic loop and returns one typed result. |
 | `.claude/skills/agent-creator/` | Interactively creates a real Claude Code subagent — six-question flow, generates `.claude/agents/*.md`, indexes it below. |
 | `.claude/skills/recall-session/` | Regex search across this brain's own Claude Code session transcripts, scoped to this project only. |
+| `.claude/skills/curiosity/` | Idle cognitive mode — reads outside the memory graph, stores what comes back, wanders across distant memories, opt-in via the activation record. |
 
 ## Synaptra
 
