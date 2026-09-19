@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Issue #5 -- structural checks for `.claude/skills/dream/SKILL.md`:
 
-- AC 6: no INSTRUCTION to call a raw synaptra tool (`memory_archive`, `memory_update`,
-  `memory_store`, `memory_delete`, `memory_relate`, `memory_unrelate`) -- a prohibition
-  sentence naming one is fine (e.g. "the dream contains no direct call to
-  memory_archive"); only a call-shaped instruction (`memory_archive(id)`, or the bare
-  name immediately followed by an open paren) counts against this. Same
-  call-vs-mention distinction `check_heartbeat.py`'s AC 9 grep already draws.
+- AC 6: no INSTRUCTION to call a raw `memory_archive`, `memory_update`,
+  `memory_store` or `memory_delete` -- a prohibition sentence naming one is fine
+  (e.g. "the dream contains no direct call to memory_archive"); only a call-shaped
+  instruction (`memory_archive(id)`, or the bare name immediately followed by an
+  open paren) counts against this. Same call-vs-mention distinction
+  `check_heartbeat.py`'s AC 9 grep already draws. `memory_relate` and
+  `memory_unrelate` are deliberately NOT in this list -- see the comment on
+  `FORBIDDEN_CALLS` below for why.
 - AC 14: nothing schedules a dream -- no `CronCreate` call anywhere in the skill.
 - AC 7 / AC 15: the skill states its retrievability threshold and its
   active-conversation window as explicit numbers, not "a while" or "recently."
@@ -27,13 +29,23 @@ from pathlib import Path
 
 SKILL_FILE = Path(__file__).resolve().parent / "SKILL.md"
 
+## Why memory_relate and memory_unrelate are NOT in this list (cycle 2's finding)
+##
+## AC 6's own enforcement sentence names three tools: memory_archive, memory_update,
+## memory_store -- not memory_relate or memory_unrelate. This is not an omission:
+## /create-memory itself calls memory_relate directly, as part of writing a NEW
+## memory's own constellation edges (step 6, "Link it") -- there is no standalone
+## "/create-memory relate mode" for linking two memories it did not just create, and
+## inventing one would mean editing one of the four memory skills, which is out of
+## this story's scope. The dream's own Act 4 keeps direct memory_relate/
+## memory_unrelate calls, held to the SAME discipline /create-memory's step 6
+## documents (full uuids, the closed rel_type vocabulary) -- mechanically backstopped
+## by memory_guard.py's existing AC 26 rule regardless of which skill's text calls it.
 FORBIDDEN_CALLS = (
     "memory_archive",
     "memory_update",
     "memory_store",
     "memory_delete",
-    "memory_relate",
-    "memory_unrelate",
 )
 CALL_RE = {call: re.compile(rf"\b{call}\s*\(") for call in FORBIDDEN_CALLS}
 
@@ -54,10 +66,13 @@ AC7_RE = re.compile(
 
 # AC 15: a number of minutes, specifically near "active conversation" -- narrower
 # than "any number near the word minutes", which false-matched the heartbeat's
-# unrelated 30-minute cadence mentioned in the intro.
+# unrelated 30-minute cadence mentioned in the intro. `\s+` between "active" and
+# "conversation" (not a literal space) because markdown line-wrapping can put a
+# newline there without changing the phrase's meaning -- a text check should
+# survive reflow, not depend on it.
 AC15_RE = re.compile(
-    r"active conversation.{0,80}\b\d+\s*minutes?\b"
-    r"|\b\d+\s*minutes?\b.{0,80}active conversation",
+    r"active\s+conversation.{0,80}\b\d+\s*minutes?\b"
+    r"|\b\d+\s*minutes?\b.{0,80}active\s+conversation",
     re.IGNORECASE | re.DOTALL,
 )
 

@@ -1,82 +1,70 @@
 # Action
 
-**Cycle 2. Rewrite the dream's acts — AC 6, AC 7, AC 15's text, then start the AC 1/2 row-count-gate proof.**
+**Cycle 3. AC 3, AC 9, AC 16, AC 17.**
 
-Read `logs/cycle-1.md` first. Cycle 1 settled the `cm backup` question (file-level,
-safe under concurrent access, checkpoint text unchanged), built the protected-ids
-mechanism (AC 8, `check_hooks.py` 27/27), and `check_dream.py` (AC 6/7/14/15
-structural checks — AC 14 already passes; AC 6, 7, 15 correctly fail against the
-current unedited acts). 2/17.
+Read `logs/cycle-2.md` first. Cycle 2 rewrote Acts 2/4/5, added AC 15's window,
+fixed a real skill-text gap AC 1/2's headless run surfaced (the abort language
+never said "defect"), fixed two false fails in the gate-proof script itself
+(negated keyword mentions read as positive reports — now anchored on the model's
+own `Decision:` line), and fixed a self-inflicted AC 23 regression. 7/17.
 
-## 1. Rewrite Act 2 — archive goes through `/delete-memory`
+**Do not re-open AC 1, 2, 6, 7, 8, 14, 15** — proven this cycle or last, with real
+evidence, not assumed.
 
-Current: `memory_archive(id)` in a table row. Per assumption.md: "Archiving...
-[goes] through `/delete-memory`... The dream keeps its thinking; only the calls
-move." Change the table's `memory_archive(id)` action to route through
-`/delete-memory`, keeping the judgment criteria in the table (resolved
-continuation, superseded snapshot, no-longer-load-bearing) exactly as they are —
-only the mechanism changes.
+## 1. AC 3 — headless run for the non-zero-exit branch
 
-**AC 7 in the same pass**: state the archive threshold explicitly — "a memory is
-archived only if its retrievability is below 0.2" (assumption.md's stated number,
-matching `memory_consolidate`'s own archive line) — AND that it must be on neither
-boot list and not the current handoff (AC 8, restated here as the rule Act 2 must
-honor, not just what the hook enforces). Use wording `check_dream.py`'s AC 7 regex
-will match: the word "archiv", the word "retrievability", and a decimal number like
-`0.2`, co-located.
+"A backup command or deep verify that exits non-zero aborts the dream with the
+command's own error shown." Cycle 2 added the text (checkpoint step 6) but never
+tested it. Extend `check_dream_gate_scripted_agent.py` with a third scenario: same
+prompt shape as the mismatch/match runs, but tell the model `cm backup verify
+--deep` exited non-zero with a specific fabricated error string (e.g. "Error:
+manifest checksum mismatch, exit 1"). Assert the model's decision aborts AND that
+its own reported reason contains that exact error text verbatim, not a paraphrase.
+Use the same `extract_decision` anchoring technique cycle 2 built, not a naive
+whole-text keyword scan.
 
-## 2. Rewrite Act 4 — relate/unrelate go through the skills
+## 2. AC 9 — retype via `cm` CLI, read back
 
-Current: `memory_relate(full_id, full_id, rel_type)` directly, and a direct
-`memory_unrelate` for backwards `part_of` fixes. Per assumption.md: relating goes
-through `/create-memory`'s relate step. Change Act 4's step 5 ("Execute — one
-`memory_relate`...") to route through `/create-memory`; change step 7's
-`memory_unrelate` fix similarly, noting that `memory_guard.py`'s protected-id rule
-will refuse either if a protected id is ever named (AC 8's mechanism backstopping
-Act 4's own care).
+"A retype is done by the `cm` CLI and read back." Act 2 already routes retyping
+through `/update-memory`, and `/update-memory`'s own text already says type
+changes go through `cm update <id> --type <type>`, then read back — so this
+criterion may already be satisfied by the ROUTING alone (AC 6's fix). Check this
+first before building anything: does `/update-memory`'s existing text genuinely
+guarantee both halves (CLI path AND read-back) for a TYPE change specifically, or
+only for content changes? If genuinely already covered by routing through
+`/update-memory`, say so and treat as met by that mechanism — don't build a
+redundant proof. If there's a gap (e.g. `/update-memory` documents read-back for
+content but not specifically confirms it for a type change), a small headless run
+or scratch-store proof closes it.
 
-## 3. Rewrite Act 5 — drop the surface-map update entirely
+## 3. AC 16 — an abort leaves the store exactly as it was
 
-Current: "Update the `self-learning-surface-map` memory with completed
-constellations..." — this concept doesn't exist after #3/#4. Delete this line. Act
-5 keeps its other half (storing a `semantic` memory capturing what was woven) but
-that store must ALSO route through `/create-memory`, not a direct call (re-check
-this line isn't already using one; if it says "Store a `semantic` memory" in prose
-without naming a raw tool, it may already be fine — confirm, don't assume).
+Build a real scratch store (fresh data dir under
+`C:/Projects/.tmp/second-brain-loop-5/`). Seed a handful of memories. Dump the full
+`memory_list` state. Force an abort at the row-count gate (the same technique as
+AC 1/2's headless run — tell the model live count and manifest count differ) in a
+scenario where the model ALSO has real tool access to this scratch store (so it
+could theoretically touch it, unlike AC 1/2's proof which had no synaptra
+connection at all). After the run, dump `memory_list` again and diff byte-for-byte
+against the pre-run dump. Zero difference is the proof — not the model's claim that
+it changed nothing, the store's own state.
 
-## 4. AC 15 — state the active-conversation window as a number
+## 4. AC 17 — synaptra unreachable, stops before any backup
 
-Per assumption.md: "an owner message in this session within the last 10 minutes."
-Add this as an explicit refusal rule — where in the skill this rule lives is a
-judgement call (a new short section near "When to dream," or folded into
-Prerequisites) — state it once, clearly, with the number `10` and the phrase
-"active conversation" together so `check_dream.py`'s AC 15 regex matches.
-
-## 5. Re-run `check_dream.py`
-
-Expect AC 6, AC 7, AC 14, AC 15 all to pass now (AC 14 already did). If any doesn't,
-the wording is wrong, not the check — this script's regexes were sanity-tested in
-cycle 1 against realistic phrasing; match that shape.
-
-## 6. If time remains: start the AC 1/2 row-count-gate proof
-
-`observe.md`'s own instruction: a script that feeds the checkpoint gate a manifest
-whose row count differs from the live count and asserts abort with the word
-"defect" in the output, and a matching manifest and asserts continue. The gate
-logic itself already exists in the skill's prose (steps 1–6 of "Pre-dream
-checkpoint") — this is about proving the LOGIC, which likely means extracting the
-comparison into something callable/testable (a small script under
-`.claude/skills/dream/`, e.g. `check_gate.py`, that takes a live count and a
-manifest row count as arguments and prints "defect" + exits non-zero on mismatch,
-exits 0 on match) rather than trying to script-test prose. Judgement call on the
-exact shape; say what you built and why.
+"With synaptra unreachable, `/dream` says so and stops before creating a backup."
+A scratch project with a broken `.mcp.json` (nonexistent synaptra executable, same
+technique issue #3's AC 18 and issue #4's cycle 2 used), prompted to run `/dream`.
+Assert it reports the store is unreachable and never attempts `cm backup create`
+at all (no backup directory created under wherever it would have written one) —
+verify by checking the scratch backups directory stays empty, not just by reading
+the transcript's claim.
 
 Never touch the live store — everything scratch under
 `C:/Projects/.tmp/second-brain-loop-5/`, including any real `cm backup` runs.
 
 Re-run the full regression line before closing: `check_shapes.py`,
 `check_hooks.py`, `check_session_start.py`, `check_verify_memory.py`,
-`check_heartbeat.py` — all five must pass.
+`check_heartbeat.py`, `check_dream.py` — all six must pass.
 
-Commit on `feature/5-dream`, push, write `logs/cycle-2.md`, write the next
+Commit on `feature/5-dream`, push, write `logs/cycle-3.md`, write the next
 `action.md`, send the one-line report to velasari, and exit.
