@@ -172,14 +172,17 @@ persona and user are whoever `persona.md` and `user.md` currently define.)
   of non-trivial tasks to check for prior context.
 - **Self**: Use `memory_self` for identity grounding (operating principles,
   attention, blind spots). Fired by `/session-start`.
-- **Store**: After completing significant work, learning something important
-  about the user or a project, or when the user says "remember this." Pick
-  the type by what the memory *is*: an event or milestone → `episodic`; a
-  fact, decision, or preference → `semantic`; a workflow or how-to →
-  `procedural`.
-- **Update**: When a stored fact changes, update — don't duplicate.
-- **Relate**: Link memories that are causally, temporally, or thematically
-  connected.
+- **Store**: route through `/create-memory` — after completing significant
+  work, learning something important about the user or a project, or when
+  the user says "remember this." Never call `memory_store` directly; the
+  skill picks the shape and type per `.claude/shared/memory/memory-shapes.md`.
+- **Update**: route through `/update-memory` — when something stored
+  changes. Never call `memory_update` directly.
+- **Relate**: happens inside `/create-memory` (a learning's constellation) or
+  `/update-memory` (a supersede/follows edge), not as a standalone call
+  outside those skills.
+- **Remove**: route through `/delete-memory` — archive by default, delete
+  only when never-true or a duplicate. Never call `memory_delete` directly.
 
 **Memory types and decay**:
 

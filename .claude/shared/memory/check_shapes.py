@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Check script for issue #2 — AC 1, 2, 3, 23.
+"""Check script for issue #2 — AC 1, 2, 3, 4, 23.
 
-Stdlib only, no synaptra import — these four criteria are about file shape,
-not store behaviour. Run from anywhere; paths are resolved relative to this
+Stdlib only, no synaptra import — these criteria are about file shape, not
+store behaviour. Run from anywhere; paths are resolved relative to this
 file, never to the caller's cwd, so it survives being invoked from a
 different directory.
 
@@ -21,8 +21,10 @@ from pathlib import Path
 SHARED_DIR = Path(__file__).resolve().parent
 CLAUDE_DIR = SHARED_DIR.parent.parent  # .claude/shared/memory -> .claude
 SKILLS_DIR = CLAUDE_DIR / "skills"
+REPO_ROOT = CLAUDE_DIR.parent  # .claude -> repo root
 SHAPES_FILE = SHARED_DIR / "memory-shapes.md"
 SHAPES_FILE_REL = ".claude/shared/memory/memory-shapes.md"
+CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
 
 MEMORY_SKILLS = ["create-memory", "read-memory", "update-memory", "delete-memory"]
 FOUR_SHAPES = ["fact", "learning", "persona", "person-model"]
@@ -162,6 +164,43 @@ def check_ac23() -> tuple[bool, str]:
     return ok, detail
 
 
+def check_ac4() -> tuple[bool, str]:
+    """AC4: CLAUDE.md routes memory writes/changes/removals to the four skills and no
+    longer instructs a direct memory_store/memory_update/memory_delete call.
+
+    Heuristic, stated plainly rather than hidden: requires the three "Never call
+    `memory_X` directly" prohibitions to be present (proves the routing rule is
+    actually stated, not just that the forbidden words are gone), AND requires the
+    three writer skills to be named in the same file (proves it points somewhere).
+    """
+    if not CLAUDE_MD.is_file():
+        return False, "CLAUDE.md not found at repo root"
+    text = CLAUDE_MD.read_text(encoding="utf-8")
+    required_prohibitions = [
+        ("memory_store", re.compile(r"[Nn]ever call `memory_store`")),
+        ("memory_update", re.compile(r"[Nn]ever call `memory_update`")),
+        ("memory_delete", re.compile(r"[Nn]ever call `memory_delete`")),
+    ]
+    missing_prohibitions = [
+        name for name, pat in required_prohibitions if not pat.search(text)
+    ]
+    required_pointers = ["/create-memory", "/update-memory", "/delete-memory"]
+    missing_pointers = [p for p in required_pointers if p not in text]
+    ok = not missing_prohibitions and not missing_pointers
+    if ok:
+        detail = "CLAUDE.md states all three 'never call directly' prohibitions and points at all three writer skills"
+    else:
+        parts = []
+        if missing_prohibitions:
+            parts.append(
+                f"missing prohibition(s) for: {', '.join(missing_prohibitions)}"
+            )
+        if missing_pointers:
+            parts.append(f"missing pointer(s) to: {', '.join(missing_pointers)}")
+        detail = "; ".join(parts)
+    return ok, detail
+
+
 def main() -> int:
     results = []
 
@@ -173,6 +212,9 @@ def main() -> int:
 
     ok3, detail3 = check_ac3(present)
     results.append(("AC3", ok3, detail3))
+
+    ok4, detail4 = check_ac4()
+    results.append(("AC4", ok4, detail4))
 
     ok23, detail23 = check_ac23()
     results.append(("AC23", ok23, detail23))
