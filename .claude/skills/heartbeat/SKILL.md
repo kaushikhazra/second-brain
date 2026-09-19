@@ -55,3 +55,13 @@ Break silence only when what was observed cannot wait for the owner to ask:
 
 The first two are the brain speaking — do not repeat one the owner has not answered.
 The third is the world speaking through the brain and surfaces regardless of that.
+
+## Failure
+
+**Synaptra unreachable.** A call fails because the store can't be reached — say so
+once and stop the beat. No retry. This is the first silence exception above
+("something is failing"), not a fourth case.
+
+**No double-run.** Each cron fire is its own fresh invocation of this skill; there is
+no persistent loop process for a slow beat to overrun. "Not run twice" is a property
+of that invocation model, not a lock this skill has to track.

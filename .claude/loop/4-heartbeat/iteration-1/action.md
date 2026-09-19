@@ -1,50 +1,68 @@
 # Action
 
-**Cycle 2. Close the failure-handling gap, then start the headless-run batch.**
+**Cycle 3. Root-cause the AC 5/12 write failure, then fix it.**
 
-Read `logs/cycle-1.md` first — it found a real gap cycle 1's own plan didn't cover:
-issue #4's AC 19 (synaptra unreachable → say so once, exit, no retry) and AC 20 (a
-beat that overruns its cron interval is not run twice) have no home in the four
-`observe.md`/`goal.md` ids, because they are failure-handling, not
-observation-triggers-action pairs.
+Read `logs/cycle-2.md` first. Cycle 2 proved AC 8 and AC 19 (5/20 total) but AC 5/12's
+headless run failed: the beat correctly judged the seeded surface-map entry closed,
+but 10 consecutive `memory_update` attempts against the holder came back
+`InputValidationError`, and the write never landed (confirmed against the actual
+store, not the transcript). A direct `cm update <id> --content ""` against the same
+holder worked fine, which rules out "empty content itself is invalid" — so the cause
+is in how the SCRIPTED AGENT constructed or routed that specific call, not in
+synaptra itself. Two candidates, undistinguished by the evidence cycle 2 had:
 
-1. **`SKILL.md`** — add a short `## Failure` section (keep the whole file close to
-   60 lines; trim if needed rather than let it grow unbounded):
-   - AC 19: if a synaptra call fails because the server is unreachable, say so once
-     (this is one of the three exceptions to the silence rule — state that
-     explicitly, don't add a fourth) and stop the beat. No retry.
-   - AC 20: each cron fire is its own beat: there is no persistent loop process to
-     overrun, so "not run twice" is a property of how the beat starts, not something
-     it tracks — state this plainly rather than inventing a lock file to guard a
-     race that cron's own one-fire-one-invocation model doesn't have. If that
-     reasoning turns out wrong (a fire can genuinely overlap a still-running one),
-     say so instead of forcing the stated conclusion.
+1. `/update-memory`'s own text tells every caller to re-fetch and re-pass the full
+   tag list on every update. Followed literally for the surface-map write, that means
+   passing `tags=["surface-map"]` on a call `goal.md § surface-map` says must be
+   content-only — which `memory_guard.py` would then refuse. Against this: the
+   hook's block message ("BLOCKED (AC 12): tag(s)...") doesn't match what cycle 2's
+   run actually reported.
+2. A malformed call shape from the model itself (e.g. `content` passed as something
+   other than a plain string), repeated identically without self-correction.
 
-2. **Prove AC 19** with a headless run: point a scratch heartbeat invocation at a
-   synaptra HTTP address nothing is listening on, confirm the beat's one line of
-   output matches the say-once-and-stop text and that no second attempt follows.
-   Record the actual output.
+1. **Re-run AC 5/12 with `--output-format stream-json`** instead of `json`, against a
+   freshly-seeded copy of the same scenario (same scratch data shape as cycle 2's
+   script, new data dir so the failed run's data doesn't contaminate this one).
+   Capture the actual tool-call arguments and tool-result content for every
+   `memory_update` / `mcp__synaptra__memory_update` attempt — that is the one thing
+   cycle 2's `--output-format json` run didn't give you. This tells you which of the
+   two candidates (or something else) it actually was. Record the real payload in
+   `logs/cycle-3.md`, not a guess.
 
-3. **Then start the headless-run batch from `observe.md`'s "five that will be got
-   wrong"**, same batching discipline as #2's cycle 8: group what one scratch-agent
-   run can exercise together.
-   - **AC 5 + AC 12** first (the one `observe.md` calls out as easiest to get wrong):
-     seed a scratch store with a closed surface-map entry, run a beat against an
-     otherwise-empty window, assert from the store that the exit walk still removed
-     the closed id even though nothing else fired.
-   - **AC 8** next if time allows: feed a window with one item that merely happened
-     and one that changes a decision, assert one store not two, and that its content
-     carries the reason — same shape as #2's original AC 8 proof.
+2. **Fix whatever it turns out to be.**
+   - If it's candidate 1 (the tags carve-out): this is now the cycle to add it.
+     One sentence in `/update-memory`'s own table — the surface-map beat write is
+     maintenance the list exists for, not the "merely untidy → do nothing" case — so
+     the skill's own text stops instructing a caller to re-pass `tags` on this one
+     kind of call. This is the exception cycle 1 and cycle 2 both already pointed at;
+     touching `/update-memory` this cycle is the plan, not a scope violation of the
+     earlier "don't touch it yet" rule, which was written before this evidence
+     existed.
+   - If it's candidate 2 (a malformed call shape): fix is in `goal.md § surface-map`'s
+     "Writing it" section — state the exact call shape more explicitly (content as a
+     plain newline-joined string of the ids, nothing structured) if the current text
+     is genuinely ambiguous about that.
+   - If it's neither, say so plainly rather than forcing one of the two onto the
+     evidence.
 
-Never the live store — scratch under `C:/Projects/.tmp/second-brain-loop-4/`, started
-and stopped explicitly around each use.
+3. **Re-run `check_heartbeat_ac5_ac12_scripted_agent.py` end to end** (fresh seed,
+   stop the seed server, run, verify against the store) to confirm the write now
+   lands: the holder's content after the beat should be empty (the one seeded id was
+   closed and nothing replaced it).
 
-Do not touch `/update-memory` or `CLAUDE.md` this cycle either — the carve-out and the
-routing row still come with the cycle that actually proves the surface-map write
-(AC 14/15), not this one.
+4. **If time remains after that**: AC 13 (entry test rejects an unclear-type item —
+   seed a `procedural` memory that looks recent, confirm it is not added to the map)
+   and AC 16's mechanism (self-map holder update refused unless the sentinel says
+   init-brain is running — try extending `memory_guard.py`'s existing holder
+   exemption with the narrower rule `assumption.md`/`observe.md` describe; fall back
+   to a headless-run proof and say why if it's too entangled with #3's sentinel
+   design).
+
+Never the live store — scratch under `C:/Projects/.tmp/second-brain-loop-4/`, fresh
+data dirs for anything re-seeded, started and stopped explicitly.
 
 Re-run `check_shapes.py`, `check_hooks.py`, `check_session_start.py` and
 `check_heartbeat.py` before closing the cycle — all four must still pass.
 
-Commit on `feature/4-heartbeat`, push, write `logs/cycle-2.md`, write the next
+Commit on `feature/4-heartbeat`, push, write `logs/cycle-3.md`, write the next
 `action.md`, send the one-line report to velasari, and exit.
