@@ -6,5 +6,19 @@
         "repo": "kaushikhazra/apex"
       }
     }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__synaptra__memory_store|mcp__synaptra__memory_update|mcp__synaptra__memory_relate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/memory_guard.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
   }
 }

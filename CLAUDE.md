@@ -172,24 +172,31 @@ persona and user are whoever `persona.md` and `user.md` currently define.)
   of non-trivial tasks to check for prior context.
 - **Self**: Use `memory_self` for identity grounding (operating principles,
   attention, blind spots). Fired by `/session-start`.
-- **Store**: After completing significant work, learning something important
-  about the user or a project, or when the user says "remember this." Pick
-  the type by what the memory *is*: an event or milestone → `episodic`; a
-  fact, decision, or preference → `semantic`; a workflow or how-to →
-  `procedural`.
-- **Update**: When a stored fact changes, update — don't duplicate.
-- **Relate**: Link memories that are causally, temporally, or thematically
-  connected.
+- **Store**: route through `/create-memory` — after completing significant
+  work, learning something important about the user or a project, or when
+  the user says "remember this." Never call `memory_store` directly; the
+  skill picks the shape and type per `.claude/shared/memory/memory-shapes.md`.
+- **Update**: route through `/update-memory` — when something stored
+  changes. Never call `memory_update` directly.
+- **Relate**: happens inside `/create-memory` (a learning's constellation) or
+  `/update-memory` (a supersede/follows edge), not as a standalone call
+  outside those skills.
+- **Remove**: route through `/delete-memory` — archive by default, delete
+  only when never-true or a duplicate. Never call `memory_delete` directly.
 
-**Memory types and decay**:
+**Memory types and decay** — initial stability in days, read from
+`synaptra.decay` and identical to the figures in
+`.claude/shared/memory/memory-shapes.md`'s "Synaptra specifics" section (one
+number, stated in both places, not two that can drift apart):
 
-| Type | Use for | Decay rate |
-|------|---------|------------|
-| `working` | Transient task context, current session notes | Fast (hours) |
-| `episodic` | Events, conversations, experiences, milestones | Moderate (days) |
-| `semantic` | Facts, decisions, architecture knowledge, preferences | Slow (weeks) |
-| `procedural` | How-to knowledge, workflows, processes | Very slow (months) |
-| `identity` | Self-knowledge, core operating principles | Very slow |
+| Type | Use for | Decay rate | Initial stability (days) |
+|------|---------|------------|---------------------------|
+| `working` | Transient task context, current session notes | Fast | 0.04 |
+| `episodic` | Events, conversations, experiences, milestones | Moderate | 2.0 |
+| `semantic` | Facts, decisions, architecture knowledge, preferences | Slow | 14.0 |
+| `procedural` | How-to knowledge, workflows, processes | Very slow | 60.0 |
+| `person` | The owner, or another person the brain models | Very slow | 90.0 |
+| `identity` | Self-knowledge, core operating principles | Very slow | 365.0 |
 
 **Rules**:
 
