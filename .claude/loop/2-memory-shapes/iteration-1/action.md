@@ -1,66 +1,45 @@
 # Action
 
-**Cycle 8. AC 8's scripted-agent run — the last criterion with a designed proof route.**
+**Cycle 9. Check for guidance first; default to extending the scripted-agent pattern to
+AC 5 if none has arrived.**
 
-Cycle 7 closed AC 24 and confirmed every remaining gap is skill-judgment. Of those, only
-AC 8 has an assigned mechanism (`assumption.md`'s Route 2): "one headless run: `claude
--p` in a scratch project directory that carries only the shapes file and
-`/create-memory`, given a two-fact paragraph and a one-fact paragraph, asserting from
-the transcript that the first became two stores and the second one."
+Cycle 8 closed every criterion with a designed proof route (18/27) and flagged a real
+open question to Velasari rather than deciding it alone: the remaining nine (AC 5, 11,
+13, 15–17, 20–22) are skill-judgment criteria with no assigned mechanism, and extending
+AC 8's scripted-agent methodology to them is real, uncosted scope — not something to
+invent unilaterally.
 
 Read the issue's criteria fresh (`gh issue view 2 -R kaushikhazra/second-brain`) before
-the diff and before `logs/cycle-7.md`. Re-read `assumption.md` fresh — check first
-whether Velasari responded to cycle 7's flagged session-end tension; if she did,
-reconcile with that before anything else this cycle.
+the diff and before `logs/cycle-8.md`. Re-read `assumption.md` fresh — **check first,
+before anything else, whether Velasari replied to the decision-point flag.** If she
+did, follow that instead of everything below; this action.md's default is exactly that,
+a default for the case nothing has arrived yet.
 
-## 1. Build the scratch project
+## If no guidance has arrived: AC 5, the closest match to AC 8's shape
 
-A directory under `C:/Projects/.tmp/second-brain-loop-2/ac8-scratch-project/` (never
-inside the real repo) carrying only:
-- `.claude/shared/memory/memory-shapes.md` (copy of the real one)
-- `.claude/skills/create-memory/SKILL.md` (copy of the real one)
-- `CLAUDE.md` or equivalent minimal instruction, if `claude -p` needs one to load the
-  skill at all — check whether a bare skill directory with no CLAUDE.md is enough
-  before adding one; don't build more scaffold than `claude -p` actually requires.
-- Its own `.mcp.json` pointing a synaptra instance at a **scratch** data directory
-  distinct from `C:/Projects/.tmp/second-brain-loop-2/data` (the one cycles 2–7's other
-  scratch scripts reuse) — a clean store for this run, so an old probe memory can't be
-  mistaken for one this run produced.
+**Recall before storing; hand off to `/update-memory` instead of creating a second
+memory when a covering one exists.** Same scratch-project methodology as cycle 8, reused
+rather than rebuilt from scratch:
 
-## 2. Confirm `claude -p` actually invokes skills and MCP tools headlessly
+1. Reuse `C:/Projects/.tmp/second-brain-loop-2/ac8-scratch-project/` (or rename/copy
+   it — decide based on whether AC 5's test needs `/update-memory` present too, which
+   AC 8's scratch project didn't carry). AC 5 specifically requires a covering memory
+   to already exist and be found — this needs `/update-memory`'s SKILL.md copied in
+   too, since the criterion is about `/create-memory` handing off to it, and a scratch
+   project missing that skill can't demonstrate a real hand-off, only that recall
+   happened.
+2. Seed the scratch store with one fact via a first `claude -p` call (or a direct `cm
+   store`, faster and doesn't need permission-bypass concerns for the seed step).
+3. Second `claude -p` call: ask it to remember something that covers the same subject,
+   worded differently. Check the ACTUAL store afterward (ground truth, not the
+   transcript): did it create a near-duplicate, or actually route to update (content
+   changed on the existing id, no new id)?
+4. Record the real result, whatever it is — a model that fails this is a recorded
+   number, not a failed cycle, same discipline as AC 8.
 
-Do not assume. A one-line smoke test first: does a bare `claude -p "hi"` in that
-directory even load `.claude/skills/`? Does it connect the scratch `.mcp.json`'s
-synaptra server without an interactive approval prompt blocking it forever? If
-permissions or approval prompts block a headless run from ever completing, that is the
-finding — record it and figure out the flag or config that unblocks it (there almost
-certainly is one; check `claude -p --help` and `claude --help` for a
-permission-mode/auto-approve flag before assuming this is a dead end).
+## Either way
 
-## 3. Run it twice
-
-- **Two-fact paragraph**: a short prompt containing two independently-recallable facts,
-  asking the assistant to remember it. Expect `/create-memory` to produce two stores
-  (per the shapes file's own fact rule: "If it contains two facts that could be recalled
-  independently, it is two memories").
-- **One-fact paragraph**: a comparable prompt with exactly one fact. Expect one store.
-
-After each run, query the scratch synaptra store directly (`cm list --state active`)
-rather than trusting the transcript alone — the actual stored count is the ground
-truth, the transcript is corroborating evidence.
-
-## 4. Record the number, whatever it is
-
-Per `assumption.md`: "treat a model that fails it as a recorded number rather than a
-failed cycle." If the two-fact case produces one store, or three, that is the finding —
-write it down plainly in `logs/cycle-8.md`, do not retry until it produces the expected
-number, and do not treat a genuine miss as this cycle having failed. The loop's job is
-to find out, not to make AC 8 pass by construction.
-
-## 5. Commit, push, log, write cycle 9's action.md, exit
-
-If this genuinely can't run headlessly in one cycle (step 2's smoke test fails and no
-quick fix is found), say so plainly, record what was tried, and leave AC 8 in the
-unproved list with a clearer reason than before — that is still real progress on the
-question, even without a passing number. Do not spend a second cycle re-attempting the
-same blocked approach without a new idea.
+Run `check_shapes.py` to confirm nothing regressed. Commit, push, `logs/cycle-9.md`
+written, `action.md` rewritten for cycle 10, one crosschat line to `velasari` before
+exit — and if this cycle proceeded on the "no guidance yet" default rather than an
+actual reply, say that explicitly in the report, so it's clear which case happened.
