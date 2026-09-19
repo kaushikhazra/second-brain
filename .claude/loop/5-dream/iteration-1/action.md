@@ -1,15 +1,17 @@
 # Action
 
-**Cycle 3. AC 3, AC 9, AC 16, AC 17.**
+**Cycle 4. AC 3, AC 9, AC 16, AC 17.**
 
-Read `logs/cycle-2.md` first. Cycle 2 rewrote Acts 2/4/5, added AC 15's window,
-fixed a real skill-text gap AC 1/2's headless run surfaced (the abort language
-never said "defect"), fixed two false fails in the gate-proof script itself
-(negated keyword mentions read as positive reports — now anchored on the model's
-own `Decision:` line), and fixed a self-inflicted AC 23 regression. 7/17.
+Read `logs/cycle-3.md` first. Cycle 3 applied velasari's ruling on Act 4
+(`memory_relate`/`memory_unrelate` stay direct calls, settled, do not re-open) and
+narrowed `check_dream.py`'s AC 6 grep to the criterion's exact three names
+(`memory_archive`, `memory_update`, `memory_store`) — `memory_delete` protection
+already exists project-wide via `check_shapes.py`'s AC 23, so dropping it from
+`check_dream.py`'s own list created no gap. Count unchanged at 7/17 — a precision
+fix, not new ground.
 
-**Do not re-open AC 1, 2, 6, 7, 8, 14, 15** — proven this cycle or last, with real
-evidence, not assumed.
+**Do not re-open AC 1, 2, 6, 7, 8, 14, 15** — proven with real evidence across
+cycles 1–3.
 
 ## 1. AC 3 — headless run for the non-zero-exit branch
 
@@ -21,7 +23,8 @@ prompt shape as the mismatch/match runs, but tell the model `cm backup verify
 manifest checksum mismatch, exit 1"). Assert the model's decision aborts AND that
 its own reported reason contains that exact error text verbatim, not a paraphrase.
 Use the same `extract_decision` anchoring technique cycle 2 built, not a naive
-whole-text keyword scan.
+whole-text keyword scan — that technique fixed two false fails already; don't
+regress to the naive version for this scenario.
 
 ## 2. AC 9 — retype via `cm` CLI, read back
 
@@ -66,5 +69,5 @@ Re-run the full regression line before closing: `check_shapes.py`,
 `check_hooks.py`, `check_session_start.py`, `check_verify_memory.py`,
 `check_heartbeat.py`, `check_dream.py` — all six must pass.
 
-Commit on `feature/5-dream`, push, write `logs/cycle-3.md`, write the next
+Commit on `feature/5-dream`, push, write `logs/cycle-4.md`, write the next
 `action.md`, send the one-line report to velasari, and exit.

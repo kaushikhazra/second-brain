@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Issue #5 -- structural checks for `.claude/skills/dream/SKILL.md`:
 
-- AC 6: no INSTRUCTION to call a raw `memory_archive`, `memory_update`,
-  `memory_store` or `memory_delete` -- a prohibition sentence naming one is fine
-  (e.g. "the dream contains no direct call to memory_archive"); only a call-shaped
-  instruction (`memory_archive(id)`, or the bare name immediately followed by an
-  open paren) counts against this. Same call-vs-mention distinction
-  `check_heartbeat.py`'s AC 9 grep already draws. `memory_relate` and
-  `memory_unrelate` are deliberately NOT in this list -- see the comment on
-  `FORBIDDEN_CALLS` below for why.
+- AC 6: no INSTRUCTION to call a raw `memory_archive`, `memory_update` or
+  `memory_store` -- the criterion's own three names, exactly, no more and no
+  fewer (velasari's ruling, issue #5 cycle 3). A prohibition sentence naming one
+  is fine (e.g. "the dream contains no direct call to memory_archive"); only a
+  call-shaped instruction (`memory_archive(id)`, or the bare name immediately
+  followed by an open paren) counts against this. Same call-vs-mention
+  distinction `check_heartbeat.py`'s AC 9 grep already draws. `memory_relate` and
+  `memory_unrelate` are deliberately NOT in this list (ruled on, not an
+  oversight); `memory_delete` is deliberately not here either, despite CLAUDE.md's
+  own standing rule against it, because that protection already exists
+  project-wide in `check_shapes.py`'s AC 23 scan -- see the comment on
+  `FORBIDDEN_CALLS` below for both.
 - AC 14: nothing schedules a dream -- no `CronCreate` call anywhere in the skill.
 - AC 7 / AC 15: the skill states its retrievability threshold and its
   active-conversation window as explicit numbers, not "a while" or "recently."
@@ -41,11 +45,21 @@ SKILL_FILE = Path(__file__).resolve().parent / "SKILL.md"
 ## memory_unrelate calls, held to the SAME discipline /create-memory's step 6
 ## documents (full uuids, the closed rel_type vocabulary) -- mechanically backstopped
 ## by memory_guard.py's existing AC 26 rule regardless of which skill's text calls it.
+## Ruling, issue #5 cycle 3 (velasari): confirmed -- Act 4 keeps them. "Two
+## conditions, both already true, keep them stated in Act 4: full uuids only, which
+## the hook enforces, and the edge-count verification after each batch."
+##
+## FORBIDDEN_CALLS matches AC 6's own enforcement sentence EXACTLY -- three names,
+## not four. memory_delete is deliberately not here even though CLAUDE.md's own
+## standing rule forbids calling it directly anywhere: that protection already
+## exists, project-wide, in check_shapes.py's AC 23 scan (issue #2), which covers
+## every `*/SKILL.md` outside the four memory skills, dream included. Adding a
+## fourth name here would duplicate a check that already exists elsewhere and claim
+## this script tests something AC 6 itself does not ask for.
 FORBIDDEN_CALLS = (
     "memory_archive",
     "memory_update",
     "memory_store",
-    "memory_delete",
 )
 CALL_RE = {call: re.compile(rf"\b{call}\s*\(") for call in FORBIDDEN_CALLS}
 
