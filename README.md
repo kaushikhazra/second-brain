@@ -6,7 +6,7 @@ its memory on a heartbeat while you work, and dreams to reorganize what it
 knows.
 
 This isn't a codebase. It's a workspace template: a `CLAUDE.md` that routes
-every session through a lifecycle, and five skills that give the assistant a
+every session through a lifecycle, and a set of skills that give the assistant a
 persistent identity on top of a
 [synaptra](https://pypi.org/project/synaptra/) substrate.
 
@@ -40,11 +40,19 @@ own memories* — the interview is only for a brain with no past.
 
 | Skill | Fires | Does |
 |-------|-------|------|
-| `/init-brain` | Files missing, or on request | Creates `persona.md` + `user.md` — restores from Synaptra first, interviews only a genuinely new brain |
-| `/session-start` | First action of every conversation | Adopts the persona, verifies memory, grounds identity (`memory_self`), starts the heartbeat cron, recalls the handoff |
-| `/heartbeat` | Cron, every 30 min | Silent consolidation: replay → void-fill → continuation tracking → surface-map rebuild (dispatched to a cheap sub-agent) |
-| `/session-end` | "Stopping for today" | Kills crons, stores learnings, writes the handoff memory |
-| `/dream` | User-invoked, when memory feels flat | Deep consolidation: backup checkpoint, triage, `memory_consolidate`, relational surgery, seal — every memory woven, archived, or marked hub |
+| `/init-brain` | Files missing, or on request | Creates `persona.md` + `user.md` — restores from Synaptra first, interviews only a genuinely new brain; seeds the two boot lists |
+| `/session-start` | First action of every conversation | Adopts the persona, fetches the self map and the surface map by tag, picks up the handoff, asks once about optional habits, starts the heartbeat cron |
+| `/heartbeat` | Cron | Three files, `observe.md` and `goal.md` paired by id: captures what a future session would be wrong without, walks the surface map every beat and removes what has closed, silent unless something fails |
+| `/session-end` | "Stopping for today" | Kills crons, stores the episodic handoff, runs `verify_memory.py` over both boot lists and the conformance scan |
+| `/dream` | User-invoked, when memory feels flat | Deep consolidation behind a backup whose row count is checked; never touches the boot lists or the handoff; reports before and after |
+| `/create-memory` `/read-memory` `/update-memory` `/delete-memory` | Every memory operation | The only path to the store. Four shapes in `.claude/shared/memory/memory-shapes.md`; a `PreToolUse` hook refuses reserved tags, short ids and protected ids |
+| `/curiosity` | Idle heartbeats, if switched on | Goes to the root of something in memory, reads one outside source, lays a provisional edge at negative strength, writes a dated record |
+| `/news` | Once a day, if switched on | Headlines and verified links only, scoped by `news-keywords.txt`; YouTube with keys in `.env` |
+| `/recall-session` | On request | Regex search over this brain's own past sessions, read-only |
+
+Curiosity and news are asked about once, on a fresh brain and after each `VERSION`
+change; declined, the brain gives a one-line hint and does not ask again.
+The record is `.claude/activations.json`, machine-local.
 
 `CLAUDE.md` is pure routing — it says *when* to invoke *which* skill and
 owns zero mechanics, so there is exactly one source of truth per fact.
