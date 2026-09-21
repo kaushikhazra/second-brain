@@ -8,3 +8,18 @@ tools/          export-ignore
 # Pattern, not a list of names, so a NEW test file cannot silently start
 # shipping. They stay in the repo — they just leave the dist.
 .claude/skills/*/scripts/test_*.py  export-ignore
+
+# Loop records. The development history of this brain — goal, observation,
+# the instruction rewritten each cycle, and every cycle log. A user installing
+# the brain is not installing our loops; a template that unpacks another
+# project's working notes into someone's workspace is broken as a template.
+.claude/loop/   export-ignore
+
+# The loops' verification harnesses. `check_*.py` is what proved an acceptance
+# criterion held; nothing in any skill invokes one at runtime, and they are
+# referenced only from the cycle logs. Pattern, not a list, so a new check
+# cannot silently start shipping.
+#
+# `verify_memory.py` is deliberately NOT matched here — session-end runs it as
+# step 4, so it is runtime, not exhaust.
+check_*.py      export-ignore
