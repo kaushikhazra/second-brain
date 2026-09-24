@@ -14,6 +14,10 @@ so /create-memory's underlying call has nothing to call.
 Assertion: the transcript's final result says, once, that synaptra/memory is
 unreachable, and does not show repeated retry attempts at the same call.
 
+The scratch tree is built by `.claude/shared/fixture_scratch_brain.py`, shared with the
+other scripted-agent checks -- `mcp="broken"` is the variant this check needs. Proved
+byte-identical to this file's own former `build_scratch_project()` before the switch.
+
 Never the live store, never the live project. Costs real money per run.
 
 Usage: python check_heartbeat_ac19_scripted_agent.py [--skip-build]
@@ -23,89 +27,38 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
 BRAIN_ROOT = REPO_ROOT.parent
+
+sys.path.insert(0, str(REPO_ROOT / "shared"))
+
+from fixture_scratch_brain import build_scratch_brain  # noqa: E402
+
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-4")
 SCRATCH_PROJECT = SCRATCH_ROOT / "heartbeat-ac19-scratch-project"
 
+CLAUDE_MD = (
+    "# CLAUDE.md\n\nScratch test for issue #4's AC 19 proof (heartbeat, synaptra "
+    "unreachable). Route memory storage through /create-memory, never a raw "
+    "memory_store call.\n"
+)
+
 
 def build_scratch_project() -> None:
-    if SCRATCH_PROJECT.exists():
-        shutil.rmtree(SCRATCH_PROJECT)
-
-    for skill in ("create-memory", "heartbeat"):
-        dest = SCRATCH_PROJECT / ".claude" / "skills" / skill
-        dest.mkdir(parents=True, exist_ok=True)
-        src = REPO_ROOT / "skills" / skill
-        for f in src.glob("*"):
-            if f.is_file():
-                shutil.copy(f, dest / f.name)
-
-    (SCRATCH_PROJECT / ".claude" / "shared" / "memory").mkdir(parents=True, exist_ok=True)
-    shutil.copy(
-        REPO_ROOT / "shared" / "memory" / "memory-shapes.md",
-        SCRATCH_PROJECT / ".claude" / "shared" / "memory" / "memory-shapes.md",
+    build_scratch_brain(
+        SCRATCH_PROJECT,
+        skills=("create-memory", "heartbeat"),
+        shared=("memory/memory-shapes.md",),
+        persona=True,
+        user=True,
+        memory_guard=True,
+        mcp="broken",
+        claude_md=CLAUDE_MD,
     )
-
-    (SCRATCH_PROJECT / ".claude" / "hooks").mkdir(parents=True, exist_ok=True)
-    shutil.copy(
-        REPO_ROOT / "hooks" / "memory_guard.py",
-        SCRATCH_PROJECT / ".claude" / "hooks" / "memory_guard.py",
-    )
-    (SCRATCH_PROJECT / ".claude" / "settings.json").write_text(
-        json.dumps(
-            {
-                "hooks": {
-                    "PreToolUse": [
-                        {
-                            "matcher": "mcp__synaptra__memory_store|mcp__synaptra__memory_update|mcp__synaptra__memory_relate",
-                            "hooks": [
-                                {
-                                    "type": "command",
-                                    "command": "python .claude/hooks/memory_guard.py",
-                                    "timeout": 5,
-                                }
-                            ],
-                        }
-                    ]
-                },
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    (SCRATCH_PROJECT / "persona.md").write_text(
-        "# Testa -- Persona\n\n## Identity\n\n- **Name**: Testa\n- **Voice**: they/them\n"
-        "- **Character**: Careful and direct.\n\n## Roles\n\n| Role | What they do |\n"
-        "|------|---------------|\n| Research assistant | Finds information |\n\n"
-        "## Proactivity\n\nModerate.\n\n## Communication Style\n\n- Direct\n",
-        encoding="utf-8",
-    )
-    (SCRATCH_PROJECT / "user.md").write_text(
-        "# Test User\n\n## Personal\n\n- **Name**: Test User\n", encoding="utf-8"
-    )
-    (SCRATCH_PROJECT / "CLAUDE.md").write_text(
-        "# CLAUDE.md\n\nScratch test for issue #4's AC 19 proof (heartbeat, synaptra "
-        "unreachable). Route memory storage through /create-memory, never a raw "
-        "memory_store call.\n",
-        encoding="utf-8",
-    )
-
-    cfg = {
-        "mcpServers": {
-            "synaptra": {
-                "type": "stdio",
-                "command": str(REPO_ROOT / ".venv" / "Scripts" / "this-does-not-exist.exe"),
-                "args": ["--transport", "stdio"],
-            }
-        }
-    }
-    (SCRATCH_PROJECT / ".mcp.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
 
 WINDOW = (
@@ -118,7 +71,9 @@ WINDOW = (
 
 
 def run_claude() -> dict:
-    prompt = f'Run /heartbeat "requested by cron". The window since the last beat: {WINDOW}'
+    prompt = (
+        f'Run /heartbeat "requested by cron". The window since the last beat: {WINDOW}'
+    )
     proc = subprocess.run(
         [
             "claude",
@@ -141,11 +96,23 @@ def run_claude() -> dict:
         timeout=180,
     )
     if proc.returncode != 0:
-        raise RuntimeError(f"claude -p failed (exit {proc.returncode}): {proc.stderr.strip()}")
+        raise RuntimeError(
+            f"claude -p failed (exit {proc.returncode}): {proc.stderr.strip()}"
+        )
     return json.loads(proc.stdout)
 
 
-UNREACHABLE_WORDS = ("unreachable", "unavailable", "not available", "not connected", "cannot reach", "can't reach", "connection", "failed to connect", "no synaptra")
+UNREACHABLE_WORDS = (
+    "unreachable",
+    "unavailable",
+    "not available",
+    "not connected",
+    "cannot reach",
+    "can't reach",
+    "connection",
+    "failed to connect",
+    "no synaptra",
+)
 
 
 def main() -> int:
@@ -166,7 +133,9 @@ def main() -> int:
     mentions = [w for w in UNREACHABLE_WORDS if w in text]
     said_unreachable = bool(mentions)
 
-    print(f"\n[{'PASS' if said_unreachable else 'FAIL'}] AC19: beat's output names the unreachable store: {mentions}")
+    print(
+        f"\n[{'PASS' if said_unreachable else 'FAIL'}] AC19: beat's output names the unreachable store: {mentions}"
+    )
 
     return 0 if said_unreachable else 1
 

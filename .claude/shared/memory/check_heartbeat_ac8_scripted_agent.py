@@ -8,6 +8,10 @@ section: a window with ONE item that merely happened (a sync call) and ONE item 
 changes a decision (a migration, with its reason), and a check of the ACTUAL resulting
 store count and content against the scratch data -- not the transcript's claim.
 
+The scratch tree is built by `.claude/shared/fixture_scratch_brain.py`, shared with the
+other scripted-agent checks. Proved byte-identical to this file's own former
+`build_scratch_project()` before the switch.
+
 Never the live store, never the live project. Costs real money per run.
 
 Usage:
@@ -20,12 +24,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
+
+sys.path.insert(0, str(REPO_ROOT / "shared"))
+
+from fixture_scratch_brain import build_scratch_brain  # noqa: E402
+
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-4")
 SCRATCH_PROJECT = SCRATCH_ROOT / "ac8-heartbeat-scratch-project"
 SCRATCH_DATA = SCRATCH_ROOT / "ac8-heartbeat-scratch-data"
@@ -37,91 +45,25 @@ WINDOW = (
     "this replaces the earlier plan to stay on AWS through the beta."
 )
 
+CLAUDE_MD = (
+    "# CLAUDE.md\n\nScratch test for issue #4's AC 8 proof (heartbeat capture). "
+    "Route all memory storage through /create-memory -- never memory_store "
+    "directly. There is no surface map or self map in this scratch project; "
+    "skip any step that depends on one.\n"
+)
+
 
 def build_scratch_project() -> None:
-    if SCRATCH_PROJECT.exists():
-        shutil.rmtree(SCRATCH_PROJECT)
-
-    for skill in ("create-memory", "heartbeat"):
-        dest = SCRATCH_PROJECT / ".claude" / "skills" / skill
-        dest.mkdir(parents=True, exist_ok=True)
-        src = REPO_ROOT / "skills" / skill
-        for f in src.glob("*"):
-            if f.is_file():
-                shutil.copy(f, dest / f.name)
-
-    (SCRATCH_PROJECT / ".claude" / "shared" / "memory").mkdir(
-        parents=True, exist_ok=True
-    )
-    shutil.copy(
-        REPO_ROOT / "shared" / "memory" / "memory-shapes.md",
-        SCRATCH_PROJECT / ".claude" / "shared" / "memory" / "memory-shapes.md",
-    )
-
-    (SCRATCH_PROJECT / ".claude" / "hooks").mkdir(parents=True, exist_ok=True)
-    shutil.copy(
-        REPO_ROOT / "hooks" / "memory_guard.py",
-        SCRATCH_PROJECT / ".claude" / "hooks" / "memory_guard.py",
-    )
-    (SCRATCH_PROJECT / ".claude" / "settings.json").write_text(
-        json.dumps(
-            {
-                "hooks": {
-                    "PreToolUse": [
-                        {
-                            "matcher": "mcp__synaptra__memory_store|mcp__synaptra__memory_update|mcp__synaptra__memory_relate",
-                            "hooks": [
-                                {
-                                    "type": "command",
-                                    "command": "python .claude/hooks/memory_guard.py",
-                                    "timeout": 5,
-                                }
-                            ],
-                        }
-                    ]
-                },
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    (SCRATCH_PROJECT / "persona.md").write_text(
-        "# Testa -- Persona\n\n## Identity\n\n- **Name**: Testa\n- **Voice**: they/them\n"
-        "- **Character**: Careful and direct.\n\n## Roles\n\n| Role | What they do |\n"
-        "|------|---------------|\n| Research assistant | Finds information |\n\n"
-        "## Proactivity\n\nModerate.\n\n## Communication Style\n\n- Direct\n",
-        encoding="utf-8",
-    )
-    (SCRATCH_PROJECT / "user.md").write_text(
-        "# Test User\n\n## Personal\n\n- **Name**: Test User\n", encoding="utf-8"
-    )
-    (SCRATCH_PROJECT / "CLAUDE.md").write_text(
-        "# CLAUDE.md\n\nScratch test for issue #4's AC 8 proof (heartbeat capture). "
-        "Route all memory storage through /create-memory -- never memory_store "
-        "directly. There is no surface map or self map in this scratch project; "
-        "skip any step that depends on one.\n",
-        encoding="utf-8",
-    )
-    (SCRATCH_PROJECT / ".mcp.json").write_text(
-        json.dumps(
-            {
-                "mcpServers": {
-                    "synaptra": {
-                        "type": "stdio",
-                        "command": str(
-                            REPO_ROOT / ".venv" / "Scripts" / "synaptra.exe"
-                        ),
-                        "args": ["--transport", "stdio"],
-                        "env": {
-                            "SYNAPTRA_BACKEND": "surrealkv-file",
-                            "SYNAPTRA_DB": str(SCRATCH_DATA),
-                        },
-                    }
-                }
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
+    build_scratch_brain(
+        SCRATCH_PROJECT,
+        skills=("create-memory", "heartbeat"),
+        shared=("memory/memory-shapes.md",),
+        persona=True,
+        user=True,
+        memory_guard=True,
+        mcp="healthy",
+        data_dir=SCRATCH_DATA,
+        claude_md=CLAUDE_MD,
     )
 
 

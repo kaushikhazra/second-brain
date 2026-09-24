@@ -23,3 +23,9 @@ tools/          export-ignore
 # `verify_memory.py` is deliberately NOT matched here — session-end runs it as
 # step 4, so it is runtime, not exhaust.
 check_*.py      export-ignore
+
+# The checks' shared scaffolding. `.claude/shared/` otherwise ships (that is where
+# `activation.py` lives, which session-start imports at runtime), so a fixture module
+# dropped in beside it would reach a user's install without this line. Pattern, not a
+# list, so a new fixture cannot silently start shipping.
+fixture_*.py    export-ignore
