@@ -1,71 +1,87 @@
-# Action — cycle 2
+# Action — cycle 3
 
-Cycle 1 built `check_artifact_unmoved.py` and took the baseline: `v1.0.1` and `HEAD`
-archive identically, 35 files, byte for byte. The instrument exists and the fixed point
-is real. `logs/cycle-1.md` has the detail.
-
-## Cut `src/` and move the product into it
-
-`README.md` is the user's — Kaushik ruled it 2026-09-28, and it moves.
-
-**Move with `git mv`, one path per invocation**, so history follows the files and the
-diff reads as renames rather than delete-plus-add.
-
-**Goes into `src/`** — everything a user receives:
+Cycle 2 moved the product into `src/` and the artifact check failed, correctly:
 
 ```
-  CLAUDE.md  ·  README.md  ·  VERSION  ·  news-keywords.txt
-  brain.bat  ·  brain-claude-sandbox.bat
-  .claude/skills/          all fourteen
-  .claude/hooks/
-  .claude/settings.json
-  .claude/shared/activation.py
-  .claude/shared/memory/   minus its check_*.py
+  reference   v1.0.1        35 files
+  candidate   HEAD:src      48 files
+  14 EXTRA    check_*.py and test_*.py, now shipping
+   1 MISSING  .gitignore, which did ship in 1.0.1
 ```
 
-**Stays at the dev root:**
+**Close those 15. Nothing else this cycle.**
+
+## The MISSING one first, because it is decided
+
+`.gitignore` shipped in 1.0.1, and criterion 14 forbids the install losing a file. So:
+
+- `git mv .gitignore src/.gitignore`
+- write a **new** `.gitignore` at the dev root
+
+⚠ **They cannot be the same file.** Patterns are relative to the file's own directory.
+The root one needs what the dev tree produces — `dist/`, `.tmp/`, `.ruff_cache/`,
+`__pycache__/`, `.venv`. The `src/` one keeps what a brain's own workspace produces.
+Read the current file and split it by which root each rule is about.
+
+## Then the 14 EXTRA, and this is the real decision of the cycle
+
+They ship because **`.gitattributes` sits at the dev root and `git archive HEAD:src` does
+not see it.** Every `export-ignore` rule stopped applying.
+
+⭐ **Two shapes solve it, and they are not equal. Pick one and say why in the log.**
 
 ```
-  tools/  ·  dist/  ·  .gitignore  ·  .gitattributes
-  .claude/loop/  ·  .claude/specs/
-  .claude/shared/check_*.py  ·  .claude/shared/fixture_*.py
+  A   src/.gitattributes
+      re-express the exclusions inside src/, so the subtree
+      archive sees them
+
+  B   move the excluded files OUT of src/
+      dev files live at the dev root, and src/ contains only
+      what ships
 ```
 
-⚠ **`.claude/shared/` splits across both roots and this is where a reference will be
-missed.** `activation.py` is runtime and moves; `check_activation.py` and
-`fixture_scratch_brain.py` are development and stay. They currently sit in one folder and
-import each other. **Fix the imports as part of the move, not after.**
+⇒ **B is the shape issue #25 asks for.** Criterion 1 is *every file that reaches a user's
+install lives under `src/`*, and criteria 11–13 want `.gitattributes` to stop being
+load-bearing — **13 says deleting it entirely must not change the archive.** A carries the
+subtraction across into `src/` and cannot satisfy 13.
 
-⚠ **`.claude/shared/memory/` holds both** the shipped memory files and ~20 `check_*.py`
-scripts. Split it the same way.
+**So: B, unless you find something that makes it impossible — and then stop and say so
+rather than falling back to A.**
 
-## Then prove the artifact did not move
+**What moves out of `src/` under B:**
+
+```
+  src/.claude/skills/*/check_*.py            → the dev root, mirroring the skill path
+  src/.claude/skills/*/scripts/test_*.py     → likewise
+```
+
+⚠ **`recall-session/tools/search.py` is NOT in that set. It STAYS in `src/`** and must
+appear in the archive. It is absent from the v1.0.1 reference only because of the
+`tools/` bug, so the check will keep reporting it as EXTRA even when the move is right.
+
+⛔ **Do not "fix" that by excluding `search.py`.** Record it as the one known-good
+difference, state it in the log, and let 14 and 15 be judged on the other fourteen. The
+defect is real and is out of scope for #25.
+
+## Then re-run, and this is the gate
 
 ```
   python .claude/shared/check_artifact_unmoved.py --candidate HEAD:src
 ```
 
-⛔ **This must report IDENTICAL, 35 files.** If it does not, the move is wrong — read the
-difference list and fix the move, do not adjust the reference.
+Expect exactly one difference: `EXTRA .claude/skills/recall-session/tools/search.py`.
+Anything else is not done.
 
-⚠ It compares the committed tree, so the moves must be staged or committed before it
-means anything. A `git mv` that is only in the working directory is invisible to it.
+⚠ It reads committed trees. Commit before believing it.
 
-⛔ **Do not touch `build-dist.py` or `.gitattributes` this cycle.** Criteria 9–13 are the
-next cycle's work, and changing the build while the move is unproven makes a failure
-impossible to attribute.
+⛔ **Still do not touch `build-dist.py`.** Criteria 9–13 are the next cycle.
 
-## Record in `logs/cycle-2.md`
+## Record in `logs/cycle-3.md`
 
-- Criteria met, out of 30, split MOVE and PRESERVE. Expect movement in MOVE 1–4 and
-  possibly 25–27; **PRESERVE 14–15 is the one that matters and it is pass or fail.**
-- The `--candidate HEAD:src` output, quoted.
-- Every path that moved, and every import or path reference changed to follow it.
-- The regression line, all seven, pass.
+- Criteria met out of 30, split MOVE and PRESERVE.
+- Which shape you chose, A or B, and why.
+- The check output, quoted, and the one expected difference named.
+- Every path moved out of `src/` and every import fixed to follow it.
+- The regression line, all seven, pass. ⚠ Several now live under `src/` — find them
+  rather than assuming last cycle's paths.
 - The branch, read from git.
-
-## Next cycle
-
-Criteria 9–13: `build-dist.py` builds from `src/` alone, and `.gitattributes` loses every
-rule that existed only to keep development files out of the dist. **Criterion 13 is the
-real target** — deleting `.gitattributes` entirely must not change the archive.
