@@ -28,11 +28,12 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-ACTIVATION_PY = REPO_ROOT / ".claude" / "shared" / "activation.py"
-SKILL_MD = REPO_ROOT / ".claude" / "skills" / "curiosity" / "SKILL.md"
-SESSION_START_MD = REPO_ROOT / ".claude" / "skills" / "session-start" / "SKILL.md"
-HEARTBEAT_GOAL_MD = REPO_ROOT / ".claude" / "skills" / "heartbeat" / "goal.md"
-GITIGNORE = REPO_ROOT / ".gitignore"
+SRC_ROOT = REPO_ROOT / "src"
+ACTIVATION_PY = SRC_ROOT / ".claude" / "shared" / "activation.py"
+SKILL_MD = SRC_ROOT / ".claude" / "skills" / "curiosity" / "SKILL.md"
+SESSION_START_MD = SRC_ROOT / ".claude" / "skills" / "session-start" / "SKILL.md"
+HEARTBEAT_GOAL_MD = SRC_ROOT / ".claude" / "skills" / "heartbeat" / "goal.md"
+GITIGNORE = SRC_ROOT / ".gitignore"
 
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-6")
 SCRATCH_BRAIN = SCRATCH_ROOT / "brain"

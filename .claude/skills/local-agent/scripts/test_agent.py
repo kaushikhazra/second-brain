@@ -5,8 +5,21 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 import unittest
+from pathlib import Path
 from unittest import mock
+
+_SRC_SCRIPTS = str(
+    Path(__file__).resolve().parents[4]
+    / "src"
+    / ".claude"
+    / "skills"
+    / "local-agent"
+    / "scripts"
+)
+if _SRC_SCRIPTS not in sys.path:
+    sys.path.insert(0, _SRC_SCRIPTS)
 
 import agent
 
@@ -24,14 +37,20 @@ class TestToolSchema(unittest.TestCase):
 
         self.assertEqual(
             schema["parameters"]["properties"],
-            {"path": {"type": "string"}, "old": {"type": "string"}, "new": {"type": "string"}},
+            {
+                "path": {"type": "string"},
+                "old": {"type": "string"},
+                "new": {"type": "string"},
+            },
         )
         self.assertEqual(schema["parameters"]["required"], ["path", "old", "new"])
 
     def test_defaulted_parameters_are_optional_and_typed(self):
         schema = agent.build_tool_schema(agent.web_search)["function"]
 
-        self.assertEqual(schema["parameters"]["properties"]["max_results"], {"type": "integer"})
+        self.assertEqual(
+            schema["parameters"]["properties"]["max_results"], {"type": "integer"}
+        )
         self.assertEqual(schema["parameters"]["required"], ["query"])
 
     def test_description_comes_from_the_first_docstring_line(self):
@@ -43,7 +62,9 @@ class TestToolSchema(unittest.TestCase):
 
 class TestEndpointAndOptions(unittest.TestCase):
     def setUp(self) -> None:
-        self.original = {k: os.environ.get(k) for k in ("OLLAMA_BASE_URL", "OLLAMA_NUM_CTX")}
+        self.original = {
+            k: os.environ.get(k) for k in ("OLLAMA_BASE_URL", "OLLAMA_NUM_CTX")
+        }
 
     def tearDown(self) -> None:
         for key, value in self.original.items():
@@ -113,7 +134,9 @@ class TestExecuteToolCall(unittest.TestCase):
         self.assertEqual(json.loads(result)["status"], "error")
 
     def test_unknown_tool_is_reported_to_the_model_not_raised(self):
-        name, result = agent.execute_tool_call({"function": {"name": "nope", "arguments": {}}})
+        name, result = agent.execute_tool_call(
+            {"function": {"name": "nope", "arguments": {}}}
+        )
 
         self.assertEqual(name, "nope")
         self.assertIn("Unknown tool", json.loads(result)["error"])
@@ -173,7 +196,11 @@ class TestRunAgentSummary(unittest.TestCase):
         with mock.patch.dict(agent.TOOL_REGISTRY, {"fake": lambda text: f"got {text}"}):
             result, chat = self._run(
                 [
-                    {"role": "assistant", "content": "", "tool_calls": [_tool_call("fake", text="hi")]},
+                    {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_calls": [_tool_call("fake", text="hi")],
+                    },
                     {"role": "assistant", "content": '{"summary": "all done"}'},
                 ]
             )
@@ -185,14 +212,19 @@ class TestRunAgentSummary(unittest.TestCase):
         with mock.patch.dict(agent.TOOL_REGISTRY, {"fake": lambda text: "tool output"}):
             _, chat = self._run(
                 [
-                    {"role": "assistant", "content": "", "tool_calls": [_tool_call("fake", text="hi")]},
+                    {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_calls": [_tool_call("fake", text="hi")],
+                    },
                     {"role": "assistant", "content": '{"summary": "done"}'},
                 ]
             )
 
         messages = chat.await_args_list[1].args[1]
         self.assertEqual(
-            messages[-1], {"role": "tool", "tool_name": "fake", "content": "tool output"}
+            messages[-1],
+            {"role": "tool", "tool_name": "fake", "content": "tool output"},
         )
 
     def test_system_and_task_open_the_conversation(self):
@@ -231,7 +263,10 @@ class TestRunAgentSummary(unittest.TestCase):
         self.assertIn("summary", retry_messages[-1]["content"])
 
     def test_exhausted_retries_raise_output_validation_error(self):
-        turns = [{"role": "assistant", "content": "nope"} for _ in range(agent.OUTPUT_RETRIES + 1)]
+        turns = [
+            {"role": "assistant", "content": "nope"}
+            for _ in range(agent.OUTPUT_RETRIES + 1)
+        ]
 
         with self.assertRaises(agent.OutputValidationError):
             self._run(turns)
@@ -269,7 +304,9 @@ class TestChatOnce(unittest.TestCase):
         return captured
 
     def test_tools_and_format_are_sent_together(self):
-        captured = self._capture_payload({"message": {"role": "assistant", "content": "ok"}})
+        captured = self._capture_payload(
+            {"message": {"role": "assistant", "content": "ok"}}
+        )
 
         payload = captured["payload"]
         self.assertEqual(payload["format"], {"type": "object"})
@@ -278,7 +315,9 @@ class TestChatOnce(unittest.TestCase):
         self.assertEqual(captured["url"], "http://localhost:11434/api/chat")
 
     def test_num_ctx_is_omitted_when_not_configured(self):
-        captured = self._capture_payload({"message": {"role": "assistant", "content": "ok"}})
+        captured = self._capture_payload(
+            {"message": {"role": "assistant", "content": "ok"}}
+        )
 
         self.assertNotIn("options", captured["payload"])
 

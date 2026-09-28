@@ -10,15 +10,30 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+_SRC_SCRIPTS = str(
+    Path(__file__).resolve().parents[4]
+    / "src"
+    / ".claude"
+    / "skills"
+    / "local-agent"
+    / "scripts"
+)
+if _SRC_SCRIPTS not in sys.path:
+    sys.path.insert(0, _SRC_SCRIPTS)
+
 import config
 
 
 class TestNormaliseHost(unittest.TestCase):
     def test_bare_ip_gets_scheme_and_default_port(self):
-        self.assertEqual(config.normalise_host("192.168.1.5"), "http://192.168.1.5:11434")
+        self.assertEqual(
+            config.normalise_host("192.168.1.5"), "http://192.168.1.5:11434"
+        )
 
     def test_hostname_with_port_is_kept(self):
-        self.assertEqual(config.normalise_host("box.local:9999"), "http://box.local:9999")
+        self.assertEqual(
+            config.normalise_host("box.local:9999"), "http://box.local:9999"
+        )
 
     def test_full_url_path_is_discarded(self):
         # The legacy /v1 suffix must not survive; the native API lives at /api/chat.
@@ -27,7 +42,10 @@ class TestNormaliseHost(unittest.TestCase):
         )
 
     def test_https_is_preserved(self):
-        self.assertEqual(config.normalise_host("https://ollama.example.com"), "https://ollama.example.com:11434")
+        self.assertEqual(
+            config.normalise_host("https://ollama.example.com"),
+            "https://ollama.example.com:11434",
+        )
 
     def test_surrounding_whitespace_is_ignored(self):
         self.assertEqual(config.normalise_host("  10.0.0.4  "), "http://10.0.0.4:11434")
@@ -53,7 +71,11 @@ class TestConfigFile(unittest.TestCase):
     def test_round_trip(self):
         interpreter = Path(self.tempdir.name, "py.exe")
         config.save_config(
-            {"python": str(interpreter), "ollama_host": "http://box:11434", "model": "m:1"},
+            {
+                "python": str(interpreter),
+                "ollama_host": "http://box:11434",
+                "model": "m:1",
+            },
             self.path,
         )
 
@@ -89,7 +111,9 @@ class TestConfigFile(unittest.TestCase):
     def test_unknown_keys_are_dropped_on_save(self):
         config.save_config({"model": "m:1", "junk": "x"}, self.path)
 
-        self.assertEqual(set(json.loads(self.path.read_text())), set(config.default_config()))
+        self.assertEqual(
+            set(json.loads(self.path.read_text())), set(config.default_config())
+        )
 
     def test_paths_are_stored_relative_and_returned_absolute(self):
         interpreter = Path(self.tempdir.name, "sub", "python.exe")
@@ -105,7 +129,9 @@ class TestConfigFile(unittest.TestCase):
 
     def test_relative_path_survives_the_config_moving(self):
         # The point of relative storage: copy the folder, keep working.
-        config.save_config({"python": str(Path(self.tempdir.name, "v", "python.exe"))}, self.path)
+        config.save_config(
+            {"python": str(Path(self.tempdir.name, "v", "python.exe"))}, self.path
+        )
         moved_dir = Path(self.tempdir.name, "elsewhere")
         moved_dir.mkdir()
         moved = moved_dir / "config.json"
@@ -139,7 +165,9 @@ class TestConfigFile(unittest.TestCase):
     def test_cross_drive_path_falls_back_to_absolute(self):
         # os.path.relpath raises across Windows drives; there is no relative form.
         with mock.patch.object(config.os.path, "relpath", side_effect=ValueError):
-            self.assertEqual(config.to_stored_path("Z:/py/python.exe"), "Z:/py/python.exe")
+            self.assertEqual(
+                config.to_stored_path("Z:/py/python.exe"), "Z:/py/python.exe"
+            )
 
     def test_is_configured_requires_a_model(self):
         self.assertFalse(config.is_configured(config.default_config()))
@@ -154,11 +182,14 @@ class TestDependencies(unittest.TestCase):
     def test_absent_module_is_reported_by_requirement_name(self):
         with mock.patch.object(config.importlib.util, "find_spec", return_value=None):
             self.assertEqual(
-                config.missing_dependencies(), [req for _, req in config.REQUIRED_PACKAGES]
+                config.missing_dependencies(),
+                [req for _, req in config.REQUIRED_PACKAGES],
             )
 
     def test_present_modules_report_nothing(self):
-        with mock.patch.object(config.importlib.util, "find_spec", return_value=object()):
+        with mock.patch.object(
+            config.importlib.util, "find_spec", return_value=object()
+        ):
             self.assertEqual(config.missing_dependencies(), [])
 
 
@@ -173,7 +204,9 @@ class TestInterpreter(unittest.TestCase):
 
     def test_missing_interpreter_is_rejected(self):
         with self.assertRaises(config.ConfigError):
-            config.resolve_interpreter(str(Path(tempfile.gettempdir(), "no-such-python.exe")))
+            config.resolve_interpreter(
+                str(Path(tempfile.gettempdir(), "no-such-python.exe"))
+            )
 
     def test_existing_other_interpreter_is_returned(self):
         with tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as handle:

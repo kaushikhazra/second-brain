@@ -55,7 +55,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
+DEV_CLAUDE = Path(__file__).resolve().parent.parent.parent  # -> .claude (dev root)
+REPO_ROOT = DEV_CLAUDE.parent
+SRC_CLAUDE = REPO_ROOT / "src" / ".claude"  # product files live here
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-6")
 SCRATCH_PROJECT = SCRATCH_ROOT / "invocation-scratch-project"
 

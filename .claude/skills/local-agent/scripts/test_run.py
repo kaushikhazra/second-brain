@@ -18,6 +18,17 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+_SRC_SCRIPTS = str(
+    Path(__file__).resolve().parents[4]
+    / "src"
+    / ".claude"
+    / "skills"
+    / "local-agent"
+    / "scripts"
+)
+if _SRC_SCRIPTS not in sys.path:
+    sys.path.insert(0, _SRC_SCRIPTS)
+
 import agent
 import config
 import run
@@ -48,7 +59,11 @@ class TestResolveTextArgument(unittest.TestCase):
             run.resolve_text_argument(str(directory), "--task")
 
     def test_prose_containing_a_slash_is_still_literal(self):
-        for literal in ("answer yes/no", "use the a/b test", "read C:/ and report back"):
+        for literal in (
+            "answer yes/no",
+            "use the a/b test",
+            "read C:/ and report back",
+        ):
             with self.subTest(literal=literal):
                 self.assertEqual(run.resolve_text_argument(literal, "--task"), literal)
 
@@ -446,7 +461,9 @@ class TestMain(unittest.TestCase):
     def test_unconfigured_model_asks_instead_of_guessing(self):
         self.config["model"] = None
         with (
-            mock.patch.object(run, "list_available_models", lambda *a, **k: ["a:1", "b:2"]),
+            mock.patch.object(
+                run, "list_available_models", lambda *a, **k: ["a:1", "b:2"]
+            ),
             mock.patch.object(run, "perform_preflight") as preflight,
         ):
             _, payload, _ = self._invoke_main(["--task", "Task", "--system", "System"])
@@ -469,7 +486,9 @@ class TestMain(unittest.TestCase):
     def test_model_not_found_offers_the_available_models(self):
         with (
             mock.patch.object(
-                run, "perform_preflight", side_effect=LookupError("Requested model missing")
+                run,
+                "perform_preflight",
+                side_effect=LookupError("Requested model missing"),
             ),
             mock.patch.object(run, "list_available_models", lambda *a, **k: ["x:1"]),
         ):
@@ -491,7 +510,9 @@ class TestMain(unittest.TestCase):
                 run,
                 "perform_preflight",
                 return_value=run.PreflightResult(
-                    ["ornith:9b"], context_length_ceiling=262144, context_length_active=None
+                    ["ornith:9b"],
+                    context_length_ceiling=262144,
+                    context_length_active=None,
                 ),
             ),
             mock.patch.object(run, "_fetch_context_length_active", return_value=16384),
@@ -511,11 +532,15 @@ class TestConfigureCommand(unittest.TestCase):
         self.path = Path(self.tempdir.name, "config.json")
         self.stored = config.default_config()
 
-        patcher = mock.patch.object(run, "load_config", lambda *a, **k: dict(self.stored))
+        patcher = mock.patch.object(
+            run, "load_config", lambda *a, **k: dict(self.stored)
+        )
         patcher.start()
         self.addCleanup(patcher.stop)
         saver = mock.patch.object(
-            run, "save_config", lambda cfg, path=None: config.save_config(cfg, self.path)
+            run,
+            "save_config",
+            lambda cfg, path=None: config.save_config(cfg, self.path),
         )
         saver.start()
         self.addCleanup(saver.stop)
@@ -544,7 +569,9 @@ class TestConfigureCommand(unittest.TestCase):
         # question instead of trying to read stdin. An earlier version prompted
         # here and died with EOFError, emitting a traceback instead of JSON.
         with (
-            mock.patch.object(run, "list_available_models", lambda *a, **k: ["m:1", "m:2"]),
+            mock.patch.object(
+                run, "list_available_models", lambda *a, **k: ["m:1", "m:2"]
+            ),
             mock.patch("builtins.input", side_effect=AssertionError("must not prompt")),
         ):
             payload = self._invoke(["--configure"])
@@ -568,7 +595,9 @@ class TestConfigureCommand(unittest.TestCase):
     def test_setting_only_python_does_not_prompt_for_a_host(self):
         self.stored["model"] = "already:1"
         with (
-            mock.patch.object(run, "list_available_models", lambda *a, **k: ["already:1"]),
+            mock.patch.object(
+                run, "list_available_models", lambda *a, **k: ["already:1"]
+            ),
             mock.patch("builtins.input", side_effect=AssertionError("must not prompt")),
         ):
             payload = self._invoke(["--configure", "--set-python", "none"])
@@ -589,7 +618,9 @@ class TestStatusCommand(unittest.TestCase):
             "ollama_host": run.DEFAULT_ENDPOINT,
             "model": "ornith:9b",
         }
-        patcher = mock.patch.object(run, "load_config", lambda *a, **k: dict(self.stored))
+        patcher = mock.patch.object(
+            run, "load_config", lambda *a, **k: dict(self.stored)
+        )
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -607,7 +638,9 @@ class TestStatusCommand(unittest.TestCase):
         self.stored["model"] = None
         with (
             mock.patch.object(run, "missing_dependencies", lambda: []),
-            mock.patch.object(run, "list_available_models", lambda *a, **k: ["ornith:9b"]),
+            mock.patch.object(
+                run, "list_available_models", lambda *a, **k: ["ornith:9b"]
+            ),
         ):
             payload = self._invoke()
 
@@ -617,7 +650,9 @@ class TestStatusCommand(unittest.TestCase):
     def test_healthy_setup_reports_no_blocker(self):
         with (
             mock.patch.object(run, "missing_dependencies", lambda: []),
-            mock.patch.object(run, "list_available_models", lambda *a, **k: ["ornith:9b"]),
+            mock.patch.object(
+                run, "list_available_models", lambda *a, **k: ["ornith:9b"]
+            ),
         ):
             payload = self._invoke()
 
@@ -628,8 +663,12 @@ class TestStatusCommand(unittest.TestCase):
     def test_status_never_mutates_config(self):
         with (
             mock.patch.object(run, "missing_dependencies", lambda: []),
-            mock.patch.object(run, "list_available_models", lambda *a, **k: ["ornith:9b"]),
-            mock.patch.object(run, "save_config", side_effect=AssertionError("must not write")),
+            mock.patch.object(
+                run, "list_available_models", lambda *a, **k: ["ornith:9b"]
+            ),
+            mock.patch.object(
+                run, "save_config", side_effect=AssertionError("must not write")
+            ),
         ):
             self._invoke()
 
@@ -646,7 +685,9 @@ class TestStatusCommand(unittest.TestCase):
     def test_configured_model_absent_from_host_is_flagged(self):
         with (
             mock.patch.object(run, "missing_dependencies", lambda: []),
-            mock.patch.object(run, "list_available_models", lambda *a, **k: ["other:1"]),
+            mock.patch.object(
+                run, "list_available_models", lambda *a, **k: ["other:1"]
+            ),
         ):
             payload = self._invoke()
 
@@ -709,7 +750,10 @@ class TestPreflight(unittest.TestCase):
 
 class TestSkillContract(unittest.TestCase):
     def test_skill_md_documents_failure_summary_ownership_and_error_types(self):
-        skill_path = Path(__file__).resolve().parents[1] / "SKILL.md"
+        repo_root = Path(__file__).resolve().parents[4]
+        skill_path = (
+            repo_root / "src" / ".claude" / "skills" / "local-agent" / "SKILL.md"
+        )
         content = skill_path.read_text(encoding="utf-8")
 
         self.assertIn(
@@ -737,14 +781,31 @@ class TestSkillContract(unittest.TestCase):
             self.assertIn(error_type, content)
 
     def test_skill_md_documents_configuration_and_dependencies(self):
-        skill_path = Path(__file__).resolve().parents[1] / "SKILL.md"
+        repo_root = Path(__file__).resolve().parents[4]
+        skill_path = (
+            repo_root / "src" / ".claude" / "skills" / "local-agent" / "SKILL.md"
+        )
         content = skill_path.read_text(encoding="utf-8")
 
-        for fragment in ("config.json", "--configure", "--set-host", "--set-model", "--set-python"):
+        for fragment in (
+            "config.json",
+            "--configure",
+            "--set-host",
+            "--set-model",
+            "--set-python",
+        ):
             self.assertIn(fragment, content)
 
     def test_requirements_file_lists_every_checked_dependency(self):
-        requirements = Path(__file__).resolve().parents[1] / "requirements.txt"
+        repo_root = Path(__file__).resolve().parents[4]
+        requirements = (
+            repo_root
+            / "src"
+            / ".claude"
+            / "skills"
+            / "local-agent"
+            / "requirements.txt"
+        )
         content = requirements.read_text(encoding="utf-8")
 
         for _, package in config.REQUIRED_PACKAGES:
@@ -753,7 +814,16 @@ class TestSkillContract(unittest.TestCase):
 
 class TestCliScript(unittest.TestCase):
     def test_missing_required_flags_script_output_is_single_json_object(self):
-        script = Path(__file__).with_name("run.py")
+        repo_root = Path(__file__).resolve().parents[4]
+        script = (
+            repo_root
+            / "src"
+            / ".claude"
+            / "skills"
+            / "local-agent"
+            / "scripts"
+            / "run.py"
+        )
         completed = subprocess.run(
             [sys.executable, str(script)],
             capture_output=True,

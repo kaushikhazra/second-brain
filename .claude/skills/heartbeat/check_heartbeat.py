@@ -29,14 +29,21 @@ def find_ids(text: str) -> set[str]:
 
 
 def main() -> int:
-    heartbeat_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent
+    # This check lives at the DEV root; the skill it checks ships from src/.
+    # parents[3] is the repo root: heartbeat -> skills -> .claude -> repo.
+    default_dir = (
+        Path(__file__).resolve().parents[3] / "src" / ".claude" / "skills" / "heartbeat"
+    )
+    heartbeat_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else default_dir
     results: list[tuple[str, bool, str]] = []
 
     skill_file = heartbeat_dir / "SKILL.md"
     observe_file = heartbeat_dir / "observe.md"
     goal_file = heartbeat_dir / "goal.md"
 
-    all_present = skill_file.is_file() and observe_file.is_file() and goal_file.is_file()
+    all_present = (
+        skill_file.is_file() and observe_file.is_file() and goal_file.is_file()
+    )
     results.append(
         (
             "AC1: SKILL.md, observe.md, goal.md all present",
@@ -66,10 +73,17 @@ def main() -> int:
             )
         )
     else:
-        results.append(("AC2: every section id pairs, both directions", False, "skipped -- AC1 failed"))
+        results.append(
+            (
+                "AC2: every section id pairs, both directions",
+                False,
+                "skipped -- AC1 failed",
+            )
+        )
 
     text_files = [
-        p for p in heartbeat_dir.rglob("*")
+        p
+        for p in heartbeat_dir.rglob("*")
         if p.is_file() and p.suffix in (".md", ".py")
     ]
     found_calls: list[str] = []

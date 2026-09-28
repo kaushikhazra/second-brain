@@ -40,9 +40,11 @@ import re
 import sys
 from pathlib import Path
 
-SKILL_FILE = Path(__file__).resolve().parent / "SKILL.md"
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+SKILL_FILE = SRC_ROOT / ".claude" / "skills" / "dream" / "SKILL.md"
 UPDATE_MEMORY_SKILL_FILE = (
-    Path(__file__).resolve().parent.parent / "update-memory" / "SKILL.md"
+    SRC_ROOT / ".claude" / "skills" / "update-memory" / "SKILL.md"
 )
 
 ## Why memory_relate and memory_unrelate are NOT in this list (cycle 2's finding)

@@ -4,10 +4,22 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+
+_SRC_SCRIPTS = str(
+    Path(__file__).resolve().parents[4]
+    / "src"
+    / ".claude"
+    / "skills"
+    / "local-agent"
+    / "scripts"
+)
+if _SRC_SCRIPTS not in sys.path:
+    sys.path.insert(0, _SRC_SCRIPTS)
 
 import tools
 
@@ -120,7 +132,7 @@ class TestTools(unittest.TestCase):
         self.assertIn("matched 2 times", result["error"])
 
     def test_run_command_non_zero_exit_is_normal_result_and_logged(self):
-        command = 'python -c "import sys; sys.stdout.write(\'oops\'); sys.exit(3)"'
+        command = "python -c \"import sys; sys.stdout.write('oops'); sys.exit(3)\""
 
         result = json.loads(tools.run_command(command))
 
@@ -131,7 +143,10 @@ class TestTools(unittest.TestCase):
 
     def test_run_command_timeout_is_structured_error(self):
         fake_process = mock.Mock()
-        fake_process.communicate.side_effect = [subprocess.TimeoutExpired("cmd", 120), ("late", None)]
+        fake_process.communicate.side_effect = [
+            subprocess.TimeoutExpired("cmd", 120),
+            ("late", None),
+        ]
         fake_process.returncode = None
         with mock.patch.object(tools.subprocess, "Popen", return_value=fake_process):
             result = json.loads(tools.run_command("slow command"))
@@ -175,7 +190,9 @@ class TestTools(unittest.TestCase):
         self.assertIn("No results found", result["message"])
 
     def test_web_search_library_error_is_structured(self):
-        with mock.patch.object(tools, "DDGS_FACTORY", side_effect=RuntimeError("ddgs missing")):
+        with mock.patch.object(
+            tools, "DDGS_FACTORY", side_effect=RuntimeError("ddgs missing")
+        ):
             result = json.loads(tools.web_search("example"))
 
         self.assertEqual(result["status"], "error")

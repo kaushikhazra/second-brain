@@ -31,13 +31,14 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-ACTIVATION_PY = REPO_ROOT / ".claude" / "shared" / "activation.py"
-SKILL_MD = REPO_ROOT / ".claude" / "skills" / "news" / "SKILL.md"
-SESSION_START_MD = REPO_ROOT / ".claude" / "skills" / "session-start" / "SKILL.md"
+SRC_ROOT = REPO_ROOT / "src"
+ACTIVATION_PY = SRC_ROOT / ".claude" / "shared" / "activation.py"
+SKILL_MD = SRC_ROOT / ".claude" / "skills" / "news" / "SKILL.md"
+SESSION_START_MD = SRC_ROOT / ".claude" / "skills" / "session-start" / "SKILL.md"
 YOUTUBE_SUBS_PY = (
-    REPO_ROOT / ".claude" / "skills" / "news" / "scripts" / "youtube_subs.py"
+    SRC_ROOT / ".claude" / "skills" / "news" / "scripts" / "youtube_subs.py"
 )
-KEYWORDS_FILE = REPO_ROOT / "news-keywords.txt"
+KEYWORDS_FILE = SRC_ROOT / "news-keywords.txt"
 GITIGNORE = REPO_ROOT / ".gitignore"
 
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-7")

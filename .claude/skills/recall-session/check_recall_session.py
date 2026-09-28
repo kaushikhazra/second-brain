@@ -26,8 +26,9 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-SEARCH_PY = REPO_ROOT / ".claude" / "skills" / "recall-session" / "tools" / "search.py"
-SKILL_MD = REPO_ROOT / ".claude" / "skills" / "recall-session" / "SKILL.md"
+SRC_ROOT = REPO_ROOT / "src"
+SEARCH_PY = SRC_ROOT / ".claude" / "skills" / "recall-session" / "tools" / "search.py"
+SKILL_MD = SRC_ROOT / ".claude" / "skills" / "recall-session" / "SKILL.md"
 
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-8")
 BRAIN_ROOT = SCRATCH_ROOT / "brain"
