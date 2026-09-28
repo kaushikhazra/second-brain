@@ -1,91 +1,87 @@
-# Action — cycle 5
+# Action — cycle 6
 
-Cycle 4 landed criteria 9–13 (the build). **22 of 30 criteria now hold.**
-
-⚠ Cycle 4's log and its crosschat line both said 23. Its own MET list contains 22 entries,
-and 22 + 4 failing + 4 unverified = 30. **The number is 22.** Corrected here rather than in
-`logs/cycle-4.md`, which is immutable.
+Cycle 5 landed the root `CLAUDE.md` and moved the checks out of `.claude/skills/`.
 
 ```
-  MET         1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 26, 27, 28, 29, 30
-  FAIL        5, 6, 7, 8       (no root CLAUDE.md; dev-root skills question)
-  UNVERIFIED  21, 22, 23, 24   (need live install test)
+  MET         1-20 · 25-30      26 of 30
+  UNVERIFIED  21, 22, 23, 24    the live install test
 ```
 
-## This cycle's target: criteria 5–7 (the root CLAUDE.md)
+**This is the last cycle. Everything left is one thing: prove a brain built from `src/`
+actually boots.**
 
-**5 — the root `CLAUDE.md` is addressed to someone developing the brain.**
-**6 — it does not instruct its reader to start the brain's subsystems.**
-**7 — the loop-engineering method is stated at the root, not inside `src/`.**
+## Building is now safe — read why before you do it
 
-The brain's `CLAUDE.md` is at `src/CLAUDE.md`. The repo root currently has no `CLAUDE.md`.
-Write one, addressed to a developer. It should:
+Cycle 4 gave `build-dist.py` an overwrite guard, so it refuses rather than unlinking.
+**`--force` is acceptable here**, for two reasons that both have to hold:
 
-- Explain what this repo is (a build system for second-brain, not a brain itself).
-- Point at `src/` as the product.
-- State how to build (`python tools/build-dist.py`).
-- State the loop-engineering method (criterion 7) — the auto-iterate pattern with
-  goal/observe/action/assumption and cycle logs.
-- **Not** instruct the reader to start the brain's subsystems — no `/session-start`, no
-  `/init-brain`, no persona adoption.
-- Reference `src/CLAUDE.md` for the brain's own instructions.
+- the true reference is the **`v1.0.1` git tag**, not the zip, and a tag cannot be clobbered
+- a backup of all six shipped zips sits at `C:/Projects/.tmp/second-brain-dist-reference/`
 
-## ✅ Criterion 8 is unblocked — Kaushik ruled
+⚠ **Confirm that backup directory exists before passing `--force`.** If it does not, stop
+and say so — do not recreate it from the tag and call that a backup.
 
-> *"the dev root should not have any skills as to say. If in future we build one to help
-> developemnt of this, that is something different."*
+## The test
 
-**The dev root has no skills, and this loop does not create one.**
+1. `python tools/build-dist.py --force`
+2. Unpack the archive into an empty directory under
+   `C:/Projects/.tmp/second-brain-loop-25/install/`
+3. ⛔ **Point every runtime at a scratch Synaptra data directory under
+   `C:/Projects/.tmp/second-brain-loop-25/`.** `.claude/synaptra-data` is Kaushik's own
+   memory. Nothing in this cycle reads or writes it.
 
-⭐ **Criterion 8 already holds mechanically.** `.claude/skills/` at the dev root contains
-thirteen `check_*.py` and `test_*.py` files and **no `SKILL.md`**, so nothing there
-registers as a skill. Verify that rather than assuming it, and say so in the log.
+## Criteria 21-24
 
-**But the directory name is a lie and it goes.** Move those thirteen files to
-**`checks/<skill-name>/`** at the repo root, beside `tools/` — dev machinery lives at the
-repo root in this repo, and that is the existing convention.
+**21 — the unpacked archive, initialised, produces a working brain.**
+**22 — `session-start` runs to completion on it.**
+**23 — `session-end`'s `verify_memory.py` runs on it, as step 4, unchanged.**
+**24 — the hooks fire on it.**
+
+⭐ **These are the repo's scripted-agent checks' job, and they already exist:**
 
 ```
-  .claude/skills/dream/check_dream.py     →  checks/dream/check_dream.py
-  .claude/skills/local-agent/scripts/     →  checks/local-agent/
+  .claude/shared/memory/check_init_brain_scripted_agent.py
+  .claude/shared/memory/check_session_start_scripted_agent.py
+  .claude/shared/memory/check_session_end_scripted_agent.py
+  .claude/shared/memory/check_hooks.py
 ```
 
-⛔ **`.claude/shared/` is NOT in scope.** He ruled on skills. Leave the checks under
-`.claude/shared/` where they are; that is a separate question.
+**Read each one's interface first** — several take a target directory argument. Point them
+at the unpacked install rather than at `src/`. If one cannot be pointed, say so in the log
+and verify that criterion structurally instead, naming exactly what you checked and what
+you could not.
 
-⚠ **Each moved file resolves paths relative to itself.** Moving them changes the depth to
-the repo root — `parents[3]` becomes `parents[2]`. **This is the third outing of the
-product-relative trap** (`check_shapes.py` cycle 2, `check_heartbeat.py` cycle 3). **Run
-every moved check after moving it and record the number, before and after.**
+⚠ **Scripted-agent checks shell out to `claude -p` and cost real money.** Budget is not a
+constraint, but do not run more of them than the four criteria need.
 
-## After criteria 5–7
+## The one difference that is expected
 
-If 5–7 are met and 8 is either met or blocked-on-Kaushik:
+`recall-session/tools/search.py` ships now and is absent from `v1.0.1`. That is the
+deliberate fix. ⛔ **Do not exclude it to make `check_artifact_unmoved.py` green.**
 
-Run the **live install test** for criteria 21–24. The method:
+## If all 30 hold
 
-1. Unpack the archive into an empty directory under `C:/Projects/.tmp/second-brain-loop-25/`.
-2. Check that `session-start`'s SKILL.md, `session-end`'s `verify_memory.py`, the hooks
-   (`settings.json` wiring + `memory_guard.py`), and `CLAUDE.md` are all present and
-   structurally intact.
-3. The checks at `.claude/shared/memory/` (`check_session_start.py`, `check_verify_memory.py`,
-   `check_hooks.py`) already assert the structural requirements — run them against the
-   unpacked tree if their interface allows it, or verify the files are byte-identical to
-   the `src/` versions.
+Then the goal is met. Per `loop.md`:
 
-⚠ **Do not run `build-dist.py` while `VERSION` reads `1.0.1`** unless using `--force`, and
-even then only if the reference backup at `C:/Projects/.tmp/second-brain-dist-reference/`
-is confirmed present.
+1. Comment on issue #25 with the numbers — criteria held out of 30, what was accepted
+   rather than fixed, and the commit range.
+2. Say on crosschat that the loop is done.
+3. ⛔ **Do not merge to `main`.** The branch stays; merging is Kaushik's.
+4. ⛔ **Do not delete the cron** — it lives in Velasari's session, not yours. Say it can
+   be stopped and let her stop it.
 
-## ⛔ Do not skip the closing obligations
+## ⛔ The closing obligations, which three of five cycles have now dropped
+
+Cycle 2 did not commit. Cycle 3 did not write the next `action.md`. Cycle 5 did neither,
+with these steps numbered in its task. **Only cycle 4 closed itself.**
 
 **Before you exit, in this order:**
 
-1. `logs/cycle-5.md` — criteria met out of 30 split MOVE and PRESERVE, the check output
-   quoted, the regression line, assumptions changed, the branch read from git.
-2. Commit and push.
-3. **Rewrite this file as `# Action — cycle 6`.** If the goal is met, say so here and
-   stop the loop per `loop.md`.
-4. `crosschat send second-brain velasari "<cycle 5: criteria X/30, what moved, what is next>"`
+1. `logs/cycle-6.md` — criteria met out of 30, **counted by listing them, not by adding to
+   the last total**; the check output quoted; the regression line; the branch from git.
+2. Commit and push. ⭐ **Do this before the report, not after** — an uncommitted tree
+   blocks the next cycle and a report about uncommitted work is a lie.
+3. Rewrite this file, or declare the goal met here.
+4. `crosschat send second-brain velasari "<cycle 6: criteria X/30, ...>"`
 
-⚠ **Budget is not a constraint — do not rush these to save room.**
+⚠ **A cycle that leaves the tree dirty has failed, however good its code was.**
