@@ -16,10 +16,23 @@ style, stdlib only.
 
 **What it does:**
 
-1. Takes a reference archive (default `dist/second-brain-1.0.1.zip`) and a candidate
-   archive.
-2. Builds the candidate by running `tools/build-dist.py` — it does not accept a
-   pre-built zip by default, because a stale zip is the obvious way to fool it.
+1. **Takes the reference from the `v1.0.1` git tag, not from `dist/`.**
+2. Builds both sides with `git archive` into temp directories, and **never writes to
+   `dist/`**.
+
+🔴 **Corrected before cycle 1 ran. The original instruction said to build the candidate by
+running `tools/build-dist.py`, and that would have destroyed the reference:**
+
+```python
+  out = dist / f"second-brain-{version}.zip"
+  if out.exists():
+      out.unlink()          # VERSION is 1.0.1
+```
+
+`dist/` is gitignored and untracked, so those zips exist only on one disk. The tag is the
+durable reference; the zip is a copy that a single build removes. **A check whose first
+act destroys the thing it measures is not a check.** The six zips were copied to
+`C:/Projects/.tmp/second-brain-dist-reference/` before anything else happened.
 3. Compares the two as **path sets**, reporting names only in one and only in the other.
 4. For every path in both, compares **content bytes**, reporting each mismatch by path.
 5. Exits non-zero on any difference, and prints the counts either way.
