@@ -92,6 +92,11 @@ converge. The rule is enforced by `check_shapes.py` and by this section.
 
 - **Do not tangle with issue 24.** It is live on `feature/24-recalibration`.
 
+- **The builder's overwrite guard is outside the 30 criteria.** Cycle 4 made
+  `build-dist.py` refuse to overwrite an existing archive (pass `--force` to override).
+  This is a safety change so the loop.md prohibition on running the builder is no longer
+  strictly needed. It does not count toward the criteria number.
+
 ## Unsettled
 
 - **Whether the dev root gets its own `.claude/skills/`.** Deliberately out of scope for
