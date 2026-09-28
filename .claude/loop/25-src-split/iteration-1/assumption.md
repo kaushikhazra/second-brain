@@ -51,6 +51,31 @@ Standing inputs that must survive a rewrite of `action.md`.
 - Scratch trees live at `C:/Projects/.tmp/second-brain-loop-N/`, never in the repo and
   never in a system temp folder.
 
+## 🔴 `src/` is a fact about the REPO, never about the brain
+
+**Inside a user's install there is no `src/`.** A shipped file may only contain paths
+relative to the brain's own root.
+
+```
+  what a shipped file SAYS      .claude/shared/memory/memory-shapes.md
+  where the dev repo FINDS it   src/.claude/shared/memory/memory-shapes.md
+```
+
+⛔ **These are different strings and a check must not conflate them.** Assert the
+brain-relative path; resolve the filesystem location separately.
+
+⚠ **Cycle 2 got this wrong and it is the way this work ships something broken.** It
+repointed `check_shapes.py`'s `SHAPES_FILE_REL` at `src/...`, so the check demanded that
+the four memory skills reference `src/` — which would have been correct for the repo and
+wrong for every install. `check_shapes.py` went 5/5 to 4/5 and that is the only reason it
+was caught.
+
+⭐ **Not added to issue #25 as new criteria, deliberately.** `goal.md` and `observe.md` are
+immutable and measure *N of 30 by number*; criteria that grow mid-loop mean it can never
+converge. The rule is enforced by `check_shapes.py` and by this section.
+
+**Measured 2026-09-28 after the fix:** nothing under `src/` contains the string `src/`.
+
 ## Constraints from the orchestrator
 
 - **Behaviour-preserving for the user.** The archive's path set and file contents do not

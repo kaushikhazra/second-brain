@@ -39,7 +39,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "src" / ".claude"
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-5")
 SCRATCH_PROJECT = SCRATCH_ROOT / "gate-scratch-project"
 
