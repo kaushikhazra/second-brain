@@ -30,22 +30,33 @@ Write one, addressed to a developer. It should:
   `/init-brain`, no persona adoption.
 - Reference `src/CLAUDE.md` for the brain's own instructions.
 
-## ⛔ Criterion 8 may block
+## ✅ Criterion 8 is unblocked — Kaushik ruled
 
-Criterion 8: *an agent opening the repo root does not load the brain's skills.*
+> *"the dev root should not have any skills as to say. If in future we build one to help
+> developemnt of this, that is something different."*
 
-The dev root has `.claude/skills/` containing skills carried from before the split. An
-agent opening the repo root **will** load them. The assumption.md § Unsettled question
-about dev-root skills intersects here.
+**The dev root has no skills, and this loop does not create one.**
 
-**If criterion 8 requires removing or relocating dev-root skills, and the Unsettled
-question has not been ruled, stop and say so on crosschat.** Do not guess — this is
-Kaushik's call.
+⭐ **Criterion 8 already holds mechanically.** `.claude/skills/` at the dev root contains
+thirteen `check_*.py` and `test_*.py` files and **no `SKILL.md`**, so nothing there
+registers as a skill. Verify that rather than assuming it, and say so in the log.
 
-If criterion 8 can be satisfied without touching dev-root skills (e.g., if the dev root's
-`.claude/settings.json` prevents skill loading, or if the skills at the dev root are
-development skills that are meant to load), reason it out and state the reasoning in the
-log.
+**But the directory name is a lie and it goes.** Move those thirteen files to
+**`checks/<skill-name>/`** at the repo root, beside `tools/` — dev machinery lives at the
+repo root in this repo, and that is the existing convention.
+
+```
+  .claude/skills/dream/check_dream.py     →  checks/dream/check_dream.py
+  .claude/skills/local-agent/scripts/     →  checks/local-agent/
+```
+
+⛔ **`.claude/shared/` is NOT in scope.** He ruled on skills. Leave the checks under
+`.claude/shared/` where they are; that is a separate question.
+
+⚠ **Each moved file resolves paths relative to itself.** Moving them changes the depth to
+the repo root — `parents[3]` becomes `parents[2]`. **This is the third outing of the
+product-relative trap** (`check_shapes.py` cycle 2, `check_heartbeat.py` cycle 3). **Run
+every moved check after moving it and record the number, before and after.**
 
 ## After criteria 5–7
 

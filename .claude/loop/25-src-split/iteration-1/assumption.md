@@ -23,6 +23,19 @@ Standing inputs that must survive a rewrite of `action.md`.
 
 - **`README.md` is the user's and moves to `src/`.** Kaushik's ruling, 2026-09-28.
 
+- **The dev root has NO skills.** Kaushik's ruling, 2026-09-28:
+  > *"the dev root should not have any skills as to say. If in future we build one to help
+  > developemnt of this, that is something different."*
+
+  ⇒ A future development skill is a separate decision and a separate issue. It is not
+  this one, and this loop does not create one.
+
+  **What sits at `.claude/skills/` today is not skills** — it is thirteen `check_*.py` and
+  `test_*.py` scripts, with no `SKILL.md` among them, left there by cycle 3 mirroring the
+  paths they check. So criterion 8 already holds mechanically. **The directory name is the
+  problem**: a folder called `skills` holding no skills is the same misdirection issue #25
+  exists to remove.
+
 ## About this repo, measured 2026-09-28
 
 - **Root holds:** `CLAUDE.md` · `README.md` · `VERSION` · `brain.bat` ·
@@ -99,9 +112,7 @@ converge. The rule is enforced by `check_shapes.py` and by this section.
 
 ## Unsettled
 
-- **Whether the dev root gets its own `.claude/skills/`.** Deliberately out of scope for
-  issue 25 and not to be decided inside this loop. Criterion 8 holds either way, because
-  Claude Code loads `.claude/` from the working root.
+*(The dev-root skills question was here and is now settled below.)*
 
 - **How `git archive` should be invoked for a subtree**, and whether the prefix is
   stripped by the archive command or by the builder. Either is acceptable; the unpacked
