@@ -12,9 +12,16 @@ Standing inputs that must survive a rewrite of `action.md`.
   time. So the build inverts: from *ship everything except the list* to *ship `src/`*.
   That inversion is the point of the issue, not a side effect of it.
 
-- **The artifact is the fixed point.** `dist/second-brain-1.0.1.zip` is what a user has
-  today. This work changes where files live in the repo and must change nothing a user
-  receives. `VERSION` does not move for this work.
+- **The artifact is the fixed point.** This work changes where files live in the repo and
+  must change nothing a user receives. `VERSION` does not move for this work.
+
+- **The reference is the `v1.0.1` git tag**, measured in cycle 1 as 35 files, and NOT
+  `dist/second-brain-1.0.1.zip`. `dist/` is gitignored and untracked, and
+  `build-dist.py` unlinks that exact filename on every run. ⛔ **Do not run
+  `build-dist.py` while `VERSION` reads `1.0.1`** — it deletes the reference, and
+  criterion 16 forbids bumping `VERSION` to avoid that.
+
+- **`README.md` is the user's and moves to `src/`.** Kaushik's ruling, 2026-09-28.
 
 ## About this repo, measured 2026-09-28
 
@@ -70,7 +77,4 @@ Standing inputs that must survive a rewrite of `action.md`.
   stripped by the archive command or by the builder. Either is acceptable; the unpacked
   top level is what the criterion measures.
 
-- **Whether `README.md` is the maintainer's or the user's.** It currently ships. If it
-  addresses a brain's owner it moves to `src/`; if it addresses a maintainer it stays,
-  and the user's install loses a file — which criterion 14 forbids. Resolve before
-  moving it, not after.
+*(The `README.md` question was here and is now settled above — it is the user's.)*
