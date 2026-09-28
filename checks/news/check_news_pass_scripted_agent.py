@@ -46,7 +46,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # checks/news -> repo root
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-7")
 SCRATCH_PROJECT = SCRATCH_ROOT / "pass-scratch-project"
 
@@ -59,17 +59,19 @@ def build_scratch_project() -> None:
     if SCRATCH_PROJECT.exists():
         shutil.rmtree(SCRATCH_PROJECT)
     (SCRATCH_PROJECT / ".claude" / "skills" / "news").mkdir(parents=True, exist_ok=True)
-    for f in (REPO_ROOT / "skills" / "news").glob("*"):
+    for f in (REPO_ROOT / "src" / ".claude" / "skills" / "news").glob("*"):
         if f.is_file():
             shutil.copy(f, SCRATCH_PROJECT / ".claude" / "skills" / "news" / f.name)
     scripts_dest = SCRATCH_PROJECT / ".claude" / "skills" / "news" / "scripts"
     scripts_dest.mkdir(parents=True, exist_ok=True)
-    for f in (REPO_ROOT / "skills" / "news" / "scripts").glob("*.py"):
+    for f in (REPO_ROOT / "src" / ".claude" / "skills" / "news" / "scripts").glob(
+        "*.py"
+    ):
         shutil.copy(f, scripts_dest / f.name)
 
     (SCRATCH_PROJECT / ".claude" / "shared").mkdir(parents=True, exist_ok=True)
     shutil.copy(
-        REPO_ROOT / "shared" / "activation.py",
+        REPO_ROOT / "src" / ".claude" / "shared" / "activation.py",
         SCRATCH_PROJECT / ".claude" / "shared" / "activation.py",
     )
 

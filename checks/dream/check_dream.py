@@ -40,7 +40,7 @@ import re
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # checks/dream -> repo root
 SRC_ROOT = REPO_ROOT / "src"
 SKILL_FILE = SRC_ROOT / ".claude" / "skills" / "dream" / "SKILL.md"
 UPDATE_MEMORY_SKILL_FILE = (

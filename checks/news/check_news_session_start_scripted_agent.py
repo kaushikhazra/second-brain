@@ -39,7 +39,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # checks/news -> repo root
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-7")
 SCRATCH_PROJECT = SCRATCH_ROOT / "session-start-scratch-project"
 VERSION = "0.3.1"
@@ -52,18 +52,20 @@ def build_scratch_project() -> None:
     for skill in ("session-start", "news"):
         dest = SCRATCH_PROJECT / ".claude" / "skills" / skill
         dest.mkdir(parents=True, exist_ok=True)
-        src = REPO_ROOT / "skills" / skill
+        src = REPO_ROOT / "src" / ".claude" / "skills" / skill
         for f in src.glob("*"):
             if f.is_file():
                 shutil.copy(f, dest / f.name)
     scripts_dest = SCRATCH_PROJECT / ".claude" / "skills" / "news" / "scripts"
     scripts_dest.mkdir(parents=True, exist_ok=True)
-    for f in (REPO_ROOT / "skills" / "news" / "scripts").glob("*.py"):
+    for f in (REPO_ROOT / "src" / ".claude" / "skills" / "news" / "scripts").glob(
+        "*.py"
+    ):
         shutil.copy(f, scripts_dest / f.name)
 
     (SCRATCH_PROJECT / ".claude" / "shared").mkdir(parents=True, exist_ok=True)
     shutil.copy(
-        REPO_ROOT / "shared" / "activation.py",
+        REPO_ROOT / "src" / ".claude" / "shared" / "activation.py",
         SCRATCH_PROJECT / ".claude" / "shared" / "activation.py",
     )
 

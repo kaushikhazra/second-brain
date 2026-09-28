@@ -25,7 +25,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+REPO_ROOT = (
+    Path(__file__).resolve().parent.parent.parent
+)  # checks/recall-session -> repo root
 SRC_ROOT = REPO_ROOT / "src"
 SEARCH_PY = SRC_ROOT / ".claude" / "skills" / "recall-session" / "tools" / "search.py"
 SKILL_MD = SRC_ROOT / ".claude" / "skills" / "recall-session" / "SKILL.md"

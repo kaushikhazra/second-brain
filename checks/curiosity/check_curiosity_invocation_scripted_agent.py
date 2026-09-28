@@ -55,8 +55,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-DEV_CLAUDE = Path(__file__).resolve().parent.parent.parent  # -> .claude (dev root)
-REPO_ROOT = DEV_CLAUDE.parent
+REPO_ROOT = (
+    Path(__file__).resolve().parent.parent.parent
+)  # checks/curiosity -> repo root
 SRC_CLAUDE = REPO_ROOT / "src" / ".claude"  # product files live here
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-6")
 SCRATCH_PROJECT = SCRATCH_ROOT / "invocation-scratch-project"
@@ -102,7 +103,14 @@ def build_scratch_project() -> None:
 
     (SCRATCH_PROJECT / ".claude").mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["cmd", "/c", "mklink", "/J", str(venv_link), str(REPO_ROOT / ".venv")],
+        [
+            "cmd",
+            "/c",
+            "mklink",
+            "/J",
+            str(venv_link),
+            str(REPO_ROOT / ".claude" / ".venv"),
+        ],
         capture_output=True,
         text=True,
         check=True,
@@ -111,7 +119,7 @@ def build_scratch_project() -> None:
     for skill in ("curiosity", "create-memory"):
         dest = SCRATCH_PROJECT / ".claude" / "skills" / skill
         dest.mkdir(parents=True, exist_ok=True)
-        src = REPO_ROOT / "skills" / skill
+        src = REPO_ROOT / "src" / ".claude" / "skills" / skill
         for f in src.glob("*"):
             if f.is_file():
                 shutil.copy(f, dest / f.name)
@@ -120,17 +128,17 @@ def build_scratch_project() -> None:
         parents=True, exist_ok=True
     )
     shutil.copy(
-        REPO_ROOT / "shared" / "memory" / "memory-shapes.md",
+        REPO_ROOT / "src" / ".claude" / "shared" / "memory" / "memory-shapes.md",
         SCRATCH_PROJECT / ".claude" / "shared" / "memory" / "memory-shapes.md",
     )
     shutil.copy(
-        REPO_ROOT / "shared" / "activation.py",
+        REPO_ROOT / "src" / ".claude" / "shared" / "activation.py",
         SCRATCH_PROJECT / ".claude" / "shared" / "activation.py",
     )
 
     (SCRATCH_PROJECT / ".claude" / "hooks").mkdir(parents=True, exist_ok=True)
     shutil.copy(
-        REPO_ROOT / "hooks" / "memory_guard.py",
+        REPO_ROOT / "src" / ".claude" / "hooks" / "memory_guard.py",
         SCRATCH_PROJECT / ".claude" / "hooks" / "memory_guard.py",
     )
     (SCRATCH_PROJECT / ".claude" / "settings.json").write_text(
@@ -192,7 +200,9 @@ def write_mcp_json(mode: str, dead: bool = False) -> None:
     if dead:
         server = {
             "type": "stdio",
-            "command": str(REPO_ROOT / ".venv" / "Scripts" / "synaptra.exe"),
+            "command": str(
+                REPO_ROOT / ".claude" / ".venv" / "Scripts" / "synaptra.exe"
+            ),
             "args": ["--transport", "stdio"],
             "env": {
                 "SYNAPTRA_BACKEND": "surrealkv-file",
@@ -202,11 +212,15 @@ def write_mcp_json(mode: str, dead: bool = False) -> None:
         # Force unreachability the same way story #5's AC 17 proof did: point at
         # a command that cannot serve, not merely an empty directory (an empty
         # SurrealKV dir is valid and would just create a fresh empty store).
-        server["command"] = str(REPO_ROOT / ".venv" / "Scripts" / "does-not-exist.exe")
+        server["command"] = str(
+            REPO_ROOT / ".claude" / ".venv" / "Scripts" / "does-not-exist.exe"
+        )
     else:
         server = {
             "type": "stdio",
-            "command": str(REPO_ROOT / ".venv" / "Scripts" / "synaptra.exe"),
+            "command": str(
+                REPO_ROOT / ".claude" / ".venv" / "Scripts" / "synaptra.exe"
+            ),
             "args": ["--transport", "stdio"],
             "env": {
                 "SYNAPTRA_BACKEND": "surrealkv-file",
@@ -519,7 +533,9 @@ def main() -> int:
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--mode", choices=MODES, required=False)
     ap.add_argument("--url", default=None)
-    ap.add_argument("--cm", default=str(REPO_ROOT / ".venv" / "Scripts" / "cm.exe"))
+    ap.add_argument(
+        "--cm", default=str(REPO_ROOT / ".claude" / ".venv" / "Scripts" / "cm.exe")
+    )
     args = ap.parse_args()
 
     if args.build:

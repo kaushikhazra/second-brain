@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 _SRC_SCRIPTS = str(
-    Path(__file__).resolve().parents[4]
+    Path(__file__).resolve().parents[2]
     / "src"
     / ".claude"
     / "skills"

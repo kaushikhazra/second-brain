@@ -19,7 +19,7 @@ from pathlib import Path
 from unittest import mock
 
 _SRC_SCRIPTS = str(
-    Path(__file__).resolve().parents[4]
+    Path(__file__).resolve().parents[2]
     / "src"
     / ".claude"
     / "skills"
@@ -750,7 +750,7 @@ class TestPreflight(unittest.TestCase):
 
 class TestSkillContract(unittest.TestCase):
     def test_skill_md_documents_failure_summary_ownership_and_error_types(self):
-        repo_root = Path(__file__).resolve().parents[4]
+        repo_root = Path(__file__).resolve().parents[1]
         skill_path = (
             repo_root / "src" / ".claude" / "skills" / "local-agent" / "SKILL.md"
         )
@@ -781,7 +781,7 @@ class TestSkillContract(unittest.TestCase):
             self.assertIn(error_type, content)
 
     def test_skill_md_documents_configuration_and_dependencies(self):
-        repo_root = Path(__file__).resolve().parents[4]
+        repo_root = Path(__file__).resolve().parents[1]
         skill_path = (
             repo_root / "src" / ".claude" / "skills" / "local-agent" / "SKILL.md"
         )
@@ -797,7 +797,7 @@ class TestSkillContract(unittest.TestCase):
             self.assertIn(fragment, content)
 
     def test_requirements_file_lists_every_checked_dependency(self):
-        repo_root = Path(__file__).resolve().parents[4]
+        repo_root = Path(__file__).resolve().parents[1]
         requirements = (
             repo_root
             / "src"
@@ -814,7 +814,7 @@ class TestSkillContract(unittest.TestCase):
 
 class TestCliScript(unittest.TestCase):
     def test_missing_required_flags_script_output_is_single_json_object(self):
-        repo_root = Path(__file__).resolve().parents[4]
+        repo_root = Path(__file__).resolve().parents[1]
         script = (
             repo_root
             / "src"

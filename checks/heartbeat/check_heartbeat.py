@@ -30,9 +30,9 @@ def find_ids(text: str) -> set[str]:
 
 def main() -> int:
     # This check lives at the DEV root; the skill it checks ships from src/.
-    # parents[3] is the repo root: heartbeat -> skills -> .claude -> repo.
+    # parents[2] is the repo root: check_heartbeat.py -> heartbeat -> checks -> repo.
     default_dir = (
-        Path(__file__).resolve().parents[3] / "src" / ".claude" / "skills" / "heartbeat"
+        Path(__file__).resolve().parents[2] / "src" / ".claude" / "skills" / "heartbeat"
     )
     heartbeat_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else default_dir
     results: list[tuple[str, bool, str]] = []

@@ -30,7 +30,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # checks/news -> repo root
 SRC_ROOT = REPO_ROOT / "src"
 ACTIVATION_PY = SRC_ROOT / ".claude" / "shared" / "activation.py"
 SKILL_MD = SRC_ROOT / ".claude" / "skills" / "news" / "SKILL.md"
