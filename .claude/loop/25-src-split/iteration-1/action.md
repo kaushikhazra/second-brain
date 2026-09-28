@@ -1,6 +1,10 @@
 # Action — cycle 5
 
-Cycle 4 landed criteria 9–13 (the build). **23 of 30 criteria now hold.**
+Cycle 4 landed criteria 9–13 (the build). **22 of 30 criteria now hold.**
+
+⚠ Cycle 4's log and its crosschat line both said 23. Its own MET list contains 22 entries,
+and 22 + 4 failing + 4 unverified = 30. **The number is 22.** Corrected here rather than in
+`logs/cycle-4.md`, which is immutable.
 
 ```
   MET         1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 26, 27, 28, 29, 30
