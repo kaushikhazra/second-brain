@@ -11,6 +11,10 @@ One command. The owner points this brain at the old one; this brain does the res
 /migrate-from <path to the old brain folder>
 ```
 
+Run it in a session started with **`brain-claude-sandbox.bat`**, never plain `brain.bat`.
+The sandbox has its own Claude config, so the old brain's memory tools, which are
+registered for the whole user account, never appear in this brain.
+
 **Copy only.** Nothing in the old brain folder, and nothing in the old memory store,
 is changed. The old brain keeps running, so the owner can use both side by side
 until they are satisfied. Retiring the old one is their decision, later.
@@ -50,7 +54,6 @@ It takes a few minutes on a large store. Let it finish.
 2. counts the copy as the old memory system wrote it
 3. opens it with synaptra and counts again; every number must match
 4. copies the owner's own files across; a stock file from the old release is left behind
-5. blocks the old memory tools **inside this brain only** (`.claude/settings.local.json`)
 
 **If it stops**, show the owner the `STOPPED:` line exactly as printed and do what it
 says. Do not work around it. The one expected case: the copied store will not open
@@ -69,7 +72,8 @@ version is kept there, nothing is lost, and they can compare the two when they l
 
 ## 5. Restart
 
-Tell the owner to close this session and start the brain again **with `brain.bat`**.
+Tell the owner to close this session and start the brain again **with
+`brain-claude-sandbox.bat`**.
 The memory tools connect on that start, and the first start loads the memory model,
 which can take a few minutes. That wait is normal.
 
@@ -81,5 +85,7 @@ keeps `persona.md` and `user.md` as they are, and only seeds the two boot lists.
 - ⛔ **Do not run `/dream` on a migrated brain yet.** Its backup step still stops a
   scheduled task named `CognitiveMemory`, which on this machine is the old brain's
   memory service.
-- The old brain is untouched and still works. Running both is safe: this brain no
-  longer sees the old memory tools, and the old brain never saw this one's.
+- The old brain is untouched and still works. Running both is safe **as long as this
+  brain is started with `brain-claude-sandbox.bat`**: the sandbox keeps its own Claude
+  config, so it never sees the old memory tools that are registered user-wide. Started
+  with plain `brain.bat`, it would see both memories.

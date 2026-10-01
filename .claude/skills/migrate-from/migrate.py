@@ -15,7 +15,6 @@ Steps, each one stops the run on failure:
   4. open the copy with synaptra -- this applies synaptra's schema -- and
      count again; every number must match
   5. carry the owner's files across from the old brain folder
-  6. block the old cognitive-memory tools inside this brain only
 """
 
 import argparse
@@ -76,8 +75,6 @@ SKIP_DIRS = {
     "synaptra-data",
     ".claude-config",
 }
-
-DENY_RULE = "mcp__cognitive-memory"
 
 
 def say(msg=""):
@@ -224,28 +221,6 @@ def carry_files(old_brain):
     return copied, parked, skipped
 
 
-def block_old_tools():
-    """Deny the old cognitive-memory MCP inside this brain only.
-
-    The old CM is registered user-wide, so without this its tools appear here
-    too and a write can land in the old store. settings.local.json is
-    project-scoped and gitignored by Claude Code; the old brain is unaffected.
-    """
-    path = CLAUDE_DIR / "settings.local.json"
-    cfg = {}
-    if path.exists():
-        try:
-            cfg = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            fail(f"{path} is not valid JSON; fix or remove it and re-run")
-    deny = cfg.setdefault("permissions", {}).setdefault("deny", [])
-    if DENY_RULE not in deny:
-        deny.append(DENY_RULE)
-        path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
-        return True
-    return False
-
-
 def main():
     # Memory text is printed back to the owner. A Windows console defaults to
     # cp1252, which cannot encode much of what a memory holds, and a crash on
@@ -316,7 +291,6 @@ def main():
     # 5. files
     say("[4/4] carrying your files ...")
     copied, parked, skipped = carry_files(old_brain)
-    blocked = block_old_tools()
 
     report = {
         "migrated_at": datetime.now().astimezone().isoformat(),
@@ -328,7 +302,6 @@ def main():
         "copied": copied,
         "parked": parked,
         "skipped_stock": skipped,
-        "old_tools_blocked_here": blocked or DENY_RULE,
     }
     REPORT.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
@@ -349,7 +322,7 @@ def main():
         say(f"parked      {len(parked)} (yours, but the new brain has its own):")
         for p in parked:
             say(f"  .claude/migrated-from-old/{p}")
-    say(f"stock, left {len(skipped)}")
+    say(f"left alone  {len(skipped)} (stock, or already identical here)")
     say(f"\nreport: {REPORT}")
     return 0
 
