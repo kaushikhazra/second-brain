@@ -173,14 +173,23 @@ async def open_with_synaptra(path):
         got = await st.get_memory(mid)
         reads["newest"] = got.content[:140] if got else None
         reads["newest_created"] = str(newest[0].get("created_at"))
-        if got and got.embedding:
-            reads["vector_hits"] = len(await st.vector_search(got.embedding, top_k=5))
-        if got:
-            words = [w for w in got.content.split() if len(w) > 4][:3]
-            if words:
-                reads["keyword_hits"] = len(
-                    await st.keyword_search(" ".join(words), limit=5)
-                )
+        if got is None:
+            raise RuntimeError(f"synaptra could not read back memory {mid}")
+        # vector_search is the path recall uses. (vector_search_for_memory is
+        # not: in synaptra 2.1.0 on embedded surrealkv its LET query returns
+        # None and it reports 0 on every store, migrated or not.)
+        emb = st._rows(
+            st._db.query(
+                "SELECT embedding FROM type::thing('memory', $id)", {"id": mid}
+            )
+        )
+        if emb and emb[0].get("embedding"):
+            reads["vector_hits"] = len(
+                await st.vector_search(emb[0]["embedding"], top_k=5)
+            )
+        words = [w for w in got.content.split() if len(w) > 4][:3]
+        if words:
+            reads["keyword_hits"] = len(await st.fts_search(" ".join(words), limit=5))
     return counts, reads
 
 
@@ -238,6 +247,12 @@ def block_old_tools():
 
 
 def main():
+    # Memory text is printed back to the owner. A Windows console defaults to
+    # cp1252, which cannot encode much of what a memory holds, and a crash on
+    # the final summary would look like a failed migration.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--old-brain", required=True)
     ap.add_argument("--old-store")
@@ -291,7 +306,7 @@ def main():
     try:
         after, reads = asyncio.run(open_with_synaptra(DEST_STORE))
     except Exception as e:  # noqa: BLE001
-        fail(f"synaptra could not open the copy: {e}")
+        fail(f"synaptra could not open or read the copy: {type(e).__name__}: {e}")
     say(f"      {after}")
     if before != after:
         fail(f"counts differ -- before {before}, after {after}")
@@ -325,6 +340,10 @@ def main():
     if reads.get("newest"):
         say(f"\nnewest memory ({reads.get('newest_created', '')[:10]}):")
         say(f"  {reads['newest']!r}")
+        say(
+            f"  similar by meaning: {reads.get('vector_hits', 0)}   "
+            f"by keyword: {reads.get('keyword_hits', 0)}"
+        )
     say(f"\ncopied in   {len(copied)}: {', '.join(copied) or '-'}")
     if parked:
         say(f"parked      {len(parked)} (yours, but the new brain has its own):")
