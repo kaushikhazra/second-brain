@@ -86,6 +86,24 @@ def fail(msg):
     sys.exit(1)
 
 
+def fail_and_discard(msg):
+    """Stop after the copy, removing the copy this run made.
+
+    The run refuses to start when a store is already there, so whatever sits
+    in DEST_STORE at this point is this run's own copy -- never the owner's
+    old store, which is only ever read. Leaving it would block the re-run.
+    """
+    shutil.rmtree(DEST_STORE, ignore_errors=True)
+    if DEST_STORE.exists():
+        msg += (
+            f"\n         The partial copy at {DEST_STORE} could not be removed; "
+            "move it aside before re-running."
+        )
+    else:
+        msg += "\n         The partial copy was removed; nothing is left behind."
+    fail(msg)
+
+
 def blob_hashes(data):
     """Git blob hash of the bytes as-is, and with CRLF folded to LF.
 
@@ -268,25 +286,30 @@ def main():
     try:
         before = count_raw(DEST_STORE)
     except Exception as e:  # noqa: BLE001
-        shutil.rmtree(DEST_STORE, ignore_errors=True)
-        fail(
+        fail_and_discard(
             f"the copied store would not open ({e}). The old CM was probably "
             "mid-write. Stop the CognitiveMemory scheduled task, re-run, then "
             "start it again."
         )
     say(f"      {before}")
+    if before["memories"] == 0:
+        fail_and_discard(
+            f"{store} holds no memories, so it is not the old brain's store. "
+            "Find where the old memory service keeps its data and re-run with "
+            '--old-store "<that folder>".'
+        )
 
     # 4. open with synaptra
     say("[3/4] opening it with synaptra ...")
     try:
         after, reads = asyncio.run(open_with_synaptra(DEST_STORE))
     except Exception as e:  # noqa: BLE001
-        fail(f"synaptra could not open or read the copy: {type(e).__name__}: {e}")
+        fail_and_discard(
+            f"synaptra could not open or read the copy: {type(e).__name__}: {e}"
+        )
     say(f"      {after}")
     if before != after:
-        fail(f"counts differ -- before {before}, after {after}")
-    if before["memories"] == 0:
-        fail("the store opened but holds no memories")
+        fail_and_discard(f"counts differ -- before {before}, after {after}")
 
     # 5. files
     say("[4/4] carrying your files ...")

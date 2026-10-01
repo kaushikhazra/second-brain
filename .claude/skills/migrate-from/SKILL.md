@@ -56,9 +56,14 @@ It takes a few minutes on a large store. Let it finish.
 4. copies the owner's own files across; a stock file from the old release is left behind
 
 **If it stops**, show the owner the `STOPPED:` line exactly as printed and do what it
-says. Do not work around it. The one expected case: the copied store will not open
-because the old memory service was mid-write. The script names the fix (stop the
-`CognitiveMemory` scheduled task, re-run, start it again).
+says. Do not work around it. A failed run removes its own partial copy, so a re-run
+needs no cleanup. Two expected cases:
+
+- **The store holds no memories.** The old memory service keeps its data somewhere
+  other than the default. Ask the owner for that folder and re-run with
+  `--old-store "<folder>"`.
+- **The copied store will not open** because the old memory service was mid-write.
+  Stop the `CognitiveMemory` scheduled task, re-run, then start it again.
 
 ## 4. Show the owner the result
 
