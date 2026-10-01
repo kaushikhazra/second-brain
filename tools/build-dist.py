@@ -34,6 +34,7 @@ FORBIDDEN = (
     ".venv",
     ".python",
     "synaptra-data",
+    "dream-backups",
     ".mcp.json",
     ".self-aware",
     ".claude/specs",

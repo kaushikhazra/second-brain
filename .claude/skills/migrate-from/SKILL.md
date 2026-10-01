@@ -1,15 +1,24 @@
 ---
 name: migrate-from
-description: Move an older second brain into this one — its memories, persona, user profile and the owner's own files. For brains from July 2026 that ran on cognitive-memory. Copy only; the old brain keeps working. Use when the owner says "migrate from", "bring my old brain over", or runs /migrate-from <path>.
+description: Move an older second brain into this one — its memories, persona, user profile and the owner's own files. For brains from July 2026 that ran on cognitive-memory. Copy only; the old brain keeps working. Use when the owner says "migrate from", "bring my old brain over", or runs /migrate-from <old brain> [<old store>].
 ---
 
 # Migrate from an old second brain
 
-One command. The owner points this brain at the old one; this brain does the rest.
+One command, one line. The owner points this brain at the old one; this brain does
+the rest.
 
 ```
-/migrate-from <path to the old brain folder>
+/migrate-from <old brain folder> [<old memory store folder>]
 ```
+
+- **First path** — the old brain's folder, the one holding their `persona.md`.
+  Required.
+- **Second path** — where the old memories live. Optional. Leave it out and the
+  script uses `COGNITIVE_MEMORY_DB`, else `~/.cognitive-memory/data`, which is
+  where the old memory service keeps them unless the owner changed it.
+
+Paths with spaces need quotes.
 
 Run it in a session started with **`brain-claude-sandbox.bat`**, never plain `brain.bat`.
 The sandbox has its own Claude config, so the old brain's memory tools, which are
@@ -19,10 +28,10 @@ registered for the whole user account, never appear in this brain.
 is changed. The old brain keeps running, so the owner can use both side by side
 until they are satisfied. Retiring the old one is their decision, later.
 
-## 1. Get the path
+## 1. Read the arguments
 
-If the owner gave no path, ask for the old brain's folder (the one holding their
-`persona.md`). Do not guess it.
+Take the first path as the old brain and the second, if given, as the old store.
+If there is no first path, ask for the old brain's folder. Do not guess it.
 
 ## 2. Provision this brain's memory backend
 
@@ -36,17 +45,15 @@ to step 3.
 
 ## 3. Run the migration
 
-With **this brain's own interpreter**, from the brain root:
+With **this brain's own interpreter**, from the brain root, passing the paths exactly
+as the owner gave them:
 
 ```
-.claude/.venv/Scripts/python.exe .claude/skills/migrate-from/migrate.py --old-brain "<path>"
+.claude/.venv/Scripts/python.exe .claude/skills/migrate-from/migrate.py "<old brain>" ["<old store>"]
 ```
 
-Add `--old-store "<path>"` only if the owner's memories are not in the default place
-(`COGNITIVE_MEMORY_DB`, else `~/.cognitive-memory/data`). The script prints which one
-it used; read that line back to the owner.
-
-It takes a few minutes on a large store. Let it finish.
+The script prints which store it used and why (`given` or `default`); read that line
+back to the owner. It takes a few minutes on a large store. Let it finish.
 
 **What it does, and it stops at the first failure:**
 
@@ -60,8 +67,8 @@ says. Do not work around it. A failed run removes its own partial copy, so a re-
 needs no cleanup. Two expected cases:
 
 - **The store holds no memories.** The old memory service keeps its data somewhere
-  other than the default. Ask the owner for that folder and re-run with
-  `--old-store "<folder>"`.
+  other than the default. Ask the owner for that folder and re-run with it as the
+  second path.
 - **The copied store will not open** because the old memory service was mid-write.
   Stop the `CognitiveMemory` scheduled task, re-run, then start it again.
 
@@ -78,19 +85,15 @@ version is kept there, nothing is lost, and they can compare the two when they l
 ## 5. Restart
 
 Tell the owner to close this session and start the brain again **with
-`brain-claude-sandbox.bat`**.
-The memory tools connect on that start, and the first start loads the memory model,
-which can take a few minutes. That wait is normal.
+`brain-claude-sandbox.bat`**. The memory tools connect on that start, and the first
+start loads the memory model, which can take a few minutes. That wait is normal.
 
 On that start, `/init-brain` finds the memories and the persona already in place,
 keeps `persona.md` and `user.md` as they are, and only seeds the two boot lists.
 
 ## Afterwards
 
-- ⛔ **Do not run `/dream` on a migrated brain yet.** Its backup step still stops a
-  scheduled task named `CognitiveMemory`, which on this machine is the old brain's
-  memory service.
-- The old brain is untouched and still works. Running both is safe **as long as this
-  brain is started with `brain-claude-sandbox.bat`**: the sandbox keeps its own Claude
-  config, so it never sees the old memory tools that are registered user-wide. Started
-  with plain `brain.bat`, it would see both memories.
+The old brain is untouched and still works. Running both is safe **as long as this
+brain is started with `brain-claude-sandbox.bat`**: the sandbox keeps its own Claude
+config, so it never sees the old memory tools that are registered user-wide. Started
+with plain `brain.bat`, it would see both memories.

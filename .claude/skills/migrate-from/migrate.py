@@ -3,7 +3,7 @@
 Run by /migrate-from with this brain's own interpreter:
 
     .claude/.venv/Scripts/python.exe .claude/skills/migrate-from/migrate.py \
-        --old-brain <path> [--old-store <path>]
+        "<old brain>" ["<old store>"]
 
 Copy only. Nothing in the old brain or the old memory store is changed, so the
 old brain keeps working and can run in parallel until the owner is satisfied.
@@ -119,7 +119,7 @@ def blob_hashes(data):
 
 def resolve_old_store(arg):
     if arg:
-        raw, source = arg, "--old-store"
+        raw, source = arg, "given"
     elif os.environ.get("COGNITIVE_MEMORY_DB"):
         raw, source = os.environ["COGNITIVE_MEMORY_DB"], "COGNITIVE_MEMORY_DB"
     else:
@@ -247,8 +247,13 @@ def main():
         stream.reconfigure(encoding="utf-8", errors="replace")
 
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--old-brain", required=True)
-    ap.add_argument("--old-store")
+    ap.add_argument("old_brain", help="the old brain's folder")
+    ap.add_argument(
+        "old_store",
+        nargs="?",
+        help="the old memory store folder; default COGNITIVE_MEMORY_DB, "
+        "else ~/.cognitive-memory/data",
+    )
     args = ap.parse_args()
 
     old_brain = Path(args.old_brain).expanduser().resolve()
@@ -265,8 +270,8 @@ def main():
     say(f"old memories {store}   ({source})")
     if not store.is_dir() or not any(store.iterdir()):
         fail(
-            f"no memory store at {store}. Pass --old-store <path> if CM keeps "
-            "it somewhere else."
+            f"no memory store at {store}. Give the store folder as the second "
+            "path: /migrate-from <old brain> <old store>"
         )
     size = sum(f.stat().st_size for f in store.rglob("*") if f.is_file())
     say(f"             {size / 1_048_576:,.0f} MB")
@@ -295,8 +300,8 @@ def main():
     if before["memories"] == 0:
         fail_and_discard(
             f"{store} holds no memories, so it is not the old brain's store. "
-            "Find where the old memory service keeps its data and re-run with "
-            '--old-store "<that folder>".'
+            "Find where the old memory service keeps its data and give it as "
+            "the second path: /migrate-from <old brain> <old store>"
         )
 
     # 4. open with synaptra

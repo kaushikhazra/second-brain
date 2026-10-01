@@ -56,92 +56,45 @@ to fit a budget; the budget should fit the dream.
 
 ## Pre-dream checkpoint (mandatory — before anything else)
 
-Take and verify a backup before disabling the heartbeat or touching any
-data. (The `cm` backup CLI is machine-local, from the synaptra
-install — see CLAUDE.md's Synaptra section.)
+Take and verify a backup before touching any data.
 
-### `cm` does NOT inherit the brain's DB path — you must pass it
-
-**This is the trap. It fails silently and every safety check still says
-green.** `.mcp.json` injects `SYNAPTRA_BACKEND` and `SYNAPTRA_DB` into the
-MCP server's environment. A shell invocation of `cm` inherits none of it
-and falls back to the **user-level default store** (`~/.synaptra/data`) —
-a different, near-empty database that it then backs up perfectly.
-
-Always set the environment from `.mcp.json` before any `cm` call:
-
-```powershell
-$env:SYNAPTRA_BACKEND = 'surrealkv-file'
-$env:SYNAPTRA_DB      = '<brain root>\.claude\synaptra-data'
-```
-
-Read the values out of `.mcp.json` rather than hardcoding them — if the
-brain moved or was provisioned differently, that file is the truth.
+**The backup is a file copy.** The memory store is SurrealKV, which is plain files
+in `.claude/synaptra-data`; copying that folder is the whole backup. ⛔ **Do not
+use `cm backup` or anything else from synaptra's backup package.** It stops and
+starts a scheduled task named `CognitiveMemory` that a synaptra brain does not
+own, and on a machine migrated from an older brain that task is the old brain's
+memory service.
 
 ### The steps
 
-1. `memory_stats` — record `storage.memory_count`. **This is the number
-   the backup must match.** **If this call errors as unreachable, say so
-   once and stop — do not proceed to step 2.** No live count means no
-   number for the backup to match, and no backup means no dream; there
-   is nothing left to check before giving up here.
-2. `cm backup create` — record the backup path from stdout.
-3. `cm backup verify --deep <backup_path>` — deep verify (~30 s).
-4. **Row-count check (the one that actually matters).** Read
-   `manifest.json` in the backup directory and compare
-   `row_counts.memory` against step 1's count. **They must be equal.**
-5. **A mismatch here is a defect, not a warning — ABORT the dream and
-   call it that.** Say the two numbers plainly (live count vs. backup
-   count) and the word "defect" — this is not a caveat to note and
-   continue past, it is the exact failure mode that produced a
-   1-of-55-memories backup that passed every other check. No rollback
+1. **Disable the heartbeat first** (Prerequisites 1 below). Nothing may write
+   between the count in step 2 and the copy in step 3. Disabling a cron touches
+   no data.
+2. `memory_stats` — record `storage.memory_count`. **This is the number the
+   backup must match.** **If this call errors as unreachable, say so once and
+   stop.** No live count means no number for the backup to match, and no backup
    means no dream.
-6. **A `cm backup create` or `cm backup verify --deep` that exits
-   non-zero → ABORT the dream, showing that command's own error text
-   verbatim.** A tool failure is reported in the tool's own words, not
-   paraphrased or summarized past.
-7. All pass → tell the user the path, the count, AND the exact rollback
-   command, all three, before touching anything: **"Checkpoint at
-   `<path>` — N memories. To roll back: `cm backup restore <path>
-   --target <SYNAPTRA_DB path> --force`."** That path is this dream's
-   rollback point — stating the restore command alongside it means the
-   owner has it in hand before any reshaping starts, not something they
-   have to look up later if something goes wrong.
+3. Run the checkpoint with this brain's own interpreter, from the brain root:
 
-### Why step 4 exists — three green lights on a useless backup
+   ```
+   .claude/.venv/Scripts/python.exe .claude/skills/dream/checkpoint.py --expect <N>
+   ```
 
-Observed 2026-08-12: a backup containing **1 of 55 memories** passed
-every check.
+   It copies `.claude/synaptra-data` into `.claude/dream-backups/<date_time>/`,
+   opens the copy on its own, and counts it.
+4. **`CHECKPOINT OK` → tell the owner the backup path, the count, and the
+   rollback steps the script printed, all three, before touching anything.**
+   That folder is this dream's rollback point.
+5. **`STOPPED:` → ABORT the dream, showing the script's line verbatim.** A count
+   mismatch is a **defect**, not a caveat to note and continue past. The copy is
+   taken while the brain runs, so it can catch a mid-write moment; the count is
+   what proves this copy did not.
 
-| Check | Said | Why it was blind |
-|-------|------|------------------|
-| `cm backup create` | exit 0, "Backup complete" | It backed up the wrong DB, correctly |
-| `cm backup verify --deep` | `OK` | Verifies the backup is *internally consistent*, never that it is *complete against the source* |
-| `memory_health` | `backup_is_stale: false` | Age-only. A fresh backup of the wrong store looks perfect |
+### Why the count, and not "the copy finished"
 
-Only the row count catches it. Restoring from that backup would have
-silently destroyed 54 of 55 memories.
-
-### Benign noise — do not diagnose from it
-
-`cm backup create` logs a stop/restart cycle and then, after ~180 s:
-
-```
-WARNING: CM service started but did not respond within 180 s.
-         It may still be replaying the SurrealKV clog (~2 min is normal).
-```
-
-This appears on **successful** backups too. Synaptra here runs as
-per-client `synaptra.exe --transport stdio` MCP servers, not a managed
-background service, so the `Stop-ScheduledTask` step is a no-op and the
-readiness wait always times out. **The warning is not the cause of a bad
-backup.** Judge the backup by its row count, never by this log line.
-
-### If `cm` cannot be made to work
-
-Fall back to a filesystem copy of the `SYNAPTRA_DB` directory and say
-plainly that it was taken with the MCP servers live, so it may catch a
-mid-write moment. Better than no rollback; not equivalent to a clean one.
+Observed 2026-08-12: a backup containing **1 of 55 memories** passed every check
+the old backup command had. It had backed up the wrong store, correctly. **Only
+the row count caught it.** A copy that completes is not a copy that is complete.
 
 ## Refuses to run during an active conversation
 
