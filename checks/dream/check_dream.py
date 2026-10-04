@@ -16,15 +16,16 @@
 - AC 14: nothing schedules a dream -- no `CronCreate` call anywhere in the skill.
 - AC 7 / AC 15: the skill states its retrievability threshold and its
   active-conversation window as explicit numbers, not "a while" or "recently."
-- AC 9 (issue #5 cycle 4): "a retype is done by the `cm` CLI and read back."
-  Act 2 already routes retyping through `/update-memory` (proven by AC 6's own
-  grep -- no direct call), and `/update-memory`'s own text unconditionally
-  requires both halves for ANY update, type changes included: `cm update <id>
-  --type <type>` (not `memory_update`'s own `type` argument), then "read it
-  back and confirm the change is actually there." Checked directly rather than
-  assumed -- `/update-memory`'s own file is what this half of AC 9 actually
-  depends on, so this script asserts it still says both things, not just that
-  the dream routes there.
+- AC 9 (issue #5 cycle 4, updated issue #28): "a retype is done via MCP and
+  read back." Act 2 routes retyping through `/update-memory` (proven by AC 6's
+  own grep -- no direct call), and `/update-memory`'s own text unconditionally
+  requires both halves for ANY update, type changes included:
+  `memory_update(memory_type=...)`, then verify with `memory_get`. The `cm` CLI
+  is no longer used for writes (issue #28 -- it defaults to a port-based server
+  and silently targets the wrong store on a migrated machine). Checked directly
+  rather than assumed -- `/update-memory`'s own file is what this half of AC 9
+  actually depends on, so this script asserts it still says both things, not
+  just that the dream routes there.
 
 Pure text check, no synaptra I/O, live or scratch. This is a structural proof, not a
 behavioral one -- it tells you what the skill's OWN TEXT currently instructs, not
@@ -104,11 +105,13 @@ AC15_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
-# AC 9: /update-memory's own text still says a type change goes through the `cm`
-# CLI, and separately still requires reading any update back. Two independent
-# patterns, not one combined one -- either half regressing independently should
-# fail this check.
-AC9_CLI_RETYPE_RE = re.compile(r"cm\s+update.{0,20}--type", re.IGNORECASE | re.DOTALL)
+# AC 9: /update-memory's own text still says a type change goes through
+# memory_update(memory_type=...), and separately still requires reading any
+# update back. Two independent patterns, not one combined one -- either half
+# regressing independently should fail this check.
+AC9_CLI_RETYPE_RE = re.compile(
+    r"memory_update\s*\(\s*memory_type\s*=", re.IGNORECASE | re.DOTALL
+)
 AC9_READ_BACK_RE = re.compile(r"read\s+it\s+back", re.IGNORECASE | re.DOTALL)
 
 
@@ -176,7 +179,7 @@ def main() -> int:
     if not UPDATE_MEMORY_SKILL_FILE.is_file():
         results.append(
             (
-                "AC9: /update-memory still routes a retype through the cm CLI, and reads it back",
+                "AC9: /update-memory still routes a retype through memory_update(memory_type=...), and reads it back",
                 False,
                 f"update-memory SKILL.md not found at {UPDATE_MEMORY_SKILL_FILE}",
             )
@@ -188,7 +191,7 @@ def main() -> int:
         ok9 = ok9_cli and ok9_readback
         results.append(
             (
-                "AC9: /update-memory still routes a retype through the cm CLI, and reads it back",
+                "AC9: /update-memory still routes a retype through memory_update(memory_type=...), and reads it back",
                 ok9,
                 f"cli_retype={ok9_cli}, read_back={ok9_readback}",
             )

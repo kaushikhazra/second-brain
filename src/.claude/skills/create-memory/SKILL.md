@@ -132,10 +132,10 @@ months · `identity` years.
   `memory_store` is honored as given — reclassification only happens when
   `type` is omitted. Verify anyway: it is cheap, and it is what catches the
   omitted-type case landing somewhere unexpected. **If the landed type
-  differs from what was asked, fix it with `cm update <id> --type <type>`**
-  — not `memory_update`'s `type` argument, so this stays the one place a
-  type correction happens and stays visible in the `cm` history — **and say
-  the correction happened** (AC 7).
+  differs from what was asked, fix it with `memory_update(memory_type=<type>)`
+  and verify again with `memory_get`** — never use the `cm` CLI for writes
+  (it defaults to a port-based server and silently targets the wrong store
+  on a migrated machine) — **and say the correction happened** (AC 7).
 
 ### 6. Link it
 

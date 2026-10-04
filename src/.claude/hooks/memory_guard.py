@@ -97,13 +97,12 @@ against yet.
   support. Any update to the surface-map holder that ALSO touches `tags`, and any
   update at all to the self-map holder or the handoff id, is blocked.
 
-**Not covered by this hook, a known gap**: a retype via the `cm` CLI
-(`cm update <id> --type <type>`, the path `/update-memory`'s own text says a type
-change actually takes) is a Bash command, not an MCP tool call, and this hook only
-ever sees MCP tool invocations -- it cannot inspect or block a Bash command string.
-Protecting against a CLI-based retype of a protected id is the dream's own prompt
-discipline to hold (a later cycle's Act-2 rewrite), not something this mechanism
-can enforce. Noted here rather than silently assumed covered.
+**Closed gap (issue #28)**: type changes now go through `memory_update(memory_type=...)`
+— an MCP tool call this hook CAN see — not the `cm` CLI. The `cm` CLI defaults to a
+port-based server and silently targets the wrong store on a migrated machine; all
+write paths in the skills have been updated to use MCP calls only. `cm` is still
+used for read-only operations (backup, list) where targeting the wrong server is
+visible, not silent.
 """
 
 from __future__ import annotations

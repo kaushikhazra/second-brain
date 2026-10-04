@@ -60,15 +60,16 @@ and reads as current. **The correction has to land where the error lives** (AC 1
   drops every tag not in the list you pass. ⛔ **Fetch the current tags first (`/read-memory`
   or `memory_get`) and pass the full intended set, with nothing dropped that wasn't
   deliberately named** (AC 18).
-- **A type change goes through `cm update <id> --type <type>`, not `memory_update`'s
-  own `type` argument** (AC 19). This is the one place a type correction happens, so it
-  stays visible in the `cm` history rather than blending into ordinary content edits.
+- **A type change goes through `memory_update(memory_type=<type>)`, then verified
+  with `memory_get`** (AC 19). This is the one place a type correction happens. Never
+  use the `cm` CLI for writes — `cm` defaults to a port-based server and silently
+  targets the wrong store on a migrated machine.
 - ⚠ **`memory_update` reinforces stability on every call**, so every edit writes into
   the decay engine. **Tidying is not free — it makes a memory harder to forget.** This
   is the single best reason to refuse an update made only for cosmetics, and to say why
   when refusing it (AC 16).
-- **Large content blows the CLI arg limit** — write from a file:
-  `cm update <FULL-uuid> --content "$(cat file)"`.
+- **Large content**: write it to a temp file, read it into the `memory_update` call's
+  `content` argument. Do not use the `cm` CLI.
 
 ---
 

@@ -44,9 +44,11 @@ Tags must include: `end-of-day`, `handoff`, `resume-next-session`,
 landed as `working` instead — `/create-memory`'s own verification step
 should already have caught and corrected this, but check again here,
 because this is the one memory in the whole brain that must never decay
-on the hours-scale `working` uses: retype it with `cm update <id> --type episodic`,
-then read it back a **second time** to confirm the correction actually
-landed (AC 9). Don't assume the retype worked from its return value —
+on the hours-scale `working` uses: retype it with
+`memory_update(memory_type="episodic")`, then `memory_get` it a **second time**
+to confirm the correction actually landed (AC 9). Never use the `cm` CLI for
+writes — it defaults to a port-based server and silently targets the wrong store
+on a migrated machine. Don't assume the retype worked from its return value —
 that is exactly the failure `/create-memory`'s own verify step exists to
 prevent, and it applies here too.
 
