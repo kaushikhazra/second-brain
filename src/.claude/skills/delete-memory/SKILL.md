@@ -91,9 +91,11 @@ State which of these applies when reporting the deletion (AC 21).
    at**, whatever a listing says it is.
 2. **Check what points at it** — `memory_related`. An edge into it means something else
    expects it to exist.
-3. **Back up if the operation is bulk.** `cm backup create --name <reason>-<date>`, and
-   ⚠ **verify the artifact, don't trust the verifier's opinion alone** — parse the
-   NDJSON output, count the records, confirm the manifest agrees.
+3. **Back up if the operation is bulk** — the same file checkpoint `/dream` takes:
+   `memory_stats` for the live count, then
+   `.claude/.venv/Scripts/python.exe .claude/skills/dream/checkpoint.py --expect <N>`.
+   Proceed only on `CHECKPOINT OK`. ⛔ Not `cm backup`; see `/dream`'s checkpoint for
+   why.
 4. **`memory_delete` requires `confirm=true`.** Verified against this install's server:
    the call refuses outright without it (`"confirm must be true for permanent
    deletion"`). Treat that argument as the checkpoint it is, not a parameter to fill in

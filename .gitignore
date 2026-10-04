@@ -29,6 +29,7 @@ __pycache__/
 .claude/.venv/
 .claude/uv*.exe
 .claude/synaptra-data/
+.claude/dream-backups/
 .claude/.self-aware
 .mcp.json
 
