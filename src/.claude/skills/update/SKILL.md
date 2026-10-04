@@ -42,13 +42,19 @@ released version.  The core logic lives in `.claude/shared/update_brain.py`
    ```
 
    The script will:
-   - Back up every file it replaces to `.claude/.update-backup/`
+   - Back up every file it replaces to a timestamped dir under
+     `.claude/.update-backup/<YYYYMMDDTHHMMSS>/`, recording which files
+     are new in the release, the prior `.release-record.json` (or its
+     absence), and the prior synaptra version
    - Stop any running synaptra processes from this brain's venv
    - Install `synaptra==<declared version>` pinned
    - Verify `synaptra.__version__` matches
    - Copy product files (skipping owner paths: `persona.md`, `user.md`,
      `.mcp.json`, `.claude/synaptra-data/`, `.claude/dream-backups/`)
    - Write `.claude/.release-record.json`
+   - **Auto-rollback**: if any step after the backup fails, the script
+     automatically restores from the backup and exits non-zero naming
+     the failed step
 
 6. **Report** what changed: the old and new versions of both the brain and
    synaptra, the number of files replaced, and the backup location.
@@ -66,8 +72,21 @@ If the owner wants to roll back:
 python <brain-root>/.claude/shared/update_brain.py <brain-root> --restore
 ```
 
-This copies every file from `.claude/.update-backup/` back to its
-original location.
+This uses the most recent timestamped backup under
+`.claude/.update-backup/` and:
+
+- Restores every backed-up file to its original location
+- Deletes files that were **new** in the release (did not exist before)
+- Restores `.release-record.json` to its prior state (or removes it if
+  it did not exist before the update)
+- Reinstalls the prior synaptra version (stops services first); if the
+  prior version is unknown, leaves synaptra as-is and says so
+
+To restore from a specific backup, pass `--backup-dir <path>`.
+
+Multiple updates preserve all prior backups (timestamped directories),
+so rolling back past the most recent update is possible by naming the
+backup directory explicitly.
 
 ## Manual path (R7)
 
