@@ -76,8 +76,15 @@ c. **Create the venv off that Python.** With `UV_PYTHON_INSTALL_DIR=CLAUDE_DIR/.
    interpreter under `CLAUDE_DIR/.python`). That pin is what preserves the "host
    untouched / portable" guarantee. After creation, confirm the venv's python
    resolves under `CLAUDE_DIR/.python`.
-d. **Install synaptra from PyPI into the venv:**
-   `CLAUDE_DIR/uv.exe pip install --python CLAUDE_DIR/.venv/Scripts/python.exe synaptra`.
+d. **Install synaptra from PyPI into the venv, pinned to the declared version.**
+   Read `SYNAPTRA_VERSION` at the brain root (same directory as `VERSION`) —
+   it contains the exact version this release requires.  Install pinned:
+   `CLAUDE_DIR/uv.exe pip install --python CLAUDE_DIR/.venv/Scripts/python.exe synaptra==<version>`.
+   After install, verify: run
+   `CLAUDE_DIR/.venv/Scripts/python.exe -c "import synaptra; print(synaptra.__version__)"`
+   and assert the output equals the declared version.  A silent install that
+   leaves the old version (or no version) is a failed provision, not a
+   successful one.
    Resolved exe → `CLAUDE_DIR/.venv/Scripts/synaptra.exe`.
 
 **Idempotency — check the _complete_ artifact, not just the directory.** Skip a

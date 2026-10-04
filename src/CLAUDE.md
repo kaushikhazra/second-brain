@@ -136,6 +136,7 @@ improvise or replicate its steps from here.
 | Never manually — cron-fired only (see the skill for the fallback rule) | `/heartbeat` |
 | A self-contained build/edit/research task that a local model can carry alone | `/local-agent` |
 | User wants to create a new Claude Code subagent | `/agent-creator` |
+| A newer release exists, or the owner asks to update the brain and its synaptra substrate | `/update` |
 | User asks for it, when memory feels flat or a major arc closed — never scheduled | `/dream` |
 | Owner references a past session by regex, not something already in cognitive memory | `/recall-session` |
 | Owner wants to switch idle curiosity on/off/check its state, or run one pass by hand — otherwise fires only from the heartbeat's quiet cycles | `/curiosity` |
@@ -151,6 +152,7 @@ improvise or replicate its steps from here.
 | `.claude/skills/session-start/` | Startup procedure — persona adoption, memory grounding, handoff pickup. |
 | `.claude/skills/session-end/` | Shutdown procedure — kill crons, store learnings and the handoff memory. |
 | `.claude/skills/heartbeat/` | Cron-fired consolidation cycle — silent synaptra bookkeeping. |
+| `.claude/skills/update/` | Update the brain and synaptra to a released version — backup, replace, record. |
 | `.claude/skills/dream/` | Deep memory consolidation — graph reshaping, user-invoked. |
 | `.claude/skills/local-agent/` | Hands a whole task to a local ollama model that runs its own agentic loop and returns one typed result. |
 | `.claude/skills/agent-creator/` | Interactively creates a real Claude Code subagent — six-question flow, generates `.claude/agents/*.md`, indexes it below. |
