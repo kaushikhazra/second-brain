@@ -56,6 +56,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_CLAUDE = REPO_ROOT.parent / "src" / ".claude"
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-2")
 SCRATCH_PROJECT = SCRATCH_ROOT / "batch-c-scratch-project"
 SCRATCH_DATA = SCRATCH_ROOT / "batch-c-scratch-data"
@@ -94,14 +95,14 @@ def build_scratch_project() -> None:
             parents=True, exist_ok=True
         )
         shutil.copy(
-            REPO_ROOT / "skills" / skill / "SKILL.md",
+            SRC_CLAUDE / "skills" / skill / "SKILL.md",
             SCRATCH_PROJECT / ".claude" / "skills" / skill / "SKILL.md",
         )
     (SCRATCH_PROJECT / ".claude" / "shared" / "memory").mkdir(
         parents=True, exist_ok=True
     )
     shutil.copy(
-        REPO_ROOT / "shared" / "memory" / "memory-shapes.md",
+        SRC_CLAUDE / "shared" / "memory" / "memory-shapes.md",
         SCRATCH_PROJECT / ".claude" / "shared" / "memory" / "memory-shapes.md",
     )
     (SCRATCH_PROJECT / "CLAUDE.md").write_text(

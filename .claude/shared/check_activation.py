@@ -40,12 +40,12 @@ from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-ACTIVATION_PY = REPO_ROOT / ".claude" / "shared" / "activation.py"
+ACTIVATION_PY = REPO_ROOT / "src" / ".claude" / "shared" / "activation.py"
 IMPORT_LINE = "from datetime import datetime\n"
 SCAN_ROOTS = (
-    REPO_ROOT / ".claude" / "shared",
-    REPO_ROOT / ".claude" / "skills",
-    REPO_ROOT / ".claude" / "hooks",
+    REPO_ROOT / "src" / ".claude" / "shared",
+    REPO_ROOT / "src" / ".claude" / "skills",
+    REPO_ROOT / "src" / ".claude" / "hooks",
     REPO_ROOT / "tools",
 )
 BUILTIN_NAMES = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "annotations"}

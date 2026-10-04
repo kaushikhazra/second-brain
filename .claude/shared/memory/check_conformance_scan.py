@@ -15,7 +15,9 @@ import sys
 from pathlib import Path
 
 VERIFY_SCRIPT = (
-    Path(__file__).resolve().parent.parent.parent
+    Path(__file__).resolve().parent.parent.parent.parent
+    / "src"
+    / ".claude"
     / "skills"
     / "session-end"
     / "verify_memory.py"

@@ -33,6 +33,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
+SRC_CLAUDE = REPO_ROOT.parent / "src" / ".claude"
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-5")
 SCRATCH_PROJECT = SCRATCH_ROOT / "ac16-scratch-project"
 SCRATCH_DATA = SCRATCH_ROOT / "ac16-scratch-data"
@@ -70,7 +71,7 @@ def build_scratch_project() -> None:
     ):
         dest = SCRATCH_PROJECT / ".claude" / "skills" / skill
         dest.mkdir(parents=True, exist_ok=True)
-        src = REPO_ROOT / "skills" / skill
+        src = SRC_CLAUDE / "skills" / skill
         for f in src.glob("*"):
             if f.is_file():
                 shutil.copy(f, dest / f.name)
@@ -79,13 +80,13 @@ def build_scratch_project() -> None:
         parents=True, exist_ok=True
     )
     shutil.copy(
-        REPO_ROOT / "shared" / "memory" / "memory-shapes.md",
+        SRC_CLAUDE / "shared" / "memory" / "memory-shapes.md",
         SCRATCH_PROJECT / ".claude" / "shared" / "memory" / "memory-shapes.md",
     )
 
     (SCRATCH_PROJECT / ".claude" / "hooks").mkdir(parents=True, exist_ok=True)
     shutil.copy(
-        REPO_ROOT / "hooks" / "memory_guard.py",
+        SRC_CLAUDE / "hooks" / "memory_guard.py",
         SCRATCH_PROJECT / ".claude" / "hooks" / "memory_guard.py",
     )
     (SCRATCH_PROJECT / ".claude" / "settings.json").write_text(

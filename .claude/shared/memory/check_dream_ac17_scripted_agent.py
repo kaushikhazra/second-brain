@@ -34,6 +34,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # -> .claude
+SRC_CLAUDE = REPO_ROOT.parent / "src" / ".claude"
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-5")
 SCRATCH_PROJECT = SCRATCH_ROOT / "ac17-scratch-project"
 BACKUPS_DIR = SCRATCH_ROOT / "ac17-backups"
@@ -60,7 +61,7 @@ def build_scratch_project() -> None:
 
     dest = SCRATCH_PROJECT / ".claude" / "skills" / "dream"
     dest.mkdir(parents=True, exist_ok=True)
-    shutil.copy(REPO_ROOT / "skills" / "dream" / "SKILL.md", dest / "SKILL.md")
+    shutil.copy(SRC_CLAUDE / "skills" / "dream" / "SKILL.md", dest / "SKILL.md")
 
     (SCRATCH_PROJECT / "CLAUDE.md").write_text(
         "# CLAUDE.md\n\nScratch test for issue #5's AC 17 proof (dream must stop "

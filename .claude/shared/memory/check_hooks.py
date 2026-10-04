@@ -21,7 +21,13 @@ import sys
 import time
 from pathlib import Path
 
-HOOK = Path(__file__).resolve().parent.parent.parent / "hooks" / "memory_guard.py"
+HOOK = (
+    Path(__file__).resolve().parent.parent.parent.parent
+    / "src"
+    / ".claude"
+    / "hooks"
+    / "memory_guard.py"
+)
 SENTINEL_PATH = HOOK.parent.parent / ".list-holder-check.json"
 PROTECTED_IDS_PATH = HOOK.parent.parent / ".protected-ids.json"
 

@@ -58,20 +58,3 @@ __pycache__/
 # committed. (assumption.md assumed this was already ignored -- it was not;
 # fixed here, cycle 1.)
 .env
-
-# ─────────────────────────────────────────────────────────────────────
-# Development root only. Everything above is inherited verbatim from the
-# pre-src/ .gitignore and must stay that way.
-#
-# ⚠ This file is a SUPERSET of src/.gitignore, deliberately, and it is not
-# the same file. The brain's runtime artifacts were provisioned at THIS
-# root before the split — .claude/synaptra-data/, .claude/.venv/,
-# .claude/uv*.exe, .mcp.json, .env all still sit here, not under src/.
-# A dev-root .gitignore carrying only the dev-specific rules leaves the
-# owner's memory store and the YouTube secrets untracked-and-visible,
-# one `git add -A` from being committed. That happened in cycle 3 and was
-# caught before anything landed.
-# ─────────────────────────────────────────────────────────────────────
-
-# Linting cache
-.ruff_cache/

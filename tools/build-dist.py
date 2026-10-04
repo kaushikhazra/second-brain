@@ -2,15 +2,19 @@
 """Build the distributable second-brain archive.
 
 Produces ``dist/second-brain-<VERSION>.zip`` containing exactly what a fresh
-brain needs: the tracked files, and nothing else.
+brain needs: the tracked files under ``src/``, and nothing else.
 
-The archive is written by ``git archive``, not by copying the working
+The archive is written by ``git archive HEAD:src``, not by copying the working
 directory. That is deliberate. A working directory carries the provisioned
 runtime (``.claude/.venv`` is ~900 MB), the memory store, generated
 ``.mcp.json``, specs, and whatever a test left behind — and a copy-based
 builder would ship all of it the first time someone ran it on a dirty tree.
 Building from the git tree makes the mechanism *incapable* of that error
 rather than relying on anyone remembering to avoid it.
+
+Because ``HEAD:src`` archives only the subtree, nothing outside ``src/`` can
+reach the artifact — no ``.gitattributes`` rules needed. Adding a test or loop
+file at the repo root cannot change what ships.
 
 Stdlib only. Run from anywhere inside the repo:
 
@@ -19,6 +23,7 @@ Stdlib only. Run from anywhere inside the repo:
 
 from __future__ import annotations
 
+import argparse
 import fnmatch
 import shutil
 import subprocess
@@ -83,15 +88,19 @@ def repo_root() -> Path:
 
 
 def read_version(root: Path) -> str:
-    version = (root / "VERSION").read_text(encoding="utf-8").strip()
+    version = (root / "src" / "VERSION").read_text(encoding="utf-8").strip()
     if not version:
         raise BuildError("VERSION is empty")
     return version
 
 
 def expected_members(root: Path) -> set[str]:
-    """File list `git archive` would produce, read from a tar of the same tree."""
-    blob = git("archive", "--format=tar", "HEAD", repo=root, binary=True)
+    """File list ``git archive HEAD:src`` would produce.
+
+    ``HEAD:src`` archives the subtree with the ``src/`` prefix already stripped,
+    so the resulting paths are brain-relative — exactly what a user unpacks.
+    """
+    blob = git("archive", "--format=tar", "HEAD:src", repo=root, binary=True)
     with tempfile.TemporaryDirectory() as tmp:
         tar_path = Path(tmp) / "ref.tar"
         tar_path.write_bytes(blob)
@@ -116,13 +125,19 @@ def check_forbidden(names: set[str]) -> None:
         )
 
 
-def build(root: Path, version: str) -> Path:
+def build(root: Path, version: str, *, force: bool = False) -> Path:
     dist = root / "dist"
     dist.mkdir(exist_ok=True)
     out = dist / f"second-brain-{version}.zip"
     if out.exists():
+        if not force:
+            raise BuildError(
+                f"{out} already exists. Pass --force to overwrite. "
+                f"This guard exists because VERSION may still point at a "
+                f"shipped release whose dist/ zip is the only copy on disk."
+            )
         out.unlink()
-    blob = git("archive", "--format=zip", "HEAD", repo=root, binary=True)
+    blob = git("archive", "--format=zip", "HEAD:src", repo=root, binary=True)
     out.write_bytes(blob)
     return out
 
@@ -153,6 +168,14 @@ def verify(out: Path, expected: set[str]) -> set[str]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="overwrite an existing archive instead of refusing",
+    )
+    args = parser.parse_args()
+
     if shutil.which("git") is None:
         print("git is not on PATH — this builder needs it.", file=sys.stderr)
         return 1
@@ -162,7 +185,7 @@ def main() -> int:
         version = read_version(root)
         expected = expected_members(root)
         check_forbidden(expected)
-        out = build(root, version)
+        out = build(root, version, force=args.force)
         files = verify(out, expected)
     except (BuildError, subprocess.CalledProcessError) as exc:
         print(f"BUILD FAILED: {exc}", file=sys.stderr)
@@ -173,7 +196,7 @@ def main() -> int:
     print(f"version : {version}")
     print(f"files   : {len(files)}")
     print(f"size    : {size:,} bytes ({size / 1024:.1f} KB)")
-    print("verified: extracted file list == `git archive` output")
+    print("verified: extracted file list == `git archive HEAD:src` output")
     return 0
 
 

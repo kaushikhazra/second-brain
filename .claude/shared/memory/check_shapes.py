@@ -20,11 +20,21 @@ from pathlib import Path
 
 SHARED_DIR = Path(__file__).resolve().parent
 CLAUDE_DIR = SHARED_DIR.parent.parent  # .claude/shared/memory -> .claude
-SKILLS_DIR = CLAUDE_DIR / "skills"
+SKILLS_DIR = CLAUDE_DIR.parent / "src" / ".claude" / "skills"
 REPO_ROOT = CLAUDE_DIR.parent  # .claude -> repo root
-SHAPES_FILE = SHARED_DIR / "memory-shapes.md"
+SHAPES_FILE = (
+    SHARED_DIR.parent.parent.parent
+    / "src"
+    / ".claude"
+    / "shared"
+    / "memory"
+    / "memory-shapes.md"
+)
+# Brain-relative, NOT repo-relative. The skills ship to a user's install where
+# there is no src/, so this is the path they must contain. Only SHAPES_FILE, the
+# filesystem location this check reads from, knows about src/.
 SHAPES_FILE_REL = ".claude/shared/memory/memory-shapes.md"
-CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
+CLAUDE_MD = REPO_ROOT / "src" / "CLAUDE.md"
 
 MEMORY_SKILLS = ["create-memory", "read-memory", "update-memory", "delete-memory"]
 FOUR_SHAPES = ["fact", "learning", "persona", "person-model"]
