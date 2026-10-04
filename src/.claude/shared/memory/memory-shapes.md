@@ -350,11 +350,10 @@ against the installed synaptra (`2.0.0`) rather than assumed.
   catches an omitted-type call landing somewhere unexpected.
 - **`memory_update`'s `type` argument DOES change the stored type** in this
   version — it is not ignored. The issue this shapes file was written for
-  still asks for type changes to go through **`cm update <id> --type`**
-  rather than `memory_update`, and that path works and is what the skills
-  use — but do not assume `memory_update`'s type argument is a no-op if this
-  file is ever read against a different synaptra install; check the
-  installed engine, not this note.
+  Type changes go through **`memory_update(memory_type=<type>)`**, then
+  `memory_get` to verify. Never use the `cm` CLI for writes — it defaults to
+  a port-based server and silently targets the wrong store on a migrated
+  machine (issue #28).
 - 🔴 **`memory_update` REPLACES `tags` wholesale — it does not patch.**
   Passing `tags` drops every tag not in the list.
 - ⚠ **`memory_update` also reinforces stability** on every call (unless the
@@ -367,7 +366,7 @@ against the installed synaptra (`2.0.0`) rather than assumed.
 - **`rel_type` is closed**: `causes` · `follows` · `contradicts` ·
   `supports` · `relates_to` · `supersedes` · `part_of` · `describes`.
 - **Large memories can blow the token cap on `memory_get`** — dump to a file
-  and write back with `cm update <FULL-uuid> --content "$(cat file)"`.
+  and write back with `memory_update(content=<text>)`. Do not use the `cm` CLI for writes.
 - **Initial stability by type (days), read from `synaptra.decay`:**
   `working` 0.04 · `episodic` 2.0 · `semantic` 14.0 · `procedural` 60.0 ·
   `identity` 365.0 · `person` 90.0.
