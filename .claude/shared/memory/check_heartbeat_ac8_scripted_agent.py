@@ -73,7 +73,7 @@ def build_scratch_project() -> None:
                             "hooks": [
                                 {
                                     "type": "command",
-                                    "command": "python .claude/hooks/memory_guard.py",
+                                    "command": "python "$CLAUDE_PROJECT_DIR/.claude/hooks/memory_guard.py"",
                                     "timeout": 5,
                                 }
                             ],
