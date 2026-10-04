@@ -298,6 +298,41 @@ correct value there, not an error to work around. This is what lets
 or unrelate any of the three; a stale record from a prior session is why
 this must be rewritten every boot, not written once and left.
 
+## 6b. Check for a newer release
+
+**After** the handoff pickup, **before** the report.  This is informational
+— it never blocks the boot and never modifies anything.
+
+Read `.claude/.release-record.json` at the brain root.  If it does not
+exist, fall back to reading `VERSION` as the current brain version.
+
+Query the GitHub releases API — **with a short timeout and offline-quiet
+failure**:
+
+```python
+import urllib.request, json
+url = "https://api.github.com/repos/kaushikhazra/second-brain/releases/latest"
+try:
+    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        latest_tag = json.loads(resp.read())["tag_name"].lstrip("v")
+except Exception:
+    latest_tag = None
+```
+
+- **`latest_tag` is `None`** (network unreachable, API error, timeout) →
+  say nothing.  A brain that cannot reach the network is not broken.
+- **`latest_tag` equals the recorded version** → say nothing.
+- **`latest_tag` is newer** (simple string comparison of semver parts) →
+  emit exactly **one line** in the report below:
+  `A newer release is available: second-brain <latest_tag>. Run /update to apply it.`
+
+Never emit more than one line.  Never block on this.  Never modify any
+file.
+
+The comparison uses split-on-dot integer tuples, not string sort:
+`tuple(int(x) for x in v.split("."))` for both sides.
+
 ## 7. Report
 
 One line, in character: persona active, self map and surface map
@@ -308,6 +343,8 @@ said here too, not buried in a log the user never reads. If step 2 asked
 anything this boot, say what was asked and what was recorded — silently
 writing the record and saying nothing is exactly the "buried in a log"
 failure this line exists to prevent.
+
+If step 6b found a newer release, include that one line in the report.
 
 ## 8. Daily habits
 

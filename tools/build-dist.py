@@ -43,6 +43,8 @@ FORBIDDEN = (
     ".mcp.json",
     ".self-aware",
     ".claude/specs",
+    ".update-backup",
+    ".release-record.json",
     ".tmp",
     ".git/",
     "uv.exe",

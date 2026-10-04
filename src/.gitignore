@@ -36,6 +36,12 @@ __pycache__/
 # memory_guard.py's holder-exemption sentinel — transient, single-use, machine-local
 .claude/.list-holder-check.json
 
+# Update backup — pre-update copies of replaced product files, machine-local
+.claude/.update-backup/
+
+# Release record — which version this brain was last updated to, machine-local
+.claude/.release-record.json
+
 # memory_guard.py's protected-ids record (issue #5) — rewritten every boot by
 # /session-start, machine-local, not single-use
 .claude/.protected-ids.json
