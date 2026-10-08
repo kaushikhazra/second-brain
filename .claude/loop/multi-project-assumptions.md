@@ -33,6 +33,9 @@ Read every cycle. One file so the eight loops cannot drift apart.
   GitLab host. A criterion that needs a live GitLab call is reported
   **access-pending** — treated like UI-pending: not met, does not block convergence,
   named in the closing comment.
+- **SSH clones are proven by Kaushik by hand, not by the loop** (ruling 2026-10-09): this
+  machine has no GitHub SSH key. A criterion's SSH half is reported **manual-test** —
+  not met by the loop, does not block convergence, named in the closing comment.
 - **The two sandboxes are the loop's to change.** Create, edit, label, close and
   reopen their issues freely to stage what a criterion needs (a new issue appearing,
   one closing, one changing), and push branches to them. Leave each sandbox's
