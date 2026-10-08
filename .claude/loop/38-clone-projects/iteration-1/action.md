@@ -1,9 +1,10 @@
 # Action
 
-Cycle 2's constraint: AC 4's check cannot tell the ALREADY_MANAGED branch from git refusing to clone into an existing folder; AC 5, 6, 7 have no check.
+Cycle 3's constraint: AC 4, 6 and 7 pass but have no fails-when-removed demonstration, and the passing runs predate cycle 3's product fixes.
 
-1. Strengthen `--mode again`: fail if the stream holds any `git clone` call or `projects.py clone` output other than `STATUS: ALREADY_MANAGED`, and if the reply reads as a failure. Demonstrate it fails with the ALREADY_MANAGED branch removed from the scratch brain's copy of `projects.py`.
-2. Add `--mode fail` for AC 5 — three owner turns: unreachable (`https://no-such-host-xyz.invalid/a/b.git`), missing access (alpha's SSH URL — this machine has no GitHub key), not a git repo (`https://example.com/`). Verify each reply's message is distinct from the other two and no folder is left under `projects/`.
-3. Add `--mode list` for AC 6 (reply names each project's path and origin) and `--mode relocate` for AC 7 (copy the scratch brain to a renamed folder, ask it to list and to take alpha in again; it must find the existing clone at the new path).
-
-Run every mode fresh.
+1. Full fresh proof: `--build`, then `--run` + `--verify` for every mode in order (https, again, fail, list, relocate).
+2. Demonstrate each check fails with its behaviour removed — edit only the scratch brain's copy, re-run that mode, then restore with a rebuild:
+   - AC 4: delete the ALREADY_MANAGED branch from the scratch `projects.py` → expect `again` to FAIL.
+   - AC 6: remove the `list` subcommand and every mention of listing from the scratch `manage/SKILL.md` and routing row → record honestly whether the owner can still list (if the brain improvises a correct list, say so in the log; the behaviour the owner gets is what is graded).
+   - AC 7: in the moved brain's `projects.py`, replace `brain_root()` with the ORIGINAL brain's absolute path, and delete the original's `projects/` first → expect `relocate` to FAIL.
+3. If 7/7 (SSH half manual-test) holds with every demonstration: close per `loop.md`.

@@ -80,9 +80,20 @@ def repo_name(url: str) -> str:
 
 
 def normalise(url: str) -> str:
-    """Compare origins without caring about a trailing `.git` or `/`, or case."""
+    """`host/owner/name` for any spelling of the same remote -- HTTPS, `ssh://`,
+    or scp-style `git@host:owner/name` -- without a trailing `.git` or `/`, any
+    user/port, or case. Two URLs for one repo are one project."""
     u = url.strip().rstrip("/")
-    return (u[:-4] if u.endswith(".git") else u).lower()
+    u = u[:-4] if u.endswith(".git") else u
+    scp = re.match(r"^(?:[^@/]+@)?([^:/]+):(?!//)(.+)$", u)
+    if scp and not re.match(r"^[A-Za-z]:[\\/]", u):  # not a Windows drive path
+        host, path = scp.groups()
+    else:
+        m = re.match(r"^[A-Za-z][\w+.-]*://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+)$", u)
+        if not m:
+            return u.lower()
+        host, path = m.groups()
+    return f"{host}/{path.strip('/')}".lower()
 
 
 def origin_of(path: Path) -> str:
@@ -137,9 +148,10 @@ def classify(stderr: str) -> str:
 def fail(code: str, url: str, stderr: str) -> int:
     print(f"STATUS: {code}")
     print(f"URL: {url}")
-    print(
-        f"DETAIL: {stderr.strip().splitlines()[-1] if stderr.strip() else '(git said nothing)'}"
-    )
+    # git's first line carries the cause ("Permission denied (publickey)",
+    # "Could not resolve host"); the last is boilerplate advice.
+    lines = [l for l in stderr.strip().splitlines() if l.strip()]
+    print(f"DETAIL: {lines[0] if lines else '(git said nothing)'}")
     return 1
 
 

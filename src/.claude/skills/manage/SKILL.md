@@ -43,9 +43,14 @@ owner's terms, with the values shown as they are:
 | `FOUND` / `NOT_MANAGED` | Where it is, or that the brain does not manage it. |
 
 Each failure is its own message. Do not merge them into a generic "couldn't clone".
+Lead with the cause in plain words — the `STATUS` code is for you, never shown
+to the owner.
 
 ## Do not
 
+- Clone a URL the owner did not give. On a failure, never retry with a
+  different spelling of it (HTTPS for SSH, another host, a fork) — report the
+  failure, say what would work, and let the owner hand over the URL they want.
 - Copy a project's files into the brain, or clone beside the brain.
 - Write a project's path into memory, a config file or `CLAUDE.md` — ask the
   script with `locate` each time instead.

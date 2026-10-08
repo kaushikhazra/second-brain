@@ -2,16 +2,25 @@
 """Issue #38 -- the owner hands the brain a git URL and it takes the project in.
 
 Drives a scratch brain built from `src/` through the owner's door (`claude -p`),
-then inspects the files, git state and reply it left behind. Never imports or
-calls the brain's own scripts -- that would grade the producer, not what the
-owner gets.
+then inspects the files, git state, reply and tool trace it left behind. Never
+imports or calls the brain's own scripts -- that would grade the producer, not
+what the owner gets.
 
-  --mode https : AC 1 -- an HTTPS URL is cloned into projects/<repo-name>/
-                 AC 2 -- the reply names the clone path and the default branch
-                 AC 3 -- projects/ is not committed, nor committable, in the brain
-  --mode again : AC 4 -- the same URL a second time is not re-cloned (a marker
-                 dropped into the first clone survives) and the reply says where
-                 it is. Run after --mode https.
+  --mode https    : AC 1 -- an HTTPS URL is cloned into projects/<repo-name>/
+                    AC 2 -- the reply names the clone path and the default branch
+                    AC 3 -- projects/ is not committed, nor committable, in the brain
+  --mode again    : AC 4 -- alpha asked for again, by its HTTPS and by its SSH
+                    spelling: a marker dropped into the first clone survives, no
+                    `git clone` runs, the reply says it is already there and where,
+                    and does not read as a failure.
+  --mode fail     : AC 5 -- unreachable host, missing access (an SSH URL; this
+                    machine has no GitHub key), not a git repo: each reply names
+                    its own cause and none of the other two, and no folder is left.
+  --mode list     : AC 6 -- the reply names each project's path and origin URL.
+  --mode relocate : AC 7 -- the brain copied to a renamed folder lists alpha at
+                    the new path and does not re-clone it.
+
+Run the modes in that order: each one after `https` uses the clone it left.
 
 Usage:
     python check_clone.py --build
@@ -39,13 +48,33 @@ REPO_ROOT = (
 )  # checks/multi-project -> repo root
 SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-38")
 SCRATCH_BRAIN = SCRATCH_ROOT / "brain"
+MOVED_BRAIN = SCRATCH_ROOT / "brain-moved"
 
 ALPHA_HTTPS = "https://github.com/kaushikhazra/sb-sandbox-alpha.git"
+ALPHA_SSH = "git@github.com:kaushikhazra/sb-sandbox-alpha.git"
 ALPHA_CLONE = SCRATCH_BRAIN / "projects" / "sb-sandbox-alpha"
 ALPHA_DEFAULT_BRANCH = "main"
 MARKER = ".check-clone-marker"
 
-MODES = ("https", "again")
+# AC 5's three causes: the URL the owner hands over, and what the reply must say.
+FAILURES = {
+    "unreachable": (
+        "https://no-such-host-xyz.invalid/a/b.git",
+        r"(?:could|does|did)(?: not|n't) (?:be )?(?:reach|resolve)|unreachable|network",
+    ),
+    "noaccess": (
+        "git@github.com:kaushikhazra/sb-sandbox-beta.git",
+        r"\baccess\b|permission",
+    ),
+    "notgit": (
+        "https://example.com/",
+        r"(?:is ?n[o']t|not|doesn't point (?:at|to)|does not point (?:at|to)) a git repo",
+    ),
+}
+
+FAILURE_WORDS = r"different project|could(?: not|n't)|failed|no access|permission|error"
+
+MODES = ("https", "again", "fail", "list", "relocate")
 
 
 def remove_tree(path: Path) -> None:
@@ -68,8 +97,9 @@ def build_scratch_brain() -> None:
     """A whole brain from src/ -- every skill, the real CLAUDE.md -- plus the two
     identity files an owner's brain has, an empty MCP config, and its own git
     repo so later criteria can ask what the brain committed."""
-    if SCRATCH_BRAIN.exists():
-        remove_tree(SCRATCH_BRAIN)
+    for old in (SCRATCH_BRAIN, MOVED_BRAIN):
+        if old.exists():
+            remove_tree(old)
     shutil.copytree(
         REPO_ROOT / "src",
         SCRATCH_BRAIN,
@@ -91,9 +121,9 @@ def build_scratch_brain() -> None:
     git("commit", "-q", "-m", "scratch brain", cwd=SCRATCH_BRAIN)
 
 
-def run_owner(prompt: str, mode: str) -> dict:
+def run_owner(prompt: str, tag: str, brain: Path = SCRATCH_BRAIN) -> dict:
     """One owner turn through `claude -p`; returns the final result event and
-    keeps the whole stream on disk for --verify."""
+    keeps the whole stream on disk as clone-events-<tag>.json for --verify."""
     args = [
         "claude",
         "-p",
@@ -111,7 +141,7 @@ def run_owner(prompt: str, mode: str) -> dict:
     ]
     proc = subprocess.run(
         args,
-        cwd=str(SCRATCH_BRAIN),
+        cwd=str(brain),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -127,24 +157,30 @@ def run_owner(prompt: str, mode: str) -> dict:
             events.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-    (SCRATCH_ROOT / f"clone-events-{mode}.json").write_text(
+    (SCRATCH_ROOT / f"clone-events-{tag}.json").write_text(
         json.dumps(events, indent=2), encoding="utf-8"
     )
     if proc.returncode != 0:
         raise RuntimeError(
             f"claude -p failed (exit {proc.returncode}): {proc.stderr.strip()[:2000]}"
         )
-    return next((e for e in reversed(events) if e.get("type") == "result"), {})
+    final = next((e for e in reversed(events) if e.get("type") == "result"), {})
+    print(f"[{tag}] cost=${final.get('total_cost_usd', 0):.4f}")
+    print(f"[{tag}] result: {final.get('result', '')!r}"[:1500])
+    return final
 
 
-def reply_text(mode: str) -> str:
+def load_events(tag: str) -> list[dict]:
+    return json.loads(
+        (SCRATCH_ROOT / f"clone-events-{tag}.json").read_text(encoding="utf-8")
+    )
+
+
+def reply_text(tag: str) -> str:
     """Every assistant text block of the turn, in order -- the final `result`
     field is only the last block."""
-    events = json.loads(
-        (SCRATCH_ROOT / f"clone-events-{mode}.json").read_text(encoding="utf-8")
-    )
     blocks = []
-    for e in events:
+    for e in load_events(tag):
         if e.get("type") != "assistant":
             continue
         content = e.get("message", {}).get("content", [])
@@ -154,11 +190,51 @@ def reply_text(mode: str) -> str:
     return "\n".join(blocks)
 
 
-def names_alpha_path(reply: str) -> bool:
-    """The reply shows the clone path -- absolute or relative to the brain, either
-    slash direction."""
-    flat = reply.replace("\\\\", "/").replace("\\", "/").lower()
-    return "projects/sb-sandbox-alpha" in flat
+def bash_commands(tag: str) -> list[str]:
+    cmds = []
+    for e in load_events(tag):
+        content = e.get("message", {}).get("content", [])
+        for block in content if isinstance(content, list) else []:
+            if (
+                isinstance(block, dict)
+                and block.get("type") == "tool_use"
+                and block.get("name") in ("Bash", "PowerShell")
+            ):
+                cmds.append(block.get("input", {}).get("command", ""))
+    return cmds
+
+
+def lead_paragraph(text: str) -> str:
+    """The reply's first paragraph -- what the owner reads first -- with any
+    cause it explicitly rules out ("not an access problem") taken away, since
+    ruling a cause out is not naming it."""
+    lead = text.strip().split("\n\n", 1)[0]
+    return re.sub(
+        r"\bnot an? (?:\w+ (?:or \w+ )?)?(?:access|network|address)(?: or \w+)? problem",
+        "",
+        lead,
+        flags=re.IGNORECASE,
+    )
+
+
+def flat(text: str) -> str:
+    return text.replace("\\\\", "/").replace("\\", "/").lower()
+
+
+def names_path(reply: str, brain: Path = SCRATCH_BRAIN) -> bool:
+    """The reply shows alpha's clone path -- relative to the brain, or absolute
+    under THIS brain (so a moved brain naming its old home does not pass)."""
+    f = flat(reply)
+    absolute = flat(str(brain / "projects" / "sb-sandbox-alpha"))
+    other_abs = re.findall(r"[a-z]:/[^\s`'\"|)]*projects/sb-sandbox-alpha", f)
+    if any(a != absolute for a in other_abs):
+        return False
+    return "projects/sb-sandbox-alpha" in f
+
+
+def project_folders(brain: Path = SCRATCH_BRAIN) -> list[str]:
+    root = brain / "projects"
+    return sorted(p.name for p in root.iterdir() if p.is_dir()) if root.is_dir() else []
 
 
 def do_run(mode: str) -> None:
@@ -166,22 +242,40 @@ def do_run(mode: str) -> None:
         projects = SCRATCH_BRAIN / "projects"
         if projects.exists():
             remove_tree(projects)
-        prompt = f"Take this project in: {ALPHA_HTTPS}"
-    else:  # again
-        if not (ALPHA_CLONE / ".git").is_dir():
-            raise SystemExit("run --mode https first: no first clone to re-request")
+        run_owner(f"Take this project in: {ALPHA_HTTPS}", "https")
+        return
+    if not (ALPHA_CLONE / ".git").is_dir():
+        raise SystemExit("run --mode https first: these modes use its clone")
+
+    if mode == "again":
         (ALPHA_CLONE / MARKER).write_text("left by check_clone.py\n", encoding="utf-8")
-        prompt = f"Take this project in: {ALPHA_HTTPS}"
-    final = run_owner(prompt, mode)
-    print(f"cost=${final.get('total_cost_usd', 0):.4f}")
-    print(f"result: {final.get('result', '')!r}"[:2000])
+        run_owner(f"Take this project in: {ALPHA_HTTPS}", "again-https")
+        run_owner(f"Take this project in: {ALPHA_SSH}", "again-ssh")
+    elif mode == "fail":
+        for cause, (url, _) in FAILURES.items():
+            run_owner(f"Take this project in: {url}", f"fail-{cause}")
+    elif mode == "list":
+        run_owner(
+            "Which projects do you manage? Tell me where each one is and where it came from.",
+            "list",
+        )
+    else:  # relocate
+        if MOVED_BRAIN.exists():
+            remove_tree(MOVED_BRAIN)
+        shutil.copytree(SCRATCH_BRAIN, MOVED_BRAIN)
+        run_owner(
+            "Which projects do you manage? Tell me where each one is and where it came from.",
+            "relocate-list",
+            MOVED_BRAIN,
+        )
+        run_owner(f"Take this project in: {ALPHA_HTTPS}", "relocate-again", MOVED_BRAIN)
 
 
 def do_verify(mode: str) -> int:
     results: list[tuple[str, bool, str]] = []
-    reply = reply_text(mode)
 
     if mode == "https":
+        reply = reply_text("https")
         is_repo = (ALPHA_CLONE / ".git").is_dir()
         origin = (
             git("remote", "get-url", "origin", cwd=ALPHA_CLONE).stdout.strip()
@@ -202,7 +296,7 @@ def do_verify(mode: str) -> int:
             )
         )
 
-        path_named = names_alpha_path(reply)
+        path_named = names_path(reply)
         branch_named = bool(re.search(rf"\b{re.escape(ALPHA_DEFAULT_BRANCH)}\b", reply))
         results.append(
             (
@@ -240,19 +334,88 @@ def do_verify(mode: str) -> int:
             )
         )
 
-    else:  # again
+    elif mode == "again":
         marker_survived = (ALPHA_CLONE / MARKER).is_file()
-        siblings = sorted(
-            p.name for p in (SCRATCH_BRAIN / "projects").iterdir() if p.is_dir()
-        )
-        one_clone = siblings == ["sb-sandbox-alpha"]
-        path_named = names_alpha_path(reply)
-        ok4 = marker_survived and one_clone and path_named
+        one_clone = project_folders() == ["sb-sandbox-alpha"]
+        details = [f"marker_survived={marker_survived} projects={project_folders()}"]
+        ok4 = marker_survived and one_clone
+        for tag in ("again-https", "again-ssh"):
+            reply = reply_text(tag)
+            hand_clone = [
+                c for c in bash_commands(tag) if re.search(r"\bgit\s+clone\b", c)
+            ]
+            said_already = bool(re.search(r"\balready\b", reply, re.IGNORECASE))
+            reads_failed = bool(re.search(FAILURE_WORDS, reply, re.IGNORECASE))
+            path_named = names_path(reply)
+            ok = path_named and said_already and not reads_failed and not hand_clone
+            ok4 = ok4 and ok
+            details.append(
+                f"{tag}: path_named={path_named} said_already={said_already} "
+                f"reads_failed={reads_failed} hand_clone={len(hand_clone)}"
+            )
         results.append(
             (
-                "AC4: the same URL is not cloned again; the owner is told where it is",
+                "AC4: the same project is not cloned again; the owner is told where it is",
                 ok4,
-                f"marker_survived={marker_survived} projects={siblings} path_named={path_named}",
+                " | ".join(details),
+            )
+        )
+
+    elif mode == "fail":
+        # The cause is judged on the reply's first paragraph -- what the owner
+        # reads first -- not on the advice after it, which may well mention
+        # another cause ("try the HTTPS URL"). See lead_paragraph.
+        replies = {
+            cause: lead_paragraph(reply_text(f"fail-{cause}")) for cause in FAILURES
+        }
+        folders = project_folders()
+        no_partial = folders == ["sb-sandbox-alpha"]
+        ok5 = no_partial
+        details = [f"projects={folders}"]
+        for cause, (_, own) in FAILURES.items():
+            says_own = bool(re.search(own, replies[cause], re.IGNORECASE))
+            says_other = [
+                other
+                for other, (_, pat) in FAILURES.items()
+                if other != cause and re.search(pat, replies[cause], re.IGNORECASE)
+            ]
+            ok5 = ok5 and says_own and not says_other
+            details.append(f"{cause}: own={says_own} also={says_other}")
+        results.append(
+            (
+                "AC5: each failure has a distinct message and leaves no partial folder",
+                ok5,
+                " | ".join(details),
+            )
+        )
+
+    elif mode == "list":
+        reply = reply_text("list")
+        path_named = names_path(reply)
+        origin_named = "github.com/kaushikhazra/sb-sandbox-alpha" in flat(reply)
+        results.append(
+            (
+                "AC6: the owner can list managed projects with path and origin",
+                path_named and origin_named,
+                f"path_named={path_named} origin_named={origin_named}",
+            )
+        )
+
+    else:  # relocate
+        listed = reply_text("relocate-list")
+        again = reply_text("relocate-again")
+        list_ok = names_path(listed, MOVED_BRAIN)
+        again_ok = names_path(again, MOVED_BRAIN) and bool(
+            re.search(r"\balready\b", again, re.IGNORECASE)
+        )
+        one_clone = project_folders(MOVED_BRAIN) == ["sb-sandbox-alpha"]
+        marker = (MOVED_BRAIN / "projects" / "sb-sandbox-alpha" / MARKER).is_file()
+        results.append(
+            (
+                "AC7: after the brain is moved, every managed project is still found",
+                list_ok and again_ok and one_clone and marker,
+                f"listed_at_new_path={list_ok} again_found_at_new_path={again_ok} "
+                f"projects={project_folders(MOVED_BRAIN)} marker_survived={marker}",
             )
         )
 
