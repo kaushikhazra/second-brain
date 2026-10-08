@@ -79,7 +79,8 @@ FAILURES = {
 # reply may also carry boot notes ("couldn't load the self map"), which a bare
 # "couldn't" would misread -- seen in #39 cycle 1's regression run.
 FAILURE_WORDS = (
-    r"different\W+project|name\W+(?:clash|taken)|already\W+(?:taken|in use)"
+    # "already taken" as in a name clash -- not "already taken in" (#41 cycle 1)
+    r"different\W+project|name\W+(?:clash|taken)|already\W+(?:taken(?!\W+in\b)|in use)"
     r"|could(?: not|n't) (?:clone|take)|failed to clone|clone failed"
     r"|no access|permission denied"
 )

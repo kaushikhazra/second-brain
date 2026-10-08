@@ -71,6 +71,7 @@ def run_owner(
     brain: Path,
     budget: str = "2.0",
     extra_env: dict[str, str] | None = None,
+    resume: str | None = None,
 ) -> dict:
     """One owner turn through `claude -p` in `brain`; keeps the whole stream in
     `events_file` and returns the final result event. `extra_env` reaches the
@@ -90,6 +91,8 @@ def run_owner(
         "--max-budget-usd",
         budget,
     ]
+    if resume:
+        args += ["--resume", resume]  # the owner answering in the same conversation
     proc = subprocess.run(
         args,
         cwd=str(brain),
@@ -122,6 +125,21 @@ def run_owner(
 
 def load_events(events_file: Path) -> list[dict]:
     return json.loads(events_file.read_text(encoding="utf-8"))
+
+
+def session_id(events_file: Path) -> str:
+    """The conversation a turn ran in -- for `run_owner(..., resume=)`."""
+    return next(
+        (e["session_id"] for e in load_events(events_file) if e.get("session_id")), ""
+    )
+
+
+def final_text(events_file: Path) -> str:
+    """The turn's final message -- what the owner reads last."""
+    final = next(
+        (e for e in reversed(load_events(events_file)) if e.get("type") == "result"), {}
+    )
+    return final.get("result", "") or reply_text(events_file)
 
 
 def reply_text(events_file: Path) -> str:

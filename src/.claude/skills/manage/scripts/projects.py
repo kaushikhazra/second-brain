@@ -9,6 +9,9 @@
     python .claude/skills/manage/scripts/projects.py refresh <name>
     python .claude/skills/manage/scripts/projects.py trackers
     python .claude/skills/manage/scripts/projects.py tracker <name> [--set tracker=gitlab] [--clear]
+    python .claude/skills/manage/scripts/projects.py monitor <name> on|off
+    python .claude/skills/manage/scripts/projects.py monitored
+    python .claude/skills/manage/scripts/projects.py issues
 
 Every managed project is a git clone under `<brain root>/projects/<repo-name>/`.
 The folder is the registry: nothing records a path, so renaming or moving the
@@ -554,6 +557,146 @@ def cmd_tracker(key: str, sets: list[str]) -> int:
     return 0
 
 
+# ---- monitoring (issue #41) -------------------------------------------------
+#
+# A project is watched only when the owner switched monitoring on for it. The
+# heartbeat runs `issues` each beat: it reads the open issues of monitored
+# projects only, from each project's own tracker, and compares them with what
+# was already seen. All of it lives in `.claude/projects/<name>.json`:
+#   monitor        true/false -- the owner's choice
+#   seen_issues    {number: title} -- reported once, never again while open
+#   issues_failure the failure already told to the owner (cleared on recovery)
+
+
+def repo_slug(p: Path) -> str:
+    """`owner/name` (or `group/sub/name`) from the configured origin."""
+    return normalise(origin_of(p)).split("/", 1)[1] if origin_of(p) else ""
+
+
+def open_issues(p: Path, tracker: str) -> tuple[dict[str, str] | None, str]:
+    """({number: title}, "") or (None, failure code). GitHub through `gh`,
+    GitLab through `glab` -- each project's own tracker, never another's."""
+    if not credentials(tracker):
+        return None, "NOT_SIGNED_IN"
+    slug = repo_slug(p)
+    if tracker == "github":
+        args = [
+            "gh",
+            "issue",
+            "list",
+            "-R",
+            slug,
+            "--state",
+            "open",
+            "--json",
+            "number,title",
+            "--limit",
+            "500",
+        ]
+    else:
+        args = [
+            "glab",
+            "issue",
+            "list",
+            "-R",
+            slug,
+            "--output",
+            "json",
+            "--per-page",
+            "100",
+        ]
+    try:
+        out = subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return None, f"UNREACHABLE ({exc.__class__.__name__})"
+    if out.returncode != 0:
+        err = out.stderr.lower()
+        if any(w in err for w in ("auth", "login", "401", "403", "token")):
+            return None, "NOT_SIGNED_IN"
+        return None, "UNREACHABLE"
+    try:
+        items = json.loads(out.stdout or "[]")
+    except ValueError:
+        return None, "UNREACHABLE"
+    key = "number" if tracker == "github" else "iid"
+    return {str(i[key]): i.get("title", "") for i in items}, ""
+
+
+def cmd_monitor(key: str, state: str) -> int:
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    settings = load_settings(p.name)
+    if not settings.get("detected"):
+        settings["detected"] = detect(p)
+    _, tracker, _ = effective(settings)
+    if state == "on" and tracker not in SUPPORTED:
+        print("STATUS: MONITOR_UNAVAILABLE")
+        print(f"PROJECT: {p.name}")
+        print(f"TRACKER: {tracker}")
+        return 1
+    settings["monitor"] = state == "on"
+    save_settings(p.name, settings)
+    print(f"STATUS: MONITOR_{state.upper()}")
+    print(f"PROJECT: {p.name}")
+    print(f"TRACKER: {tracker}")
+    return 0
+
+
+def cmd_monitored() -> int:
+    rows = []
+    for p in managed():
+        settings = load_settings(p.name)
+        rows.append((p.name, bool(settings.get("monitor")), effective(settings)[1]))
+    print("STATUS: MONITORED")
+    print(f"COUNT: {sum(1 for _, on, _ in rows if on)}")
+    for name, on, tracker in rows:
+        print(
+            f"PROJECT: {name} | MONITOR: {'on' if on else 'off'} | TRACKER: {tracker}"
+        )
+    return 0
+
+
+def cmd_issues() -> int:
+    """One beat: report each open issue of a monitored project once; drop the
+    ones that closed; tell each tracker failure once, until it recovers."""
+    print("STATUS: ISSUES")
+    for p in managed():
+        settings = load_settings(p.name)
+        if not settings.get("monitor"):
+            continue  # monitored projects only -- nothing is fetched otherwise
+        _, tracker, _ = effective(settings)
+        current, failure = open_issues(p, tracker)
+        if current is None:
+            told = settings.get("issues_failure") == failure
+            print(
+                f"FAILURE: {p.name} | {failure} | TELL_OWNER: {'no -- already told' if told else 'yes -- first time'}"
+            )
+            if failure == "NOT_SIGNED_IN" and tracker in NEEDS:
+                print(f"NEEDED: {NEEDS[tracker]}")
+            if not told:
+                settings["issues_failure"] = failure
+                save_settings(p.name, settings)
+            continue
+        if settings.pop("issues_failure", None):
+            print(f"RECOVERED: {p.name}")
+        seen = settings.get("seen_issues", {})
+        for number in sorted(set(current) - set(seen), key=int):
+            print(f"NEW: {p.name} | #{number} | {current[number]}")
+        for number in sorted(set(seen) - set(current), key=int):
+            print(f"CLOSED: {p.name} | #{number} | {seen[number]} (dropped from seen)")
+        settings["seen_issues"] = {n: current[n] for n in sorted(current, key=int)}
+        save_settings(p.name, settings)
+    return 0
+
+
 def cmd_stale(key: str) -> int:
     """CURRENT or STALE: does the record's CLAUDE.md match the one upstream?"""
     p = find(key)
@@ -604,6 +747,12 @@ def main(argv: list[str]) -> int:
         return cmd_list()
     if len(argv) >= 2 and argv[0] == "locate":
         return cmd_locate(argv[1])
+    if argv[:1] == ["monitored"]:
+        return cmd_monitored()
+    if argv[:1] == ["issues"]:
+        return cmd_issues()
+    if len(argv) >= 3 and argv[0] == "monitor" and argv[2] in ("on", "off"):
+        return cmd_monitor(argv[1], argv[2])
     if argv[:1] == ["trackers"]:
         return cmd_trackers()
     if len(argv) >= 2 and argv[0] == "tracker":
@@ -615,7 +764,8 @@ def main(argv: list[str]) -> int:
     print(
         "usage: projects.py clone <git-url> | list | locate <name-or-url>"
         " | learn <name> | stale <name> | refresh <name>"
-        " | trackers | tracker <name> [--set field=value ...] [--clear]",
+        " | trackers | tracker <name> [--set field=value ...] [--clear]"
+        " | monitor <name> on|off | monitored | issues",
         file=sys.stderr,
     )
     return 2

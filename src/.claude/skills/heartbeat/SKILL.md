@@ -30,7 +30,8 @@ change, store the proposal as a memory and stop — the owner rules on it later.
 1. Get the local timestamp.
 2. Use `observe.md` to see what needs to be observed, section by section.
 3. If nothing was observed anywhere, stop — **except** `surface-map`'s exit walk
-   (`observe.md` § `surface-map`), which still runs on an otherwise-empty window.
+   (`observe.md` § `surface-map`), which still runs on an otherwise-empty window,
+   and `project-issues`, whose check runs every beat.
 4. For everything observed, reference `goal.md` and perform the matching action.
 
 The window is everything since the previous beat in this session, or since session
@@ -64,8 +65,9 @@ The third is the world speaking through the brain and surfaces regardless of tha
 ## Failure
 
 **Synaptra unreachable.** A call fails because the store can't be reached — say so
-once and stop the beat. No retry. This is the first silence exception above
-("something is failing"), not a fourth case.
+once and stop the memory work of the beat. No retry. This is the first silence
+exception above ("something is failing"), not a fourth case. `project-issues` needs
+no memory and still runs.
 
 **No double-run.** Each cron fire is its own fresh invocation of this skill; there is
 no persistent loop process for a slow beat to overrun. "Not run twice" is a property

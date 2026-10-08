@@ -1,6 +1,6 @@
 ---
 name: manage
-description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, or before any piece of work inside a managed project.
+description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, or before any piece of work inside a managed project.
 ---
 
 # Manage
@@ -25,6 +25,9 @@ python .claude/skills/manage/scripts/projects.py stale "<name>"
 python .claude/skills/manage/scripts/projects.py refresh "<name>"
 python .claude/skills/manage/scripts/projects.py trackers
 python .claude/skills/manage/scripts/projects.py tracker "<name>" [--set field=value] [--clear]
+python .claude/skills/manage/scripts/projects.py monitor "<name>" on|off
+python .claude/skills/manage/scripts/projects.py monitored
+python .claude/skills/manage/scripts/projects.py issues
 ```
 
 Always clone through the script. Never `git clone` by hand, and never anywhere
@@ -139,6 +142,40 @@ python .claude/skills/manage/scripts/projects.py tracker "<name>" --clear
 What was detected and what was overridden live in `.claude/projects/<name>.json`
 and survive a restart and a relearn. For any question about a project's
 tracker, run `tracker <name>` — never answer from memory of an earlier session.
+
+## Monitoring
+
+**Ask once, at take-in.** After a project is taken in and learned, and its
+tracker is supported, end the reply by asking the owner whether to monitor it:
+*"Shall I watch sb-sandbox-alpha's issues and tell you about new ones?"* On a
+yes, `monitor <name> on`; on a no, `monitor <name> off`. Never switch it on
+unasked.
+
+The owner can change it any time, or ask which projects are watched:
+
+```bash
+python .claude/skills/manage/scripts/projects.py monitor "<name>" on
+python .claude/skills/manage/scripts/projects.py monitor "<name>" off
+python .claude/skills/manage/scripts/projects.py monitored
+```
+
+`MONITOR_UNAVAILABLE` → the tracker is not supported; say monitoring is not
+available for it.
+
+The watching itself is the heartbeat's (`heartbeat/observe.md` § `project-issues`):
+each beat runs `issues`, which reads the open issues of monitored projects only,
+each from its own tracker, and prints
+
+| Line | Tell the owner |
+|------|----------------|
+| `NEW: <project> \| #<n> \| <title>` | Each one: project, number, title. It is reported once and never again while open. |
+| `CLOSED: …` | Nothing — a closed issue just drops off what has been seen. |
+| `FAILURE: <project> \| <cause> \| TELL_OWNER: yes …` | Once: the tracker is unreachable, or not signed in (with `NEEDED`). |
+| `FAILURE: … \| TELL_OWNER: no …` | Nothing — already told. |
+| `RECOVERED: <project>` | Nothing needed; say so if it was failing for long. |
+
+What has been seen lives in `.claude/projects/<name>.json` and survives a
+restart — never re-report from memory of a past session; `issues` is the truth.
 
 ## Do not
 

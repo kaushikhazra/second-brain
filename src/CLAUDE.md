@@ -141,7 +141,7 @@ improvise or replicate its steps from here.
 | Owner references a past session by regex, not something already in cognitive memory | `/recall-session` |
 | Owner wants to switch idle curiosity on/off/check its state, or run one pass by hand — otherwise fires only from the heartbeat's quiet cycles | `/curiosity` |
 | Owner wants to switch the morning news on/off/check its state, or wants the list right now — otherwise it runs once daily, after `/session-start`, when active | `/news` |
-| Owner hands over a git URL to take a project in, asks which projects the brain manages and where, or asks what the brain knows about one, asks about or overrides a project's code host or issue tracker, asks which trackers the brain supports — and before any piece of work inside a managed project (relearn check, whose rules win) | `/manage` |
+| Owner hands over a git URL to take a project in, asks which projects the brain manages and where, or asks what the brain knows about one, asks about or overrides a project's code host or issue tracker, asks which trackers the brain supports, switches a project's monitoring on/off or asks which are monitored — and before any piece of work inside a managed project (relearn check, whose rules win) | `/manage` |
 
 ## Structure
 
