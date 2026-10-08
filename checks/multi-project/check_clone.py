@@ -216,11 +216,22 @@ def bash_commands(tag: str) -> list[str]:
 
 def lead_paragraph(text: str) -> str:
     """The reply's first paragraph -- what the owner reads first -- with any
-    cause it explicitly rules out ("not an access problem") taken away, since
-    ruling a cause out is not naming it."""
+    cause it explicitly rules out taken away, since ruling a cause out is not
+    naming it. Two shapes seen: "not an access problem", and a contrastive
+    ", not with access to the repo" (#39 cycle 3's regression run). A plain
+    "does not have access" is the cause itself and is left alone."""
     lead = text.strip().split("\n\n", 1)[0]
-    return re.sub(
+    lead = re.sub(
         r"\bnot an? (?:\w+ (?:or \w+ )?)?(?:access|network|address)(?: or \w+)? problem",
+        "",
+        lead,
+        flags=re.IGNORECASE,
+    )
+    return re.sub(
+        # only a clause that rules out access/network/address -- ", not a git
+        # repository" is the not-git cause itself and must stay
+        r",\s*not\s+(?:with|about|an?|the|because of)\b[^.]*?"
+        r"\b(?:access|permission|network|address)\b[^.]*",
         "",
         lead,
         flags=re.IGNORECASE,
@@ -444,6 +455,9 @@ def do_verify(mode: str) -> int:
 
 
 def main() -> int:
+    # Replies carry arrows and dashes; redirected to a file, Windows' cp1252
+    # stdout would crash on them mid-run (#39 cycle 3's regression run).
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--run", action="store_true")

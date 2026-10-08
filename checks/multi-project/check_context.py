@@ -45,7 +45,15 @@ RECORD = BRAIN / ".claude" / "projects" / "sb-sandbox-alpha.md"
 # that re-reads the project's files cannot know it.
 PLANTED = "Codename: Juniper Kestrel."
 
-MODES = ("takein", "know")
+BETA = BRAIN / "projects" / "sb-sandbox-beta"
+BETA_RECORD = BRAIN / ".claude" / "projects" / "sb-sandbox-beta.md"
+
+# AC 4's stand-in upstream, and the rule added to alpha's CLAUDE.md there.
+MIRROR = SCRATCH_ROOT / "alpha-upstream.git"
+MIRROR_WORK = SCRATCH_ROOT / "alpha-upstream-work"
+NEW_RULE = "Every new function carries a docstring that starts with 'Returns'."
+
+MODES = ("takein", "know", "nofile", "hooks", "upstream")
 
 
 def events(tag: str) -> Path:
@@ -74,16 +82,52 @@ def do_run(mode: str) -> None:
                 sb.remove_tree(old)
         sb.run_owner(f"Take this project in: {sb.ALPHA_HTTPS}", events("takein"), BRAIN)
         return
-    # know: uses --mode takein's clone and record
+    if mode == "nofile":
+        for old in (BETA, BETA_RECORD):
+            if old.is_dir():
+                sb.remove_tree(old)
+            elif old.exists():
+                old.unlink()
+        sb.run_owner(f"Take this project in: {sb.BETA_HTTPS}", events("nofile"), BRAIN)
+        return
+    if mode == "hooks":
+        return  # graded from takein's and upstream's runs; nothing new to drive
+    # know and upstream use --mode takein's clone and record
     if not RECORD.is_file():
-        raise SystemExit("run --mode takein first: no learned record to ask about")
-    text = RECORD.read_text(encoding="utf-8")
-    if PLANTED not in text:
-        text = re.sub(
-            r"(^##\s+Purpose.*?$)", rf"\1\n\n{PLANTED}", text, count=1, flags=re.M
+        raise SystemExit("run --mode takein first: no learned record to work from")
+    if mode == "know":
+        text = RECORD.read_text(encoding="utf-8")
+        if PLANTED not in text:
+            text = re.sub(
+                r"(^##\s+Purpose.*?$)", rf"\1\n\n{PLANTED}", text, count=1, flags=re.M
+            )
+            RECORD.write_text(text, encoding="utf-8")
+        sb.run_owner(
+            "What do you know about sb-sandbox-alpha?", events("know-ask"), BRAIN
         )
-        RECORD.write_text(text, encoding="utf-8")
-    sb.run_owner("What do you know about sb-sandbox-alpha?", events("know-ask"), BRAIN)
+        return
+
+    # upstream: a local bare mirror stands in for alpha's remote, so a CLAUDE.md
+    # change "upstream" never touches the real sandbox.
+    for old in (MIRROR, MIRROR_WORK):
+        if old.exists():
+            sb.remove_tree(old)
+    sb.git("clone", "-q", "--bare", sb.ALPHA_HTTPS, str(MIRROR), cwd=SCRATCH_ROOT)
+    sb.git("clone", "-q", str(MIRROR), str(MIRROR_WORK), cwd=SCRATCH_ROOT)
+    claude_md = MIRROR_WORK / "CLAUDE.md"
+    claude_md.write_text(
+        claude_md.read_text(encoding="utf-8").rstrip("\n") + f"\n- {NEW_RULE}\n",
+        encoding="utf-8",
+    )
+    sb.git("commit", "-q", "-am", "CLAUDE.md: docstring rule", cwd=MIRROR_WORK)
+    sb.git("push", "-q", "origin", "HEAD", cwd=MIRROR_WORK)
+    sb.git("remote", "set-url", "origin", str(MIRROR), cwd=ALPHA)
+    sb.run_owner(
+        "In sb-sandbox-alpha, add a farewell(name) function that says goodbye.",
+        events("upstream"),
+        BRAIN,
+        budget="4.0",
+    )
 
 
 def do_verify(mode: str) -> int:
@@ -162,10 +206,128 @@ def do_verify(mode: str) -> int:
             )
         )
 
+    elif mode == "nofile":
+        reply = sb.reply_text(events("nofile"))
+        said = sb.has(
+            r"no\W+CLAUDE\.md|(?:has|have)\s?n[o']t?\W+(?:got\s+)?a\W+CLAUDE\.md"
+            r"|without\W+a\W+CLAUDE\.md|doesn't have a CLAUDE\.md|lacks a CLAUDE\.md",
+            reply,
+        )
+        exists = BETA_RECORD.is_file()
+        text = BETA_RECORD.read_text(encoding="utf-8") if exists else ""
+        fm = frontmatter(text)
+        marked = fm.get("claude_md") == "none" and sb.has(r"no\W+CLAUDE\.md", text)
+        purpose = sb.has(r"\bnotes?\b", section(text, "Purpose"))
+        structure = sb.has(r"notes\.py|src/", section(text, "Code and tests"))
+        unfilled = "(to fill" in text
+        results.append(
+            (
+                "AC3: no CLAUDE.md -> the owner is told, and it learns from README + structure",
+                said and exists and marked and purpose and structure and not unfilled,
+                f"reply_says_no_claude_md={said} record={exists} record_marked={marked} "
+                f"purpose(README)={purpose} code(structure)={structure} unfilled={unfilled}",
+            )
+        )
+
+    elif mode == "hooks":
+        reply = sb.reply_text(events("takein"))
+        listed = sb.has(r"mark_session", reply)
+        not_adopted = sb.has(
+            r"not\W+adopt|n't\W+adopt|won't\W+run|don't\W+run|not\W+run", reply
+        )
+        own_settings = (BRAIN / ".claude" / "settings.json").read_text(encoding="utf-8")
+        src_settings = (sb.REPO_ROOT / "src" / ".claude" / "settings.json").read_text(
+            encoding="utf-8"
+        )
+        settings_untouched = (
+            own_settings == src_settings
+            and not (BRAIN / ".claude" / "settings.local.json").exists()
+        )
+        fired = sorted(
+            str(p.relative_to(BRAIN)) for p in BRAIN.rglob("alpha-hook-fired.log")
+        )
+        results.append(
+            (
+                "AC6: the project's hooks are listed but not adopted",
+                listed and not_adopted and settings_untouched and not fired,
+                f"listed={listed} said_not_adopted={not_adopted} "
+                f"brain_settings_untouched={settings_untouched} hook_fired_logs={fired}",
+            )
+        )
+
+    else:  # upstream
+        reply = sb.reply_text(events("upstream"))
+        text = RECORD.read_text(encoding="utf-8")
+        fm = frontmatter(text)
+        new_blob = sb.git("rev-parse", "HEAD:CLAUDE.md", cwd=MIRROR).stdout.strip()
+        relearned = fm.get("claude_md") == new_blob and sb.has(r"docstring", text)
+        # Order in the trace: the relearn (`learn`) before the first edit to the
+        # project's files.
+        calls = []
+        for e in sb.load_events(events("upstream")):
+            content = e.get("message", {}).get("content", [])
+            for block in content if isinstance(content, list) else []:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    calls.append((block.get("name"), block.get("input", {})))
+        learn_at = next(
+            (
+                i
+                for i, (n, inp) in enumerate(calls)
+                if n in ("Bash", "PowerShell")
+                and re.search(r"projects\.py\W+learn", inp.get("command", ""))
+            ),
+            None,
+        )
+        edit_at = next(
+            (
+                i
+                for i, (n, inp) in enumerate(calls)
+                if n in ("Write", "Edit", "MultiEdit")
+                and "projects/sb-sandbox-alpha" in sb.flat(inp.get("file_path", ""))
+            ),
+            None,
+        )
+        before_work = learn_at is not None and (edit_at is None or learn_at < edit_at)
+        told = sb.has(
+            r"relearn|re-learn|learned (?:it )?again|changed upstream|updated (?:its|the) CLAUDE",
+            reply,
+        )
+        results.append(
+            (
+                "AC4: a CLAUDE.md change upstream is relearned before the next piece of work there",
+                relearned and before_work and told,
+                f"record_matches_new_upstream={relearned} learn_call={learn_at} "
+                f"first_project_edit={edit_at} told_owner={told}",
+            )
+        )
+
+        specs = (
+            sorted(
+                p.relative_to(ALPHA).as_posix()
+                for p in (ALPHA / ".claude" / "specs").rglob("*.md")
+            )
+            if (ALPHA / ".claude" / "specs").is_dir()
+            else []
+        )
+        spec_first = any(s.endswith("requirement.md") for s in specs)
+        named = sb.has(
+            r"(?:spec|alpha|project)[^.\n]{0,80}(?:over|instead of|rather than|wins?|won|took precedence)"
+            r"[^.\n]{0,80}(?:brain|loop)",
+            reply,
+        )
+        results.append(
+            (
+                "AC5: the project's rules win while working there; the owner is told which applied",
+                spec_first and named,
+                f"specs={specs} spec_first={spec_first} told_which_applied={named}",
+            )
+        )
+
     return sb.report(results)
 
 
 def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # see check_clone.py
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--run", action="store_true")
