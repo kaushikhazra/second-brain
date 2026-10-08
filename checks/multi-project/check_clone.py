@@ -24,6 +24,7 @@ what the owner gets.
 Run the modes in that order: each one after `https` uses the clone it left.
 
 Usage:
+    python check_clone.py --all              # regression: every mode, fresh
     python check_clone.py --build
     python check_clone.py --run --mode https
     python check_clone.py --verify --mode https
@@ -74,7 +75,14 @@ FAILURES = {
     ),
 }
 
-FAILURE_WORDS = r"different project|could(?: not|n't)|failed|no access|permission|error"
+# Words that make a re-request read as a failure. About THIS request only: a
+# reply may also carry boot notes ("couldn't load the self map"), which a bare
+# "couldn't" would misread -- seen in #39 cycle 1's regression run.
+FAILURE_WORDS = (
+    r"different\W+project|name\W+(?:clash|taken)|already\W+(?:taken|in use)"
+    r"|could(?: not|n't) (?:clone|take)|failed to clone|clone failed"
+    r"|no access|permission denied"
+)
 
 MODES = ("https", "again", "fail", "list", "relocate")
 
@@ -441,8 +449,21 @@ def main() -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--mode", choices=MODES, default="https")
+    ap.add_argument(
+        "--all",
+        action="store_true",
+        help="build, then run and verify every mode in order (regression run)",
+    )
     args = ap.parse_args()
 
+    if args.all:
+        build_scratch_brain()
+        failed = 0
+        for mode in MODES:
+            do_run(mode)
+            failed += do_verify(mode)
+        print(f"\n#38 regression: {len(MODES) - failed}/{len(MODES)} modes pass.")
+        return 1 if failed else 0
     if args.build:
         build_scratch_brain()
         print(f"scratch brain built at {SCRATCH_BRAIN}")
