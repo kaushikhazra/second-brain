@@ -124,8 +124,8 @@ remote URL (gitlab.com) and its `.gitlab-ci.yml`").
 | `CREDENTIALS: missing` + `TELL_OWNER: yes …` | Tell the owner what is needed (`NEEDED`), once. |
 | `CREDENTIALS: missing` + `TELL_OWNER: no …` | Already told — do not repeat it. |
 
-**Which trackers work** — "which trackers can you work with?" → `trackers`.
-The answer is GitHub and GitLab.
+**Which trackers work** — "which trackers can you work with?" → `trackers`,
+and answer with exactly what it lists; the script is the one source of that list.
 
 **Override** — the owner can set either one explicitly ("alpha's issues are in
 GitLab", "treat beta's code host as gitlab"):

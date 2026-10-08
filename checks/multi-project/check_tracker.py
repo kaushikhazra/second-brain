@@ -179,12 +179,16 @@ def do_verify(mode: str) -> int:
 
     elif mode == "trackers":
         reply = sb.reply_text(events("trackers"))
-        ok3 = sb.has(r"github", reply) and sb.has(r"gitlab", reply)
+        named = sb.has(r"github", reply) and sb.has(r"gitlab", reply)
+        # Naming GitLab while saying support is GitHub-only is not listing it --
+        # #40 cycle 2's removal demo answered "Right now, only **GitHub**" and
+        # then mentioned GitLab in the explanation.
+        github_only = sb.has(r"only\W+(?:\*\*)?github\b(?!\W+(?:and|&))", reply)
         results.append(
             (
                 "AC3: the brain lists the trackers it works with: GitHub and GitLab",
-                ok3,
-                f"github+gitlab named={ok3}",
+                named and not github_only,
+                f"github+gitlab named={named} github_only={github_only}",
             )
         )
 
