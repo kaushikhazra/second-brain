@@ -32,9 +32,7 @@ overwrite an existing archive.
 
 ## Development method — loop engineering
 
-Work proceeds as loops, not specs. **Do not create `requirement.md` / `design.md`
-/ `task.md`, and do not run `/e-spec:*` or `/dryrun-*` here** unless Kaushik asks
-for one by name.
+Work proceeds as loops.
 
 The pattern:
 
