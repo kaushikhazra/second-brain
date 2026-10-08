@@ -11,7 +11,7 @@ Order is dependency order; do not skip ahead.
 
 | # | Issue | Loop | State |
 |---|---|---|---|
-| 1 | #38 | `38-clone-projects/iteration-1/loop.md` | in progress — cycle 1 done, 0/7 |
+| 1 | #38 | `38-clone-projects/iteration-1/loop.md` | in progress — cycle 2 done, 3/7 |
 | 2 | #39 | `39-learn-project-context/iteration-1/loop.md` | pending |
 | 3 | #40 | `40-issue-tracker/iteration-1/loop.md` | pending |
 | 4 | #41 | `41-monitor-projects/iteration-1/loop.md` | pending |

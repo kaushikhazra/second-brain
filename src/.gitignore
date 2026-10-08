@@ -15,6 +15,10 @@ user.md
 # Distributable artifacts — the builder is committed, its output is not
 dist/
 
+# Managed projects (issue #38) — each is its own git clone with its own origin;
+# never part of the brain's repo
+projects/
+
 # Temp — never check in
 temp/
 *temp*

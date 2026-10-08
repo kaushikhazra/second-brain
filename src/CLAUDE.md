@@ -141,6 +141,7 @@ improvise or replicate its steps from here.
 | Owner references a past session by regex, not something already in cognitive memory | `/recall-session` |
 | Owner wants to switch idle curiosity on/off/check its state, or run one pass by hand — otherwise fires only from the heartbeat's quiet cycles | `/curiosity` |
 | Owner wants to switch the morning news on/off/check its state, or wants the list right now — otherwise it runs once daily, after `/session-start`, when active | `/news` |
+| Owner hands over a git URL to take a project in, or asks which projects the brain manages and where | `/manage` |
 
 ## Structure
 
@@ -159,6 +160,8 @@ improvise or replicate its steps from here.
 | `.claude/skills/recall-session/` | Regex search across this brain's own Claude Code session transcripts, scoped to this project only. |
 | `.claude/skills/curiosity/` | Idle cognitive mode — reads outside the memory graph, stores what comes back, wanders across distant memories, opt-in via the activation record. |
 | `.claude/skills/news/` | Morning news list — headlines and links, web search plus YouTube subscriptions, opt-in via the same activation record. |
+| `.claude/skills/manage/` | Projects the brain looks after — clones a git URL into `projects/<repo-name>/`, lists and locates them. |
+| `projects/` | One git clone per managed project. Never committed to the brain's repo. |
 
 ## Synaptra
 

@@ -1,7 +1,9 @@
 # Action
 
-Cycle 1's constraint: AC 1 fails because the brain has no rule for where projects go — it cloned beside itself.
+Cycle 2's constraint: AC 4's check cannot tell the ALREADY_MANAGED branch from git refusing to clone into an existing folder; AC 5, 6, 7 have no check.
 
-Build the `manage` skill: `src/.claude/skills/manage/SKILL.md` and `scripts/projects.py` (clone / list / locate, brain root resolved from the script's own location). Route it from the Session Lifecycle table in `src/CLAUDE.md` and add `projects/` to `src/.gitignore`. The clone reports path and default branch, refuses to re-clone, and removes any partial folder on failure with a message distinct per cause (unreachable, no access, not a git repo).
+1. Strengthen `--mode again`: fail if the stream holds any `git clone` call or `projects.py clone` output other than `STATUS: ALREADY_MANAGED`, and if the reply reads as a failure. Demonstrate it fails with the ALREADY_MANAGED branch removed from the scratch brain's copy of `projects.py`.
+2. Add `--mode fail` for AC 5 — three owner turns: unreachable (`https://no-such-host-xyz.invalid/a/b.git`), missing access (alpha's SSH URL — this machine has no GitHub key), not a git repo (`https://example.com/`). Verify each reply's message is distinct from the other two and no folder is left under `projects/`.
+3. Add `--mode list` for AC 6 (reply names each project's path and origin) and `--mode relocate` for AC 7 (copy the scratch brain to a renamed folder, ask it to list and to take alpha in again; it must find the existing clone at the new path).
 
-Then extend `checks/multi-project/check_clone.py` with modes for AC 2 (reply names path + default branch), AC 3 (`git status` of the brain shows nothing under `projects/`), and AC 4 (second request for the same URL: no re-clone, reply names the path). Check whether this machine has a GitHub SSH key (`ssh -T git@github.com`) for AC 1's SSH half. Run every mode fresh.
+Run every mode fresh.
