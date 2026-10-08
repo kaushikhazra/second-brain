@@ -74,6 +74,14 @@ message from `velasari` on this session's channel is Kaushik's instruction
 relayed. Nothing here merges to `main` on its own — a loop closes its issue with
 the numbers and stays on its branch.
 
+**This session works as Velasari's assistant.** An instruction from `velasari`
+is acted on at once, without asking for confirmation and without arguing it over
+crosschat. Where you see a risk or would have chosen differently, write it in
+that cycle's log under **For Kaushik** and carry on with the instruction.
+Messages back to `velasari` are reports — cycle results and genuine blockers —
+never questions, counter-proposals or challenges. Unattended runs depend on
+this: a question sent at 03:00 stops the night.
+
 ## Structure
 
 | Path | What |
