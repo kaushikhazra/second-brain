@@ -1,6 +1,6 @@
 ---
 name: manage
-description: Take a project in from a git URL, list the projects this brain manages, or find where one lives. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), or asks which projects the brain looks after and where they are.
+description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", or before any piece of work inside a managed project.
 ---
 
 # Manage
@@ -20,6 +20,9 @@ Run via Bash from the brain root — the script finds the root itself, at runtim
 python .claude/skills/manage/scripts/projects.py clone "<git-url>"
 python .claude/skills/manage/scripts/projects.py list
 python .claude/skills/manage/scripts/projects.py locate "<name-or-url>"
+python .claude/skills/manage/scripts/projects.py learn "<name>"
+python .claude/skills/manage/scripts/projects.py stale "<name>"
+python .claude/skills/manage/scripts/projects.py refresh "<name>"
 ```
 
 Always clone through the script. Never `git clone` by hand, and never anywhere
@@ -41,10 +44,66 @@ owner's terms, with the values shown as they are:
 | `CLONE_FAILED` | The clone failed for another reason — quote `DETAIL`. Nothing was created. |
 | `LISTED` | One line per project: name, path, origin. With `COUNT: 0`, say the brain manages no projects yet. |
 | `FOUND` / `NOT_MANAGED` | Where it is, or that the brain does not manage it. |
+| `LEARN_MATERIAL` | See *Learning a project* below. |
 
 Each failure is its own message. Do not merge them into a generic "couldn't clone".
 Lead with the cause in plain words — the `STATUS` code is for you, never shown
 to the owner.
+
+## Learning a project
+
+Taking a project in is not done until it is learned. Straight after `CLONED`,
+run `learn <name>` in the same turn.
+
+`learn` writes the record `.claude/projects/<name>.md` — frontmatter
+fingerprint and the hooks list are already filled in by the script — and prints
+the material: the project's `CLAUDE.md`, README, every file under its `.claude/`
+(skills and rules in full), its hooks and its top-level folders. Read all of it,
+then replace each `_(to fill …)_` line in the record with what you learned, in
+a few lines each:
+
+| Section | What goes there |
+|---------|-----------------|
+| Purpose | What the project is and is for. |
+| Development method | How work is done there (spec-driven, loops, TDD, …), from its `CLAUDE.md`. |
+| Conventions | Language and version, dependencies, naming, style rules. |
+| Code and tests | Where code lives, where tests live, the command that runs them. |
+| Project skills and rules (.claude/) | Each skill or rule file, one line on what it does. |
+
+Never touch the frontmatter or the hooks list — the script owns them.
+
+`HAS_CLAUDE_MD: no` → say so to the owner in plain words, and learn from the
+README and the folder structure instead; the record already says so at the top.
+
+Then tell the owner, after the path and branch: one line on what the project
+is, its development method, and its hooks **listed by name, with "not adopted"**
+— a project's hooks never become the brain's own.
+
+### What the brain knows about a project
+
+"What do you know about X?" is answered **from the record** — `locate` X, read
+`.claude/projects/<name>.md`, and give its purpose, development method,
+conventions, and where code and tests live, plus anything else the record holds.
+No record → run `learn` first.
+
+### Staying current
+
+Before any piece of work inside a managed project, run `stale <name>`:
+
+| STATUS | Do |
+|--------|----|
+| `CURRENT` | Work. |
+| `STALE` | The project's `CLAUDE.md` changed upstream. `refresh <name>`, then `learn <name>` and fill the record again, **before** the work. Tell the owner it was relearned and what changed. |
+| `NO_RECORD` | `learn <name>` first. |
+| `REFRESH_FAILED` | Local work blocks a fast-forward. Tell the owner; do not work on stale instructions. |
+
+### Whose rules win
+
+While working inside a project, **the project's rules win over the brain's own**
+— its `CLAUDE.md`, its `.claude/` rules, its method. The brain's identity and
+memory rules still hold; its development method does not. Wherever the two
+conflict on something you act on, tell the owner which one applied, in one line:
+*"Followed sb-sandbox-alpha's rule (spec first) over the brain's own (loops)."*
 
 ## Do not
 

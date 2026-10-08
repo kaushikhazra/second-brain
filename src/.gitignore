@@ -19,6 +19,10 @@ dist/
 # never part of the brain's repo
 projects/
 
+# What the brain learned about each managed project (issue #39) — derived from
+# the project's own files, machine-local, rewritten on every relearn
+.claude/projects/
+
 # Temp — never check in
 temp/
 *temp*

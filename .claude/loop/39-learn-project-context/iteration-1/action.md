@@ -1,9 +1,10 @@
 # Action
 
-Cycle 1's constraint: a brain with no learning capability passes AC 2 by opening the project's files when asked, so AC 2's check cannot fail with learning removed — nothing is learned, only looked up.
+Cycle 2's constraint: AC 3, 4, 5, 6 have no check. AC 1 and 2 hold.
 
-1. Build the learning in `manage`: on take-in (and on `learn <name>`), `projects.py learn` prints the raw material — `CLAUDE.md` (or that there is none), README, the `.claude/` tree (skills, rules), the hooks from `.claude/settings*.json`, top-level folders, and a fingerprint (commit + blob hashes of `CLAUDE.md`/README). The brain writes the learned record to `.claude/projects/<name>.md` (gitignored, machine-local, moves with the brain): purpose, method, conventions, code, tests, `.claude/` contents, hooks listed-not-adopted, fingerprint. `SKILL.md`: answer "what do you know about X" from the record.
-2. Extend `check_context.py`:
-   - `--mode takein` for AC 1 — the object: after the take-in session, the record exists and carries alpha's method, conventions, `.claude/` contents and the hook.
-   - Make AC 2 discriminate: plant a distinctive fact only in the record (not in the clone) after take-in, then ask; the answer must carry the planted fact. With the record ignored (or the capability removed), it cannot.
-3. Re-run `check_clone.py --all` (regression for #38).
+Extend `check_context.py`, run each mode fresh, then show each fails with its behaviour removed (scratch copy only, restored after):
+
+1. `--mode nofile` (AC 3): take beta in (no CLAUDE.md). Reply says it has no CLAUDE.md; the record says so and its Purpose/Code sections come from beta's README and folders (`src/notes.py`).
+2. `--mode hooks` (AC 6): from `takein`'s run — the reply lists alpha's `mark_session` hook and says it is not adopted; the scratch brain's own `.claude/settings.json` gained no hook; no `alpha-hook-fired.log` appears under the brain.
+3. `--mode upstream` (AC 4) + AC 5 in the same turn: make "upstream" a local bare mirror of alpha (`git clone --bare`, then `remote set-url` on the scratch clone — never push to the real sandbox). Commit a CLAUDE.md change to the mirror adding one rule (e.g. "Every new function carries a docstring starting with 'Returns'"). Owner asks for a small change in alpha ("add a farewell(name) function"). Grade: before any file is edited in the clone, the record's `claude_md` equals the new blob and mentions the new rule (AC 4); a spec appears under the clone's `.claude/specs/` before code changes (alpha's method won over the brain's loops), and the reply names which rule applied (AC 5).
+4. Re-run `check_clone.py --all` (#38 regression).

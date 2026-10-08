@@ -4,6 +4,9 @@
     python .claude/skills/manage/scripts/projects.py clone <git-url>
     python .claude/skills/manage/scripts/projects.py list
     python .claude/skills/manage/scripts/projects.py locate <name-or-url>
+    python .claude/skills/manage/scripts/projects.py learn <name>
+    python .claude/skills/manage/scripts/projects.py stale <name>
+    python .claude/skills/manage/scripts/projects.py refresh <name>
 
 Every managed project is a git clone under `<brain root>/projects/<repo-name>/`.
 The folder is the registry: nothing records a path, so renaming or moving the
@@ -18,12 +21,14 @@ FOUND, 1 on any failure. Standard library only.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
 import stat
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -206,27 +211,228 @@ def cmd_list() -> int:
     return 0
 
 
-def cmd_locate(key: str) -> int:
+def find(key: str) -> Path | None:
     for p in managed():
         if p.name.lower() == key.lower() or normalise(origin_of(p)) == normalise(key):
-            print("STATUS: FOUND")
-            print(f"PATH: {p}")
-            print(f"ORIGIN: {origin_of(p)}")
-            return 0
+            return p
+    return None
+
+
+def not_managed(key: str) -> int:
     print("STATUS: NOT_MANAGED")
     print(f"KEY: {key}")
     return 1
 
 
+def cmd_locate(key: str) -> int:
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    print("STATUS: FOUND")
+    print(f"PATH: {p}")
+    print(f"ORIGIN: {origin_of(p)}")
+    return 0
+
+
+# ---- learned context (issue #39) -------------------------------------------
+#
+# What the brain learned about a project lives in `.claude/projects/<name>.md`
+# in the brain -- never inside the project's own clone, never under projects/
+# (every folder there is a project). Its frontmatter is a fingerprint the
+# script writes itself, so `stale` can tell when CLAUDE.md changed upstream.
+
+PROSE_SECTIONS = (
+    "Purpose",
+    "Development method",
+    "Conventions",
+    "Code and tests",
+    "Project skills and rules (.claude/)",
+)
+TO_FILL = "_(to fill from the material `learn` printed)_"
+
+
+def record_path(name: str) -> Path:
+    return brain_root() / ".claude" / "projects" / f"{name}.md"
+
+
+def blob(p: Path, rel: str | None, rev: str = "HEAD") -> str:
+    if not rel:
+        return "none"
+    out = git("rev-parse", f"{rev}:{rel}", cwd=p)
+    return out.stdout.strip() if out.returncode == 0 else "none"
+
+
+def readme_of(p: Path) -> str | None:
+    found = sorted(
+        f.name
+        for f in p.iterdir()
+        if f.is_file() and f.name.lower().startswith("readme")
+    )
+    return found[0] if found else None
+
+
+def hooks_of(p: Path) -> list[str]:
+    """Every hook the project declares, as `event | matcher | command | file`."""
+    lines = []
+    for name in ("settings.json", "settings.local.json"):
+        f = p / ".claude" / name
+        if not f.is_file():
+            continue
+        try:
+            hooks = json.loads(f.read_text(encoding="utf-8")).get("hooks", {})
+        except (ValueError, OSError) as exc:
+            lines.append(f"(could not read .claude/{name}: {exc})")
+            continue
+        for event, groups in hooks.items():
+            for group in groups or []:
+                for h in group.get("hooks", []):
+                    lines.append(
+                        f"{event} | {group.get('matcher', '*') or '*'} | "
+                        f"{h.get('command', h.get('type', '?'))} | .claude/{name}"
+                    )
+    return lines
+
+
+def read_text(f: Path) -> str:
+    try:
+        return f.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return f"(could not read: {exc})"
+
+
+def frontmatter(record: Path) -> dict[str, str]:
+    text = read_text(record)
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+    if not m:
+        return {}
+    pairs = (line.split(":", 1) for line in m.group(1).splitlines() if ":" in line)
+    return {k.strip(): v.strip() for k, v in pairs}
+
+
+def cmd_learn(key: str) -> int:
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    readme = readme_of(p)
+    has_claude_md = (p / "CLAUDE.md").is_file()
+    hooks = hooks_of(p)
+    record = record_path(p.name)
+    record.parent.mkdir(parents=True, exist_ok=True)
+
+    body = [
+        "---",
+        f"project: {p.name}",
+        f"origin: {origin_of(p)}",
+        f"learned_at: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
+        f"commit: {git('rev-parse', 'HEAD', cwd=p).stdout.strip()}",
+        f"claude_md: {blob(p, 'CLAUDE.md') if has_claude_md else 'none'}",
+        f"readme: {blob(p, readme)}",
+        "---",
+        "",
+        f"# {p.name} — learned context",
+        "",
+    ]
+    if not has_claude_md:
+        body += [
+            "**No CLAUDE.md.** Learned from the README and the folder structure.",
+            "",
+        ]
+    for section in PROSE_SECTIONS:
+        body += [f"## {section}", "", TO_FILL, ""]
+    body += ["## Hooks — listed, not adopted", ""]
+    body += [f"- {h}" for h in hooks] or ["- none"]
+    record.write_text("\n".join(body) + "\n", encoding="utf-8")
+
+    print("STATUS: LEARN_MATERIAL")
+    print(f"PROJECT: {p.name}")
+    print(f"PATH: {p}")
+    print(f"RECORD: {record}")
+    print(f"HAS_CLAUDE_MD: {'yes' if has_claude_md else 'no'}")
+    print(f"HOOKS: {len(hooks)}")
+    print("\n=== CLAUDE.md ===")
+    print(read_text(p / "CLAUDE.md") if has_claude_md else "(none)")
+    print(f"\n=== {readme or 'README'} ===")
+    print(read_text(p / readme) if readme else "(none)")
+    print("\n=== .claude/ ===")
+    claude_dir = p / ".claude"
+    files = (
+        sorted(f for f in claude_dir.rglob("*") if f.is_file())
+        if claude_dir.is_dir()
+        else []
+    )
+    for f in files:
+        print(f.relative_to(p).as_posix())
+    if not files:
+        print("(none)")
+    for f in files:
+        if f.suffix.lower() == ".md":  # skills and rules are markdown
+            print(f"\n--- {f.relative_to(p).as_posix()} ---")
+            print(read_text(f))
+    print("\n=== hooks ===")
+    print("\n".join(hooks) or "(none)")
+    print("\n=== top level ===")
+    for f in sorted(p.iterdir()):
+        if f.name != ".git":
+            print(f.name + ("/" if f.is_dir() else ""))
+    return 0
+
+
+def cmd_stale(key: str) -> int:
+    """CURRENT or STALE: does the record's CLAUDE.md match the one upstream?"""
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    record = record_path(p.name)
+    if not record.is_file():
+        print("STATUS: NO_RECORD")
+        print(f"PROJECT: {p.name}")
+        return 0
+    fetched = git("fetch", "--quiet", "origin", cwd=p, timeout=300)
+    if fetched.returncode != 0:
+        return fail(classify(fetched.stderr), origin_of(p), fetched.stderr)
+    learned = frontmatter(record).get("claude_md", "")
+    upstream = blob(p, "CLAUDE.md", "origin/HEAD")
+    print(f"STATUS: {'CURRENT' if learned == upstream else 'STALE'}")
+    print(f"PROJECT: {p.name}")
+    print(f"LEARNED_CLAUDE_MD: {learned}")
+    print(f"UPSTREAM_CLAUDE_MD: {upstream}")
+    return 0
+
+
+def cmd_refresh(key: str) -> int:
+    """Fast-forward the clone to upstream, refusing to touch local work."""
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    pulled = git("pull", "--ff-only", "--quiet", cwd=p, timeout=600)
+    if pulled.returncode != 0:
+        print("STATUS: REFRESH_FAILED")
+        print(f"PROJECT: {p.name}")
+        lines = [l for l in pulled.stderr.strip().splitlines() if l.strip()]
+        print(f"DETAIL: {lines[0] if lines else '(git said nothing)'}")
+        return 1
+    print("STATUS: REFRESHED")
+    print(f"PROJECT: {p.name}")
+    print(f"COMMIT: {git('rev-parse', 'HEAD', cwd=p).stdout.strip()}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
+    # Project files are UTF-8; a Windows console code page would garble them in
+    # the material `learn` prints (an em dash came out as "?" before this).
+    sys.stdout.reconfigure(encoding="utf-8")
     if len(argv) >= 2 and argv[0] == "clone":
         return cmd_clone(argv[1])
     if argv[:1] == ["list"]:
         return cmd_list()
     if len(argv) >= 2 and argv[0] == "locate":
         return cmd_locate(argv[1])
+    commands = {"learn": cmd_learn, "stale": cmd_stale, "refresh": cmd_refresh}
+    if len(argv) >= 2 and argv[0] in commands:
+        return commands[argv[0]](argv[1])
     print(
-        "usage: projects.py clone <git-url> | list | locate <name-or-url>",
+        "usage: projects.py clone <git-url> | list | locate <name-or-url>"
+        " | learn <name> | stale <name> | refresh <name>",
         file=sys.stderr,
     )
     return 2
