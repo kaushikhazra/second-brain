@@ -71,7 +71,9 @@ FAILURES = {
     ),
     "notgit": (
         "https://example.com/",
-        r"(?:is ?n[o']t|not|doesn't point (?:at|to)|does not point (?:at|to)) a git repo",
+        # "doesn't lead to a git repository", "no repository" (#41 cycle 2)
+        r"(?:is ?n[o']t|not|does(?:n't| not) (?:point|lead) (?:at|to)) a git repo"
+        r"|\bno (?:git )?repository\b",
     ),
 }
 
