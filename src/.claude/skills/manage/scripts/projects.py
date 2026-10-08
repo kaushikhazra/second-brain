@@ -12,6 +12,8 @@
     python .claude/skills/manage/scripts/projects.py monitor <name> on|off
     python .claude/skills/manage/scripts/projects.py monitored
     python .claude/skills/manage/scripts/projects.py issues
+    python .claude/skills/manage/scripts/projects.py issue <name> <n>
+    python .claude/skills/manage/scripts/projects.py decide <name> <n> yes|no|later
 
 Every managed project is a git clone under `<brain root>/projects/<repo-name>/`.
 The folder is the registry: nothing records a path, so renaming or moving the
@@ -697,6 +699,130 @@ def cmd_issues() -> int:
     return 0
 
 
+# ---- due diligence (issue #42) ----------------------------------------------
+#
+# Before any work on an issue, the brain walks the owner through it and waits
+# for a yes. The answer is recorded in `.claude/projects/<name>.json` under
+# `decisions` against the issue's `updated_at`, so a no or a later stands until
+# the issue itself changes.
+
+
+def fetch_issue(p: Path, tracker: str, number: str) -> tuple[dict | None, str]:
+    if tracker not in SUPPORTED:
+        return None, "UNSUPPORTED"
+    if not credentials(tracker):
+        return None, "NOT_SIGNED_IN"
+    slug = repo_slug(p)
+    if tracker == "github":
+        args = [
+            "gh",
+            "issue",
+            "view",
+            number,
+            "-R",
+            slug,
+            "--json",
+            "number,title,body,state,updatedAt,labels,comments,url",
+        ]
+    else:
+        args = ["glab", "issue", "view", number, "-R", slug, "--output", "json"]
+    try:
+        out = subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None, "UNREACHABLE"
+    if out.returncode != 0:
+        return None, "NOT_FOUND" if "not found" in out.stderr.lower() else "UNREACHABLE"
+    try:
+        data = json.loads(out.stdout)
+    except ValueError:
+        return None, "UNREACHABLE"
+    return {
+        "number": str(data.get("number", data.get("iid", number))),
+        "title": data.get("title", ""),
+        "body": data.get("body", data.get("description", "")) or "",
+        "state": str(data.get("state", "")).lower(),
+        "updated_at": data.get("updatedAt", data.get("updated_at", "")),
+        "comments": len(data.get("comments", []) or []),
+        "url": data.get("url", data.get("web_url", "")),
+    }, ""
+
+
+def has_criteria(body: str) -> bool:
+    """Checkable criteria: an acceptance-criteria heading with numbered or
+    checkbox items under it, or at least two numbered items anywhere."""
+    heading = re.search(
+        r"^#+\s*acceptance criteria|^\*\*acceptance criteria\*\*", body, re.I | re.M
+    )
+    items = re.findall(r"^\s*(?:\d+\.|- \[[ x]\])\s+\S", body, re.M)
+    return bool(heading and items) or len(items) >= 2
+
+
+def cmd_issue(key: str, number: str) -> int:
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    settings = load_settings(p.name)
+    _, tracker, _ = effective(settings)
+    issue, failure = fetch_issue(p, tracker, number.lstrip("#"))
+    if issue is None:
+        print("STATUS: ISSUE_UNAVAILABLE")
+        print(f"PROJECT: {p.name}")
+        print(f"CAUSE: {failure}")
+        return 1
+    prior = settings.get("decisions", {}).get(issue["number"])
+    changed = bool(prior) and prior.get("updated_at") != issue["updated_at"]
+    print("STATUS: ISSUE")
+    print(f"PROJECT: {p.name}")
+    print(f"NUMBER: {issue['number']}")
+    print(f"TITLE: {issue['title']}")
+    print(f"STATE: {issue['state']}")
+    print(f"UPDATED_AT: {issue['updated_at']}")
+    print(f"URL: {issue['url']}")
+    print(f"COMMENTS: {issue['comments']}")
+    print(f"CHECKABLE_CRITERIA: {'yes' if has_criteria(issue['body']) else 'no'}")
+    if prior:
+        print(
+            f"PRIOR_DECISION: {prior['answer']} (recorded {prior.get('recorded_at', '?')})"
+        )
+        print(f"CHANGED_SINCE: {'yes' if changed else 'no'}")
+    else:
+        print("PRIOR_DECISION: none")
+    print("\n=== body ===")
+    print(issue["body"] or "(empty)")
+    return 0
+
+
+def cmd_decide(key: str, number: str, answer: str) -> int:
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    settings = load_settings(p.name)
+    _, tracker, _ = effective(settings)
+    issue, failure = fetch_issue(p, tracker, number.lstrip("#"))
+    if issue is None:
+        print("STATUS: ISSUE_UNAVAILABLE")
+        print(f"CAUSE: {failure}")
+        return 1
+    settings.setdefault("decisions", {})[issue["number"]] = {
+        "answer": answer,
+        "updated_at": issue["updated_at"],
+        "recorded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    save_settings(p.name, settings)
+    print("STATUS: DECIDED")
+    print(f"PROJECT: {p.name}")
+    print(f"NUMBER: {issue['number']}")
+    print(f"ANSWER: {answer}")
+    return 0
+
+
 def cmd_stale(key: str) -> int:
     """CURRENT or STALE: does the record's CLAUDE.md match the one upstream?"""
     p = find(key)
@@ -747,6 +873,10 @@ def main(argv: list[str]) -> int:
         return cmd_list()
     if len(argv) >= 2 and argv[0] == "locate":
         return cmd_locate(argv[1])
+    if len(argv) >= 3 and argv[0] == "issue":
+        return cmd_issue(argv[1], argv[2])
+    if len(argv) >= 4 and argv[0] == "decide" and argv[3] in ("yes", "no", "later"):
+        return cmd_decide(argv[1], argv[2], argv[3])
     if argv[:1] == ["monitored"]:
         return cmd_monitored()
     if argv[:1] == ["issues"]:
@@ -765,7 +895,8 @@ def main(argv: list[str]) -> int:
         "usage: projects.py clone <git-url> | list | locate <name-or-url>"
         " | learn <name> | stale <name> | refresh <name>"
         " | trackers | tracker <name> [--set field=value ...] [--clear]"
-        " | monitor <name> on|off | monitored | issues",
+        " | monitor <name> on|off | monitored | issues"
+        " | issue <name> <n> | decide <name> <n> yes|no|later",
         file=sys.stderr,
     )
     return 2

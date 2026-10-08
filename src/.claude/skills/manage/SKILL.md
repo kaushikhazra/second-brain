@@ -1,6 +1,6 @@
 ---
 name: manage
-description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, or before any piece of work inside a managed project.
+description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, raises or answers about an issue to work on (due diligence first, nothing starts without a yes), or before any piece of work inside a managed project.
 ---
 
 # Manage
@@ -28,6 +28,8 @@ python .claude/skills/manage/scripts/projects.py tracker "<name>" [--set field=v
 python .claude/skills/manage/scripts/projects.py monitor "<name>" on|off
 python .claude/skills/manage/scripts/projects.py monitored
 python .claude/skills/manage/scripts/projects.py issues
+python .claude/skills/manage/scripts/projects.py issue "<name>" <number>
+python .claude/skills/manage/scripts/projects.py decide "<name>" <number> yes|no|later
 ```
 
 Always clone through the script. Never `git clone` by hand, and never anywhere
@@ -176,6 +178,51 @@ each from its own tracker, and prints
 
 What has been seen lives in `.claude/projects/<name>.json` and survives a
 restart — never re-report from memory of a past session; `issues` is the truth.
+
+## Due diligence — before any work on an issue
+
+Nothing gets built that the owner did not choose. Whenever work on an issue of a
+managed project comes up — the owner names one, or a heartbeat reported it and
+the owner asks about it — run:
+
+```bash
+python .claude/skills/manage/scripts/projects.py issue "<name>" <number>
+```
+
+**`PRIOR_DECISION: no` or `later` with `CHANGED_SINCE: no`** → do not walk
+through it again. Say it was set aside (when, and as no or later) and that you
+will raise it again once the issue changes. Ask nothing.
+
+**Otherwise, present the diligence** — and nothing else happens in this turn:
+
+1. **What it asks** — the issue in two or three plain lines.
+2. **Its acceptance criteria** — listed as written.
+3. **Size and risk** — your read: small / medium / large, and what could go wrong
+   (what it touches, what it might break), from the learned record and the code.
+4. **Open questions** — what is unclear or missing.
+
+Then ask: *"Shall I start on it?"* — yes, no, or later.
+
+**`CHECKABLE_CRITERIA: no`** → present 1, 3 and 4, then say plainly that work
+on it **cannot converge** without criteria a result can be checked against, and
+ask the owner for them. Do not offer to start.
+
+**Until the owner says yes, change nothing**: no branch, no file, no spec, no
+loop folder, in the project or in the brain. Reading is fine.
+
+**The answer:**
+
+```bash
+python .claude/skills/manage/scripts/projects.py decide "<name>" <number> yes|no|later
+```
+
+- **no / later** → record it, confirm in one line, stop.
+- **yes** → record it, then state, before anything else:
+  - **the branch** — named by the project's own convention if its record states
+    one, else `feature/<number>-<short-slug>`, cut from the default branch;
+  - **the development method** — the project's, from its learned record (its
+    rules win while working there), named in a phrase.
+  Then begin, following that method.
 
 ## Do not
 
