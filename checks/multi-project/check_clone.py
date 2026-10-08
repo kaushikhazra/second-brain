@@ -18,7 +18,8 @@ what the owner gets.
                     its own cause and none of the other two, and no folder is left.
   --mode list     : AC 6 -- the reply names each project's path and origin URL.
   --mode relocate : AC 7 -- the brain copied to a renamed folder lists alpha at
-                    the new path and does not re-clone it.
+                    the new path, does not re-clone it, and clones beta into the
+                    NEW folder's projects/ (the old brain's stays alpha-only).
 
 Run the modes in that order: each one after `https` uses the clone it left.
 
@@ -52,6 +53,7 @@ MOVED_BRAIN = SCRATCH_ROOT / "brain-moved"
 
 ALPHA_HTTPS = "https://github.com/kaushikhazra/sb-sandbox-alpha.git"
 ALPHA_SSH = "git@github.com:kaushikhazra/sb-sandbox-alpha.git"
+BETA_HTTPS = "https://github.com/kaushikhazra/sb-sandbox-beta.git"
 ALPHA_CLONE = SCRATCH_BRAIN / "projects" / "sb-sandbox-alpha"
 ALPHA_DEFAULT_BRANCH = "main"
 MARKER = ".check-clone-marker"
@@ -269,6 +271,7 @@ def do_run(mode: str) -> None:
             MOVED_BRAIN,
         )
         run_owner(f"Take this project in: {ALPHA_HTTPS}", "relocate-again", MOVED_BRAIN)
+        run_owner(f"Take this project in: {BETA_HTTPS}", "relocate-new", MOVED_BRAIN)
 
 
 def do_verify(mode: str) -> int:
@@ -408,14 +411,20 @@ def do_verify(mode: str) -> int:
         again_ok = names_path(again, MOVED_BRAIN) and bool(
             re.search(r"\balready\b", again, re.IGNORECASE)
         )
-        one_clone = project_folders(MOVED_BRAIN) == ["sb-sandbox-alpha"]
         marker = (MOVED_BRAIN / "projects" / "sb-sandbox-alpha" / MARKER).is_file()
+        # A project taken in after the move lands in the moved brain -- the
+        # object, not the reply: a brain that resolves its home from a frozen
+        # path can still describe the right folder while cloning into the old one.
+        moved_projects = project_folders(MOVED_BRAIN)
+        new_lands_here = moved_projects == ["sb-sandbox-alpha", "sb-sandbox-beta"]
+        old_untouched = project_folders(SCRATCH_BRAIN) == ["sb-sandbox-alpha"]
         results.append(
             (
                 "AC7: after the brain is moved, every managed project is still found",
-                list_ok and again_ok and one_clone and marker,
+                list_ok and again_ok and marker and new_lands_here and old_untouched,
                 f"listed_at_new_path={list_ok} again_found_at_new_path={again_ok} "
-                f"projects={project_folders(MOVED_BRAIN)} marker_survived={marker}",
+                f"marker_survived={marker} moved_projects={moved_projects} "
+                f"old_projects={project_folders(SCRATCH_BRAIN)}",
             )
         )
 
