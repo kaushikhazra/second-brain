@@ -214,13 +214,32 @@ def bash_commands(tag: str) -> list[str]:
     return cmds
 
 
+def final_text(tag: str) -> str:
+    """The turn's final message -- the answer the owner reads. Mid-turn
+    narration ("Booting the brain…; then I'll take the project in.") is not."""
+    final = next(
+        (e for e in reversed(load_events(tag)) if e.get("type") == "result"), {}
+    )
+    return final.get("result", "") or reply_text(tag)
+
+
 def lead_paragraph(text: str) -> str:
     """The reply's first paragraph -- what the owner reads first -- with any
     cause it explicitly rules out taken away, since ruling a cause out is not
     naming it. Two shapes seen: "not an access problem", and a contrastive
     ", not with access to the repo" (#39 cycle 3's regression run). A plain
     "does not have access" is the cause itself and is left alone."""
-    lead = text.strip().split("\n\n", 1)[0]
+    # The first paragraph about THIS request -- boot notes ("Testa here.
+    # Session started…") sometimes come first (#40 cycle 1's regression run).
+    paragraphs = [p for p in text.strip().split("\n\n") if p.strip()]
+    lead = next(
+        (
+            p
+            for p in paragraphs
+            if re.search(r"\btak(?:e|ing)\b|\bclon|projects/", p, re.I)
+        ),
+        paragraphs[0] if paragraphs else "",
+    )
     lead = re.sub(
         r"\bnot an? (?:\w+ (?:or \w+ )?)?(?:access|network|address)(?: or \w+)? problem",
         "",
@@ -388,7 +407,7 @@ def do_verify(mode: str) -> int:
         # reads first -- not on the advice after it, which may well mention
         # another cause ("try the HTTPS URL"). See lead_paragraph.
         replies = {
-            cause: lead_paragraph(reply_text(f"fail-{cause}")) for cause in FAILURES
+            cause: lead_paragraph(final_text(f"fail-{cause}")) for cause in FAILURES
         }
         folders = project_folders()
         no_partial = folders == ["sb-sandbox-alpha"]

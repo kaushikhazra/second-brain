@@ -65,9 +65,16 @@ def build(brain: Path) -> None:
     git("commit", "-q", "-m", "scratch brain", cwd=brain)
 
 
-def run_owner(prompt: str, events_file: Path, brain: Path, budget: str = "2.0") -> dict:
+def run_owner(
+    prompt: str,
+    events_file: Path,
+    brain: Path,
+    budget: str = "2.0",
+    extra_env: dict[str, str] | None = None,
+) -> dict:
     """One owner turn through `claude -p` in `brain`; keeps the whole stream in
-    `events_file` and returns the final result event."""
+    `events_file` and returns the final result event. `extra_env` reaches the
+    brain's own tool calls too (e.g. git `url.<x>.insteadOf` config)."""
     args = [
         "claude",
         "-p",
@@ -91,6 +98,7 @@ def run_owner(prompt: str, events_file: Path, brain: Path, budget: str = "2.0") 
         encoding="utf-8",
         errors="replace",
         timeout=900,
+        env=dict(os.environ, **(extra_env or {})),
     )
     events = []
     for line in proc.stdout.splitlines():

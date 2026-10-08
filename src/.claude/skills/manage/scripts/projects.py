@@ -7,6 +7,8 @@
     python .claude/skills/manage/scripts/projects.py learn <name>
     python .claude/skills/manage/scripts/projects.py stale <name>
     python .claude/skills/manage/scripts/projects.py refresh <name>
+    python .claude/skills/manage/scripts/projects.py trackers
+    python .claude/skills/manage/scripts/projects.py tracker <name> [--set tracker=gitlab] [--clear]
 
 Every managed project is a git clone under `<brain root>/projects/<repo-name>/`.
 The folder is the registry: nothing records a path, so renaming or moving the
@@ -102,7 +104,10 @@ def normalise(url: str) -> str:
 
 
 def origin_of(path: Path) -> str:
-    return git("remote", "get-url", "origin", cwd=path).stdout.strip()
+    """The origin URL as configured -- not `git remote get-url`, which applies
+    `url.<x>.insteadOf` rewrites and would report a mirror's path instead of
+    the project's real address (found by #40's check)."""
+    return git("config", "--get", "remote.origin.url", cwd=path).stdout.strip()
 
 
 def managed() -> list[Path]:
@@ -374,6 +379,178 @@ def cmd_learn(key: str) -> int:
     for f in sorted(p.iterdir()):
         if f.name != ".git":
             print(f.name + ("/" if f.is_dir() else ""))
+    print("\n=== code host and issue tracker ===")
+    settings = load_settings(p.name)
+    settings["detected"] = detect(p)
+    save_settings(p.name, settings)
+    print_tracker(p, settings)
+    return 0
+
+
+# ---- code host and issue tracker (issue #40) --------------------------------
+#
+# What was detected, what the owner overrode, and which credential notices were
+# already given live in `.claude/projects/<name>.json` beside the learned record.
+# `learn` rewrites only `detected`; an override survives every relearn and every
+# restart. Nothing here contacts a tracker's API -- detection reads the remote
+# URL and the project's own files; the credential check is local.
+
+SUPPORTED = ("github", "gitlab")
+DISPLAY = {"github": "GitHub", "gitlab": "GitLab"}
+
+NEEDS = {
+    "github": "the GitHub CLI signed in (`gh auth login`), or a GITHUB_TOKEN environment variable",
+    "gitlab": "the GitLab CLI signed in (`glab auth login`), or a GITLAB_TOKEN environment variable",
+}
+
+
+def settings_path(name: str) -> Path:
+    return brain_root() / ".claude" / "projects" / f"{name}.json"
+
+
+def load_settings(name: str) -> dict:
+    f = settings_path(name)
+    try:
+        return json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+    except (ValueError, OSError):
+        return {}
+
+
+def save_settings(name: str, settings: dict) -> None:
+    f = settings_path(name)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+
+
+def tracker_of_host(host: str) -> str:
+    if host == "github.com" or host.startswith("github."):
+        return "github"
+    if "gitlab" in host:
+        return "gitlab"
+    return host.split(".")[-2] if host.count(".") >= 1 else host or "unknown"
+
+
+def detect(p: Path) -> dict:
+    """Code host from the remote URL; tracker from the project's own files if
+    they name one, else the code host's own tracker."""
+    origin = origin_of(p)
+    host = normalise(origin).split("/", 1)[0] if origin else "unknown"
+    code_host = tracker_of_host(host)
+    evidence = [f"remote URL {origin} (host {host})"]
+    tracker, tracker_evidence = code_host, f"the code host's own issues ({host})"
+    if (p / ".gitlab-ci.yml").is_file():
+        evidence.append(".gitlab-ci.yml in the project")
+    if (p / ".github").is_dir():
+        evidence.append(".github/ in the project")
+    for doc in ("CLAUDE.md", readme_of(p) or ""):
+        text = read_text(p / doc) if doc and (p / doc).is_file() else ""
+        jira = re.search(r"https?://[\w.-]*atlassian\.net/\S*|\bjira\b", text, re.I)
+        if jira:
+            tracker, tracker_evidence = "jira", f"{doc} names Jira ({jira.group(0)})"
+            break
+    return {
+        "code_host": code_host,
+        "tracker": tracker,
+        "how": "; ".join(evidence) + f"; tracker from {tracker_evidence}",
+    }
+
+
+def credentials(tracker: str) -> bool:
+    """Local check only -- never a network call to a tracker."""
+    if tracker == "github":
+        if os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN"):
+            return True
+        try:
+            return (
+                subprocess.run(
+                    ["gh", "auth", "status"], capture_output=True, timeout=30
+                ).returncode
+                == 0
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+    if tracker == "gitlab":
+        if os.environ.get("GITLAB_TOKEN"):
+            return True
+        home = Path.home()
+        return any(
+            (d / "glab-cli" / "config.yml").is_file()
+            for d in (home / ".config", Path(os.environ.get("APPDATA", home)))
+        )
+    return False
+
+
+def effective(settings: dict) -> tuple[str, str, str]:
+    detected = settings.get("detected", {})
+    override = settings.get("override", {})
+    code_host = override.get("code_host") or detected.get("code_host", "unknown")
+    tracker = override.get("tracker") or detected.get("tracker", "unknown")
+    source = []
+    for field, value in (("code_host", code_host), ("tracker", tracker)):
+        source.append(
+            f"{field}: {'set by the owner' if field in override else 'detected'}"
+        )
+    return code_host, tracker, "; ".join(source)
+
+
+def print_tracker(p: Path, settings: dict) -> None:
+    code_host, tracker, source = effective(settings)
+    supported = tracker in SUPPORTED
+    print(f"CODE_HOST: {code_host}")
+    print(f"TRACKER: {tracker}")
+    print(f"SOURCE: {source}")
+    print(
+        f"HOW_DETECTED: {settings.get('detected', {}).get('how', '(not detected yet)')}"
+    )
+    print(f"SUPPORTED: {'yes' if supported else 'no'}")
+    if not supported:
+        print(
+            "ISSUE_WORK: unavailable -- the project is still managed, but monitoring and issue work are not available for this tracker"
+        )
+        return
+    if credentials(tracker):
+        print("CREDENTIALS: present")
+        return
+    told = settings.setdefault("credentials_told", [])
+    print("CREDENTIALS: missing")
+    print(f"NEEDED: {NEEDS[tracker]}")
+    print(
+        f"TELL_OWNER: {'no -- already told' if tracker in told else 'yes -- first time'}"
+    )
+    if tracker not in told:
+        told.append(tracker)
+        save_settings(p.name, settings)
+
+
+def cmd_trackers() -> int:
+    print("STATUS: TRACKERS")
+    print(f"SUPPORTED: {', '.join(DISPLAY[t] for t in SUPPORTED)}")
+    return 0
+
+
+def cmd_tracker(key: str, sets: list[str]) -> int:
+    """Show the project's code host and tracker; `--set field=value` overrides,
+    `--clear` returns to what was detected."""
+    p = find(key)
+    if p is None:
+        return not_managed(key)
+    settings = load_settings(p.name)
+    if not settings.get("detected"):
+        settings["detected"] = detect(p)
+    for item in sets:
+        if item == "--clear":
+            settings.pop("override", None)
+            continue
+        field, _, value = item.partition("=")
+        if field not in ("code_host", "tracker") or not value:
+            print("STATUS: BAD_OVERRIDE")
+            print(f"DETAIL: expected code_host=<name> or tracker=<name>, got {item!r}")
+            return 1
+        settings.setdefault("override", {})[field] = value.strip().lower()
+    save_settings(p.name, settings)
+    print("STATUS: TRACKER")
+    print(f"PROJECT: {p.name}")
+    print_tracker(p, settings)
     return 0
 
 
@@ -427,12 +604,18 @@ def main(argv: list[str]) -> int:
         return cmd_list()
     if len(argv) >= 2 and argv[0] == "locate":
         return cmd_locate(argv[1])
+    if argv[:1] == ["trackers"]:
+        return cmd_trackers()
+    if len(argv) >= 2 and argv[0] == "tracker":
+        sets = [a for a in argv[2:] if a != "--set"]
+        return cmd_tracker(argv[1], sets)
     commands = {"learn": cmd_learn, "stale": cmd_stale, "refresh": cmd_refresh}
     if len(argv) >= 2 and argv[0] in commands:
         return commands[argv[0]](argv[1])
     print(
         "usage: projects.py clone <git-url> | list | locate <name-or-url>"
-        " | learn <name> | stale <name> | refresh <name>",
+        " | learn <name> | stale <name> | refresh <name>"
+        " | trackers | tracker <name> [--set field=value ...] [--clear]",
         file=sys.stderr,
     )
     return 2

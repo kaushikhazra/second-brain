@@ -13,7 +13,7 @@ Order is dependency order; do not skip ahead.
 |---|---|---|---|
 | 1 | #38 | `38-clone-projects/iteration-1/loop.md` | DONE — 7/7 in 4 cycles (AC1 SSH half manual-test) |
 | 2 | #39 | `39-learn-project-context/iteration-1/loop.md` | DONE — 6/6 in 4 cycles |
-| 3 | #40 | `40-issue-tracker/iteration-1/loop.md` | pending |
+| 3 | #40 | `40-issue-tracker/iteration-1/loop.md` | in progress — cycle 1 done, 0/6 |
 | 4 | #41 | `41-monitor-projects/iteration-1/loop.md` | pending |
 | 5 | #42 | `42-due-diligence/iteration-1/loop.md` | pending |
 | 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | pending |

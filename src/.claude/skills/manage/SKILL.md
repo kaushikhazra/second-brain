@@ -1,6 +1,6 @@
 ---
 name: manage
-description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", or before any piece of work inside a managed project.
+description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, or before any piece of work inside a managed project.
 ---
 
 # Manage
@@ -23,6 +23,8 @@ python .claude/skills/manage/scripts/projects.py locate "<name-or-url>"
 python .claude/skills/manage/scripts/projects.py learn "<name>"
 python .claude/skills/manage/scripts/projects.py stale "<name>"
 python .claude/skills/manage/scripts/projects.py refresh "<name>"
+python .claude/skills/manage/scripts/projects.py trackers
+python .claude/skills/manage/scripts/projects.py tracker "<name>" [--set field=value] [--clear]
 ```
 
 Always clone through the script. Never `git clone` by hand, and never anywhere
@@ -104,6 +106,39 @@ While working inside a project, **the project's rules win over the brain's own**
 memory rules still hold; its development method does not. Wherever the two
 conflict on something you act on, tell the owner which one applied, in one line:
 *"Followed sb-sandbox-alpha's rule (spec first) over the brain's own (loops)."*
+
+## Code host and issue tracker
+
+`learn` ends with a *code host and issue tracker* block — the same lines
+`tracker <name>` prints. Nothing there calls a tracker's API: the code host
+comes from the remote URL, the tracker from the project's own files (a Jira
+link in its `CLAUDE.md` or README) or else the code host's own issues.
+
+On taking a project in, tell the owner the **code host**, the **issue
+tracker**, and **how you know** (`HOW_DETECTED`, in plain words: "from the
+remote URL (gitlab.com) and its `.gitlab-ci.yml`").
+
+| Line | Do |
+|------|----|
+| `SUPPORTED: no` | Say plainly: the project is still managed, but monitoring and issue work are not available for that tracker. |
+| `CREDENTIALS: missing` + `TELL_OWNER: yes …` | Tell the owner what is needed (`NEEDED`), once. |
+| `CREDENTIALS: missing` + `TELL_OWNER: no …` | Already told — do not repeat it. |
+
+**Which trackers work** — "which trackers can you work with?" → `trackers`.
+The answer is GitHub and GitLab.
+
+**Override** — the owner can set either one explicitly ("alpha's issues are in
+GitLab", "treat beta's code host as gitlab"):
+
+```bash
+python .claude/skills/manage/scripts/projects.py tracker "<name>" --set tracker=gitlab
+python .claude/skills/manage/scripts/projects.py tracker "<name>" --set code_host=gitlab
+python .claude/skills/manage/scripts/projects.py tracker "<name>" --clear
+```
+
+What was detected and what was overridden live in `.claude/projects/<name>.json`
+and survive a restart and a relearn. For any question about a project's
+tracker, run `tracker <name>` — never answer from memory of an earlier session.
 
 ## Do not
 
