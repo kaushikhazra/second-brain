@@ -17,6 +17,7 @@ a fresh one -- what the brain knows must outlive the session that learned it.
                   from the project's files on the spot does not pass.
 
 Usage:
+    python check_context.py --all            # regression: every mode, fresh
     python check_context.py --build
     python check_context.py --run --mode takein
     python check_context.py --verify --mode takein
@@ -28,13 +29,17 @@ two private sandboxes only. Costs real money on --run.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
 
 import scratch_brain as sb
 
-SCRATCH_ROOT = Path("C:/Projects/.tmp/second-brain-loop-39")
+# Overridable so removal demos can run side by side, each in its own brain.
+SCRATCH_ROOT = Path(
+    os.environ.get("SB_CHECK_SCRATCH", "C:/Projects/.tmp/second-brain-loop-39")
+)
 BRAIN = SCRATCH_ROOT / "brain"
 
 ALPHA = BRAIN / "projects" / "sb-sandbox-alpha"
@@ -333,8 +338,24 @@ def main() -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--mode", choices=MODES, default="takein")
+    ap.add_argument(
+        "--all",
+        action="store_true",
+        help="build, then run and verify every mode in order (regression run)",
+    )
     args = ap.parse_args()
 
+    if args.all:
+        SCRATCH_ROOT.mkdir(parents=True, exist_ok=True)
+        sb.build(BRAIN)
+        # hooks last: its no-hook-fired check then covers the upstream work session
+        order = ("takein", "know", "nofile", "upstream", "hooks")
+        failed = 0
+        for mode in order:
+            do_run(mode)
+            failed += do_verify(mode)
+        print(f"\n#39 regression: {len(order) - failed}/{len(order)} modes pass.")
+        return 1 if failed else 0
     if args.build:
         SCRATCH_ROOT.mkdir(parents=True, exist_ok=True)
         sb.build(BRAIN)
