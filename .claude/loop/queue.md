@@ -20,11 +20,28 @@ uses this one value.
 | 3 | #40 | `40-issue-tracker/iteration-1/loop.md` | DONE — 6/6 in 2 cycles |
 | 4 | #41 | `41-monitor-projects/iteration-1/loop.md` | DONE — 7/7 in 2 cycles |
 | 5 | #42 | `42-due-diligence/iteration-1/loop.md` | DONE — 5/5 in 3 cycles (run 1 cycle 1, run 2 cycles 2–3) |
-| 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | PAUSED mid-cycle 3 for usage reset (Kaushik) — 3/5 counted (AC1, 2, 4); AC3/AC5 checks and skill text written, fresh pass owed |
+| 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | in progress (BUILD-ONLY) — 3/5 proven earlier by brain runs (AC1, 2, 4); AC3, AC5 behaviour-pending; skill text written |
 | 7 | #44 | `44-work-queue/iteration-1/loop.md` | pending |
 | 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | pending |
 
-## Pause after #43 (Kaushik, via velasari, 2026-10-09)
+## BUILD-ONLY mode (Kaushik's option B, via velasari, 2026-10-09 ~16:15 IST) — in force
+
+Supersedes the usage paragraph above wherever they differ, and the pause below (resumed).
+
+1. **NO `claude -p` anywhere.** No check that spawns a brain, no removal demo that
+   spawns one, no regression pass that spawns one. Spawned sessions drain the allowance.
+2. Implement #43's remaining criteria, then #44, then #45, **as written**.
+3. Verify with **script checks only**: Python asserts on scripts, files and state. No LLM.
+4. A criterion that can only be proven by a brain's behaviour is **behaviour-pending**:
+   not counted, listed per issue, waits for the new test method.
+5. An issue is **DONE-build** when implemented and its script checks pass. Leave the
+   GitHub issue **open**, with a comment listing its behaviour-pending criteria.
+6. No product change beyond the issues as written.
+
+Report each issue's DONE-build, and any stop, to velasari. Existing `check_*.py` and
+`demo_*` scripts that spawn a brain are not run; leave them in place.
+
+## Pause after #43 (Kaushik, via velasari, 2026-10-09) — lifted by the resume above
 
 **Superseded by a pause now (2026-10-09 ~15:00 IST):** cron `79492318` deleted mid-cycle 3
 of #43, background checks stopped, state in `43-…/logs/cycle-3.md` and its `action.md`.
