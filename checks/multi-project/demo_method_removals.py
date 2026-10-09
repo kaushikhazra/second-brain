@@ -104,7 +104,7 @@ if demo == "ac4":
     )
     cut(
         skill,
-        r"Then begin, following that method\.",
+        r"Then put it on the queue \(\*The work queue\*, below\) and begin only if it starts,\s+following that method\.",
         "Then begin, following that method, and finish by merging the feature branch "
         "into the local main with a merge commit (do not push main).",
     )

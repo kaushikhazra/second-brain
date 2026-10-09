@@ -20,9 +20,9 @@ uses this one value.
 | 3 | #40 | `40-issue-tracker/iteration-1/loop.md` | DONE — 6/6 in 2 cycles |
 | 4 | #41 | `41-monitor-projects/iteration-1/loop.md` | DONE — 7/7 in 2 cycles |
 | 5 | #42 | `42-due-diligence/iteration-1/loop.md` | DONE — 5/5 in 3 cycles (run 1 cycle 1, run 2 cycles 2–3) |
-| 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | DONE-build (4 cycles; GitHub issue left open) — AC1, 2, 4 proven by brain runs in cycles 1–2; behaviour-pending: AC3, AC5, and AC4 re-run on the new skill text |
-| 7 | #44 | `44-work-queue/iteration-1/loop.md` | DONE-build (1 cycle; GitHub issue left open) — queue mechanics of AC1–5 script-proven (30/30, 19/19 removals noticed); brain halves of AC1, 3, 4, 5 behaviour-pending |
-| 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | DONE-build (1 cycle; GitHub issue left open) — script half of AC1–5 proven (23/23, 14/14 removals noticed); brain/live-session halves behaviour-pending |
+| 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | DONE-build, brain-proven 5/5 fresh on the final skill text (20:29–20:54 window). Owed: ac4 removal demo on the current text, regression of #38–#42; GitHub issue left open |
+| 7 | #44 | `44-work-queue/iteration-1/loop.md` | DONE-build; brain halves of AC1, 3, 4, 5 passed (add, view, edit, next, boot). Removal demos done: add; owed: view, edit, next, boot. GitHub issue left open |
+| 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | DONE-build; script half proven. Brain/live halves NOT run (window ended): behaviour-pending. GitHub issue left open |
 
 ## BUILD-ONLY mode (Kaushik's option B, via velasari, 2026-10-09 ~16:15 IST) — in force
 
@@ -40,6 +40,19 @@ Supersedes the usage paragraph above wherever they differ, and the pause below (
 
 Report each issue's DONE-build, and any stop, to velasari. Existing `check_*.py` and
 `demo_*` scripts that spawn a brain are not run; leave them in place.
+
+## Brain-run window (Kaushik, via velasari, 2026-10-09 ~20:30 IST)
+
+Build-only mode above is lifted for one window: the behaviour-pending checks are run with
+`claude -p`, in this order — #43 AC3/AC5/AC4, #44 brain halves, #45 brain/live halves, one
+#38–#42 regression pass — until `~/.claude/rl-status.json` shows `five_hour`
+`used_percentage` >= 90, or 20:55 IST, whichever is first; then stop cleanly.
+
+**Window closed 20:54 IST (used 25% of the five-hour allowance).** Not run: the #45 brain halves, the #38–#42 regression, #44 demos view/edit/next/boot, #43 ac4 demo on the current text. Build-only mode resumes.
+
+**Checks run sequentially, never in parallel.** One `claude -p` brain live at a time. Let a
+run finish before the next starts; do not kill a run unless it is stuck. (Four chains were
+live at once at ~20:35 — the first minutes of this window broke this rule.)
 
 ## Pause after #43 (Kaushik, via velasari, 2026-10-09) — lifted by the resume above
 
