@@ -9,7 +9,7 @@ results.
 
 Order is dependency order; do not skip ahead.
 
-**Fail-safe: `<set when the run starts>`** — Velasari gives the deadline in the start
+**Fail-safe: `2026-10-10 07:30 IST`** — Velasari gives the deadline in the start
 message, and the session writes it here before the first cycle. Every loop's `loop.md`
 uses this one value.
 
