@@ -203,9 +203,9 @@ will raise it again once the issue changes. Ask nothing.
 
 Then ask: *"Shall I start on it?"* — yes, no, or later.
 
-**`CHECKABLE_CRITERIA: no`** → present 1, 3 and 4, then say plainly that work
-on it **cannot converge** without criteria a result can be checked against, and
-ask the owner for them. Do not offer to start.
+**`CHECKABLE_CRITERIA: no`** → present 1, 3 and 4, then say plainly, in these words,
+*"this cannot converge"* — work on it cannot converge without criteria a result can
+be checked against — and ask the owner for them. Do not offer to start.
 
 **Until the owner says yes, change nothing**: no branch, no file, no spec, no
 loop folder, in the project or in the brain. Reading is fine.
