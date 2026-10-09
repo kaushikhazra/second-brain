@@ -19,7 +19,7 @@ uses this one value.
 | 2 | #39 | `39-learn-project-context/iteration-1/loop.md` | DONE — 6/6 in 4 cycles |
 | 3 | #40 | `40-issue-tracker/iteration-1/loop.md` | DONE — 6/6 in 2 cycles |
 | 4 | #41 | `41-monitor-projects/iteration-1/loop.md` | DONE — 7/7 in 2 cycles |
-| 5 | #42 | `42-due-diligence/iteration-1/loop.md` | in progress — cycle 2 done, 4/5 counted (AC3 changed-issue half unproven) |
+| 5 | #42 | `42-due-diligence/iteration-1/loop.md` | DONE — 5/5 in 3 cycles (run 1 cycle 1, run 2 cycles 2–3) |
 | 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | pending |
 | 7 | #44 | `44-work-queue/iteration-1/loop.md` | pending |
 | 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | pending |

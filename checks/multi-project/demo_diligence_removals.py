@@ -9,7 +9,7 @@ brain has nothing to repair.
 
 Every demo runs `present` first: it is the mode that takes the sandbox projects in.
 
-    python demo_diligence_removals.py <ac1|ac2|ac3a|ac3b|ac4|ac5>
+    python demo_diligence_removals.py <ac1|ac2|ac3a|ac3b|ac3c|ac4|ac5>
 """
 
 import os
@@ -106,6 +106,23 @@ if demo == "ac3b":
     cut(skill, r"\*\*`PRIOR_DECISION: no` or `later`.*?Ask nothing\.\n\n")
     run("present", "no", "again")
     sys.exit(verify("again"))
+if demo == "ac3c":
+    # a no stands for good: the script never reports the issue as changed, and the
+    # skill says to stay quiet whatever has changed (the brain judges on its own, so
+    # the cut is replaced by the opposite rule)
+    cut(
+        script,
+        r'changed = bool\(prior\) and prior\.get\("updated_at"\) != issue\["updated_at"\]',
+        "changed = False",
+    )
+    cut(
+        skill,
+        r"\*\*`PRIOR_DECISION: no` or `later`.*?Ask nothing\.\n\n",
+        "**`PRIOR_DECISION: no` or `later`** → do not walk through it again, whatever "
+        "has changed. Say it was set aside. Ask nothing.\n\n",
+    )
+    run("present", "no", "changed")
+    sys.exit(verify("changed"))
 if demo == "ac4":
     # every issue counts as having checkable criteria; the cannot-converge rule gone
     cut(script, r"return bool\(heading and items\) or len\(items\) >= 2", "return True")

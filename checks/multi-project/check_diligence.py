@@ -17,6 +17,9 @@ brain (`.claude/loop/`, its own git status); after the turn they must match.
                    AC 3 (first half) -- the no is recorded
   --mode again   : AC 3 -- a fresh session raising alpha #2 again: no second
                    walk-through, no question, nothing created
+  --mode changed : AC 3 (second half) -- the recorded updated_at is moved back, as
+                   if the issue changed after the no: the brain walks it through
+                   again and asks to start
   --mode vague   : AC 4 -- beta #2 (no criteria): cannot converge, asks for
                    criteria, does not offer to start, creates nothing
   --mode yes     : AC 5 -- alpha #1, owner says yes: the reply states the
@@ -50,7 +53,7 @@ ALPHA = BRAIN / "projects" / "sb-sandbox-alpha"
 BETA = BRAIN / "projects" / "sb-sandbox-beta"
 SETTINGS = BRAIN / ".claude" / "projects"
 
-MODES = ("present", "no", "again", "vague", "yes")
+MODES = ("present", "no", "again", "changed", "vague", "yes")
 
 
 def events(tag: str) -> Path:
@@ -150,6 +153,15 @@ def do_run(mode: str) -> None:
         turn("No.", "no", resume=sb.session_id(events("present")))
     elif mode == "again":
         turn("Let's work on sb-sandbox-alpha issue #2.", "again")
+    elif mode == "changed":
+        # The issue has moved on since the no: the recorded updated_at no longer
+        # matches the tracker's. Edited here, not by the brain -- it is the tracker
+        # changing that we simulate, and the sandbox issue is shared.
+        f = SETTINGS / "sb-sandbox-alpha.json"
+        data = json.loads(f.read_text(encoding="utf-8"))
+        data["decisions"]["2"]["updated_at"] = "2026-01-01T00:00:00Z"
+        f.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        turn("Let's work on sb-sandbox-alpha issue #2.", "changed")
     elif mode == "vague":
         turn("Let's work on sb-sandbox-beta issue #2.", "vague")
     else:  # yes
@@ -213,6 +225,18 @@ def do_verify(mode: str) -> int:
             )
         )
 
+    elif mode == "changed":
+        r = sb.final_text(events("changed"))
+        walked_again = sb.has(ASKS_TO_START, r) and sb.has(r"\brisk", r)
+        ok, detail = unchanged("changed")
+        results.append(
+            (
+                "AC3 (second half): the issue changed since the no -> the brain raises it again",
+                walked_again and ok,
+                f"walked_through_again={walked_again} | {detail}",
+            )
+        )
+
     elif mode == "vague":
         r = sb.final_text(events("vague"))
         cannot = sb.has(
@@ -220,7 +244,8 @@ def do_verify(mode: str) -> int:
             r,
         )
         asks_for = sb.has(
-            r"criteria[^.\n]{0,80}\?|(?:give|send|add|tell)[^.\n]{0,40}criteria", r
+            r"criteria[^.\n]{0,80}\?|(?:need|give|send|add|tell|provide|write|supply)[^.\n]{0,60}criteria",
+            r,
         )
         offers = sb.has(ASKS_TO_START, r)
         ok, detail = unchanged("vague")
