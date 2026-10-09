@@ -121,9 +121,8 @@ class Q:
         ]
 
 
-def scenario(root: Path) -> list[tuple[str, str, bool, str]]:
+def scenario(root: Path, res: list[tuple[str, str, bool, str]]) -> None:
     q = Q(root)
-    res: list[tuple[str, str, bool, str]] = []
 
     def add(ac: str, name: str, ok: bool, detail: str = "") -> None:
         res.append((ac, name, ok, detail))
@@ -317,7 +316,6 @@ def scenario(root: Path) -> list[tuple[str, str, bool, str]]:
         f"moved_order={mq.order()}",
     )
     remove_tree(moved)
-    return res
 
 
 # One mutation per behaviour: the check must fail for exactly that criterion's rule.
@@ -444,10 +442,12 @@ def wiring_eval(root: Path) -> list[bool]:
 
 
 def run_scenario(root: Path) -> list[tuple[str, str, bool, str]]:
+    res: list[tuple[str, str, bool, str]] = []
     try:
-        return scenario(root)
+        scenario(root, res)
     except Exception as exc:  # a mutation that breaks the script outright
-        return [("ALL", f"the script failed outright: {exc!r}", False, "")]
+        res.append(("ALL", f"the script failed outright: {exc!r}", False, ""))
+    return res
 
 
 def run_check() -> int:

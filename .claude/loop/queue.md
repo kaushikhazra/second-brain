@@ -22,7 +22,7 @@ uses this one value.
 | 5 | #42 | `42-due-diligence/iteration-1/loop.md` | DONE — 5/5 in 3 cycles (run 1 cycle 1, run 2 cycles 2–3) |
 | 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | DONE-build (4 cycles; GitHub issue left open) — AC1, 2, 4 proven by brain runs in cycles 1–2; behaviour-pending: AC3, AC5, and AC4 re-run on the new skill text |
 | 7 | #44 | `44-work-queue/iteration-1/loop.md` | DONE-build (1 cycle; GitHub issue left open) — queue mechanics of AC1–5 script-proven (30/30, 19/19 removals noticed); brain halves of AC1, 3, 4, 5 behaviour-pending |
-| 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | pending |
+| 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | DONE-build (1 cycle; GitHub issue left open) — script half of AC1–5 proven (23/23, 14/14 removals noticed); brain/live-session halves behaviour-pending |
 
 ## BUILD-ONLY mode (Kaushik's option B, via velasari, 2026-10-09 ~16:15 IST) — in force
 

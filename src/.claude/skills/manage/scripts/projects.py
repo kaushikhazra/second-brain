@@ -281,9 +281,10 @@ def readme_of(p: Path) -> str | None:
     return found[0] if found else None
 
 
-def hooks_of(p: Path) -> list[str]:
-    """Every hook the project declares, as `event | matcher | command | file`."""
-    lines = []
+def hook_entries(p: Path) -> tuple[list[dict], list[str]]:
+    """Every hook the project declares, as dicts (event, matcher, command, file,
+    hook = the whole entry), plus a note for each settings file that could not be read."""
+    entries, notes = [], []
     for name in ("settings.json", "settings.local.json"):
         f = p / ".claude" / name
         if not f.is_file():
@@ -291,16 +292,29 @@ def hooks_of(p: Path) -> list[str]:
         try:
             hooks = json.loads(f.read_text(encoding="utf-8")).get("hooks", {})
         except (ValueError, OSError) as exc:
-            lines.append(f"(could not read .claude/{name}: {exc})")
+            notes.append(f"(could not read .claude/{name}: {exc})")
             continue
         for event, groups in hooks.items():
             for group in groups or []:
                 for h in group.get("hooks", []):
-                    lines.append(
-                        f"{event} | {group.get('matcher', '*') or '*'} | "
-                        f"{h.get('command', h.get('type', '?'))} | .claude/{name}"
+                    entries.append(
+                        {
+                            "event": event,
+                            "matcher": group.get("matcher", "*") or "*",
+                            "command": h.get("command", h.get("type", "?")),
+                            "file": f".claude/{name}",
+                            "hook": h,
+                        }
                     )
-    return lines
+    return entries, notes
+
+
+def hooks_of(p: Path) -> list[str]:
+    """Every hook the project declares, as `event | matcher | command | file`."""
+    entries, notes = hook_entries(p)
+    return notes + [
+        f"{e['event']} | {e['matcher']} | {e['command']} | {e['file']}" for e in entries
+    ]
 
 
 def read_text(f: Path) -> str:

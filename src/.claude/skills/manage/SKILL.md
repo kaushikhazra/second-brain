@@ -1,6 +1,6 @@
 ---
 name: manage
-description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, raises or answers about an issue to work on (due diligence first, nothing starts without a yes), views, reorders or removes items of the work queue, or before any piece of work inside a managed project.
+description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, raises or answers about an issue to work on (due diligence first, nothing starts without a yes), views, reorders or removes items of the work queue, lists a project's hooks or adopts or removes one, or before any piece of work inside a managed project.
 ---
 
 # Manage
@@ -84,7 +84,8 @@ README and the folder structure instead; the record already says so at the top.
 
 Then tell the owner, after the path and branch: one line on what the project
 is, its development method, and its hooks **listed by name, with "not adopted"**
-— a project's hooks never become the brain's own.
+— a project's hooks never become the brain's own until the owner names one to
+adopt (*A project's hooks*, below).
 
 ### What the brain knows about a project
 
@@ -111,6 +112,28 @@ While working inside a project, **the project's rules win over the brain's own**
 memory rules still hold; its development method does not. Wherever the two
 conflict on something you act on, tell the owner which one applied, in one line:
 *"Followed sb-sandbox-alpha's rule (spec first) over the brain's own (loops)."*
+
+### A project's hooks
+
+A project's hooks are **listed, never adopted by default** — the brain's guard rails
+stay the brain's. The owner chooses which, if any, become the brain's own:
+
+```bash
+python .claude/skills/manage/scripts/projecthooks.py list "<name>"
+python .claude/skills/manage/scripts/projecthooks.py adopt "<name>" <number>
+python .claude/skills/manage/scripts/projecthooks.py adopted
+python .claude/skills/manage/scripts/projecthooks.py remove <id>
+```
+
+| Line | Do |
+|------|----|
+| `list` → `HOOK: <n> \| event \| matcher \| command …` | Show the numbered hooks and which are adopted. `list` changes nothing — say so if the owner worries. |
+| `adopt` → `STATUS: ADOPTED` + `APPLIES_TO: every project in this brain` | Say plainly that the hook **now applies to every project in this brain**, not only to the project it came from; and that it is in `.claude/settings.local.json`. |
+| `adopt` → `STATUS: DUPLICATE` or `STATUS: CONFLICT` + `EXISTING:` | Report which existing hook it duplicates or conflicts with, and that **nothing was added**. Do not add it another way; the owner decides (remove the other first, or leave it). |
+| `adopted` / `remove <id>` | When the owner asks what was adopted, or to take one out. |
+
+Adopt only a hook the owner **names**. The script roots the hook's command at
+`$CLAUDE_PROJECT_DIR`, so it keeps firing when the brain folder is renamed or moved.
 
 ### The work queue
 
