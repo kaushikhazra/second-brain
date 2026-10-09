@@ -224,15 +224,31 @@ def do_verify(mode: str) -> int:
         beta = next((i for i in c.items() if i["project"] == "sb-sandbox-beta"), {})
         # "started" = it left the queue for the work: active, or already done by the time
         # the turn ended (the brain may well finish a small item inside its budget)
-        started = bool(beta.get("started_at")) and beta.get("state") in ("active", "done")
-        res.append((
-            "AC4 (brain): the running item is stopped and the next one starts",
-            s.get("sb-sandbox-alpha#1") == "stopped"
-            and started
-            and list(s.values()).count("active") <= 1
-            and sb.has(r"beta", r),
-            f"states={s} beta_started={started} reply_names_beta={sb.has('beta', r)}",
-        ))
+        started = bool(beta.get("started_at")) and beta.get("state") in (
+            "active",
+            "done",
+        )
+        # the script's `stop` moves the next item to active by itself, so that alone is
+        # the script's doing: the brain's half is that it then BEGAN the work -- the item is
+        # done, or beta's clone shows work under way (a branch, a loop folder, changed files)
+        g = c.git_state(c.beta)
+        began = (
+            beta.get("state") == "done"
+            or g["branches"] != ["main"]
+            or bool(g["loop"])
+            or bool(g["status"])
+        )
+        res.append(
+            (
+                "AC4 (brain): the running item is stopped and the next one starts -- and the brain begins it",
+                s.get("sb-sandbox-alpha#1") == "stopped"
+                and started
+                and began
+                and list(s.values()).count("active") <= 1
+                and sb.has(r"beta", r),
+                f"states={s} beta_started={started} brain_began_work={began} reply_names_beta={sb.has('beta', r)}",
+            )
+        )
     else:  # boot
         r = sb.final_text(c.events("boot"))
         s = c.states()

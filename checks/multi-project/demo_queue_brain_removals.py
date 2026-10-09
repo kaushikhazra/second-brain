@@ -55,6 +55,14 @@ def apply(c: "cq.Ctx") -> None:
             r"\| `list` \| Show the owner the `ITEM:` rows.*?\|\n",
             "| `list` | Never show the owner the queue; say it is internal. |\n",
         )
+        # the brain shows it anyway when the owner asks: take the script's rows away and
+        # the section that says where the queue lives
+        cut(
+            c.brain / ".claude/skills/manage/scripts/workqueue.py",
+            r"    for i in shown:\n        if i\[\"state\"\] == \"queued\":.*?print\(f\"ITEM: \{i\['id'\]\} \| \{where\} \| \{describe\(i\)\}\"\)\n",
+            "",
+        )
+        cut(skill, r"### The work queue.*?(?=### Doing the work on an issue)")
     elif demo == "edit":
         cut(
             skill,

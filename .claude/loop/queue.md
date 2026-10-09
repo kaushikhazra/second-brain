@@ -20,9 +20,9 @@ uses this one value.
 | 3 | #40 | `40-issue-tracker/iteration-1/loop.md` | DONE — 6/6 in 2 cycles |
 | 4 | #41 | `41-monitor-projects/iteration-1/loop.md` | DONE — 7/7 in 2 cycles |
 | 5 | #42 | `42-due-diligence/iteration-1/loop.md` | DONE — 5/5 in 3 cycles (run 1 cycle 1, run 2 cycles 2–3) |
-| 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | DONE-build, brain-proven 5/5 fresh on the final skill text (20:29–20:54 window). Owed: ac4 removal demo on the current text, regression of #38–#42; GitHub issue left open |
-| 7 | #44 | `44-work-queue/iteration-1/loop.md` | DONE-build; brain halves of AC1, 3, 4, 5 passed (add, view, edit, next, boot). Removal demos done: add; owed: view, edit, next, boot. GitHub issue left open |
-| 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | DONE-build; script half proven. Brain/live halves NOT run (window ended): behaviour-pending. GitHub issue left open |
+| 6 | #43 | `43-follow-project-method/iteration-1/loop.md` | DONE — 5/5 with a brain on the final skill text, a removal demo failing for each; regression #38–#42 holds. GitHub issue left open |
+| 7 | #44 | `44-work-queue/iteration-1/loop.md` | DONE — 5/5 (script 30/30, brain halves of AC1, 3, 4, 5 pass, demos fail when cut for add, edit, next, boot). Accepted: the view half of AC3 has no failing brain-level demo (the brain reads queue.json itself). GitHub issue left open |
+| 8 | #45 | `45-adopt-hooks/iteration-1/loop.md` | DONE — 5/5 (script 23/23; brain and live halves pass, demos fail when cut for all six). GitHub issue left open |
 
 ## BUILD-ONLY mode (Kaushik's option B, via velasari, 2026-10-09 ~16:15 IST) — in force
 
@@ -48,7 +48,7 @@ Build-only mode above is lifted for one window: the behaviour-pending checks are
 #38–#42 regression pass — until `~/.claude/rl-status.json` shows `five_hour`
 `used_percentage` >= 90, or 20:55 IST, whichever is first; then stop cleanly.
 
-**Window closed 20:54 IST (used 25% of the five-hour allowance).** Not run: the #45 brain halves, the #38–#42 regression, #44 demos view/edit/next/boot, #43 ac4 demo on the current text. Build-only mode resumes.
+**Window closed 20:54 IST (used 25% of the five-hour allowance).** Not run: the #45 brain halves, the #38–#42 regression, #44 demos view/edit/next/boot, #43 ac4 demo on the current text. Build-only mode resumed; then a second window (2026-10-09 23:17 – 2026-10-10 00:05, one claude -p at a time, 26% used) ran the rest: #45 brain/live halves, the #44 demos, #43 AC4 demo, and the #38–#42 regression — all done, see each loop's `logs/brain-window-*`.
 
 **Checks run sequentially, never in parallel.** One `claude -p` brain live at a time. Let a
 run finish before the next starts; do not kill a run unless it is stuck. (Four chains were

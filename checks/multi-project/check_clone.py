@@ -63,7 +63,7 @@ MARKER = ".check-clone-marker"
 FAILURES = {
     "unreachable": (
         "https://no-such-host-xyz.invalid/a/b.git",
-        r"(?:could|does|did)(?: not|n't) (?:be )?(?:reach|resolve)|unreachable|network",
+        r"(?:could|does|did)(?: not|n['’]t) (?:be )?(?:reach|resolve)|unreachable|network",
     ),
     "noaccess": (
         "git@github.com:kaushikhazra/sb-sandbox-beta.git",
@@ -71,8 +71,8 @@ FAILURES = {
     ),
     "notgit": (
         "https://example.com/",
-        # "doesn't lead to a git repository", "no repository" (#41 cycle 2)
-        r"(?:is ?n[o']t|not|does(?:n't| not) (?:point|lead) (?:at|to)) a git repo"
+        # "doesn['’]t lead to a git repository", "no repository" (#41 cycle 2)
+        r"(?:is ?n[o']t|not|does(?:n['’]t| not) (?:point|lead) (?:at|to)) a git repo"
         r"|\bno (?:git )?repository\b",
     ),
 }
@@ -239,7 +239,7 @@ def lead_paragraph(text: str) -> str:
         (
             p
             for p in paragraphs
-            if re.search(r"\btak(?:e|ing)\b|\bclon|projects/", p, re.I)
+            if re.search(r"\btak(?:e|en|ing)\b|\bclon|projects/", p, re.I)
         ),
         paragraphs[0] if paragraphs else "",
     )
