@@ -298,6 +298,20 @@ correct value there, not an error to work around. This is what lets
 or unrelate any of the three; a stale record from a prior session is why
 this must be rewritten every boot, not written once and left.
 
+## 6a. Work cut off by the last session
+
+If the brain has a `projects/` folder, run
+
+```bash
+python .claude/skills/manage/scripts/workqueue.py recover
+```
+
+A session that ends leaves nothing running, so any queue item still `active` was
+cut off. Each `INTERRUPTED: <id> | <project> | #<issue> | <title>` line is a piece of
+work that did not finish — say each one in the report, by project and issue. It is
+kept on the queue as `interrupted`, never dropped, and the next waiting item (if
+any) has started (`NEXT_STARTED:`). `STATUS: NOTHING_INTERRUPTED` → say nothing.
+
 ## 6b. Check for a newer release
 
 **After** the handoff pickup, **before** the report.  This is informational

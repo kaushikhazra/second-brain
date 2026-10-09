@@ -1,6 +1,6 @@
 ---
 name: manage
-description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, raises or answers about an issue to work on (due diligence first, nothing starts without a yes), or before any piece of work inside a managed project.
+description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, raises or answers about an issue to work on (due diligence first, nothing starts without a yes), views, reorders or removes items of the work queue, or before any piece of work inside a managed project.
 ---
 
 # Manage
@@ -111,6 +111,33 @@ While working inside a project, **the project's rules win over the brain's own**
 memory rules still hold; its development method does not. Wherever the two
 conflict on something you act on, tell the owner which one applied, in one line:
 *"Followed sb-sandbox-alpha's rule (spec first) over the brain's own (loops)."*
+
+### The work queue
+
+One brain on one machine never runs two builds at once, whatever the projects.
+Approved work goes on a queue; one piece is active, the rest wait in the order they
+were approved. The queue is `.claude/projects/queue.json`, kept by
+
+```bash
+python .claude/skills/manage/scripts/workqueue.py add "<name>" <number> --title "<title>"
+python .claude/skills/manage/scripts/workqueue.py list [--all]
+python .claude/skills/manage/scripts/workqueue.py move <id> <position>
+python .claude/skills/manage/scripts/workqueue.py remove <id>
+python .claude/skills/manage/scripts/workqueue.py finish
+python .claude/skills/manage/scripts/workqueue.py stop "<reason>"
+python .claude/skills/manage/scripts/workqueue.py recover
+```
+
+| Line | Do |
+|------|----|
+| `add` → `STATUS: STARTED` | Nothing was running: begin the work now. |
+| `add` → `STATUS: QUEUED` + `POSITION` + `ACTIVE` | Tell the owner its position and what is running. Do not begin. |
+| `add` → `STATUS: ALREADY_QUEUED` | Say so; add nothing. |
+| `list` | Show the owner the `ITEM:` rows — project, issue, state, and the position of each waiting one. |
+| `move` / `remove` | When the owner asks to reorder or drop an item. The running item cannot be moved. |
+| `finish` / `stop` | When the active work closes, or is stopped. Read `NEXT_STARTED:` — if an item started, begin it (its own due diligence is already done: it was approved). |
+
+Never start work on an issue while another item is `active`.
 
 ### Doing the work on an issue
 
@@ -239,7 +266,8 @@ python .claude/skills/manage/scripts/projects.py decide "<name>" <number> yes|no
     one, else `feature/<number>-<short-slug>`, cut from the default branch;
   - **the development method** — the project's, from its learned record (its
     rules win while working there), named in a phrase.
-  Then begin, following that method.
+  Then put it on the queue (*The work queue*, below) and begin only if it starts,
+  following that method.
 
 ## Do not
 
