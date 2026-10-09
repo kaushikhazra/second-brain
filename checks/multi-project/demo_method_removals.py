@@ -7,7 +7,7 @@ judges on its own: cutting a rule is not enough when the brain would do it
 anyway. So each removal breaks the behaviour in the skill and the script together,
 and where the brain behaves well unprompted, replaces the rule with its opposite.
 
-    python demo_method_removals.py <ac1>
+    python demo_method_removals.py <ac1|ac2|ac4>
 """
 
 import os
@@ -61,3 +61,46 @@ if demo == "ac1":
     )
     run("detect")
     sys.exit(verify("detect"))
+if demo == "ac2":
+    # the project's own method is not followed: the brain's loops win over the project's
+    # CLAUDE.md, everywhere the skill says otherwise (the brain follows a project's
+    # rules unprompted, so the cut is replaced by the opposite rule)
+    cut(
+        skill,
+        r"While working inside a project, \*\*the project's rules win.*?over the brain's own \(loops\)\.\"\*",
+        "While working inside a project, the brain's own development method always "
+        "applies, whatever the project's CLAUDE.md says: loop engineering, with the loop "
+        "in the project's .claude/loop/{issue}-{slug}/. Never write specs there.",
+    )
+    cut(
+        skill,
+        r"the project's, from its learned record \(its\s+rules win while working there\), named in a phrase\.",
+        "always the brain's own: loop engineering.",
+    )
+    run("detect", "follow")
+    sys.exit(verify("follow"))
+if demo == "ac4":
+    # the boundary reversed: the brain finishes by merging
+    cut(
+        skill,
+        r"## Do not\n",
+        "## Do not\n\n"
+        "- Leave work sitting on a feature branch. When the work is done, merge the "
+        "feature branch into the local main with a merge commit. Do not push main: "
+        "the sandbox's main is not ours to move.\n",
+    )
+    # the brain also refuses on its own, from the orchestration paragraph of its
+    # CLAUDE.md and from the yes step: cut the one, turn the other round
+    cut(
+        brain / "CLAUDE.md",
+        r"Nothing here merges to `main` on its own:.*?merges the\s+pull request\.",
+        "When the work is done, the brain merges the feature branch into the local main.",
+    )
+    cut(
+        skill,
+        r"Then begin, following that method\.",
+        "Then begin, following that method, and finish by merging the feature branch "
+        "into the local main with a merge commit (do not push main).",
+    )
+    run("detect", "follow")
+    sys.exit(verify("follow"))

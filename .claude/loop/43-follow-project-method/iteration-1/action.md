@@ -1,7 +1,11 @@
 # Action
 
-AC1 is met. Take AC2 and AC4 together, both on alpha: the owner says yes to alpha #1, and the check inspects the project afterwards. AC2 — spec files (requirement, design, task) exist under `.claude/specs/` and were written before any change under `src/` (compare commit order or file times), and no `.claude/loop/` folder was created in alpha. AC4 — all work is on a feature branch in alpha (never `main`), `main` is untouched, and nothing was merged (no merge commit anywhere, the feature branch not folded into `main`).
+AC3 and AC5 on beta (no method), and the product text AC4 needs a footing for.
 
-Alpha already carries `feature/1-*` branches from #42's runs: have the check delete them on the remote first and create its own branch names unmentioned. Then removal demos for AC2 and AC4 (replace the rule with its opposite, as in #42).
+Product, in `src/.claude/skills/manage/SKILL.md` (a section before *Code host and issue tracker*): (a) the method — a project's own wins; where its record states none, loop engineering: the issue's criteria are the goal and the loop lives in the project's `.claude/loop/{issue}-{slug}/`, never the brain's; (b) the branch — work only on a feature branch in the project, cut from its default branch, never commit to the default branch, never merge, the owner merges; (c) closing — a comment on the issue in the project's tracker saying *N of N criteria met* and what proved each.
 
-Then AC3 and AC5 on beta (no method): the loop in `projects/sb-sandbox-beta/.claude/loop/{issue}-{slug}/` with the issue's criteria as the goal, and the closing comment *N of N criteria met* on the beta issue with what proved each. These need product changes in `manage/SKILL.md`; read what the brain did on its own before writing them.
+Checks in `check_method.py`, mode `loop` (AC3): beta #1 with a yes — `projects/sb-sandbox-beta/.claude/loop/1-<slug>/` exists with the goal holding the issue's criteria, and the brain's own `.claude/loop/` stays empty. Mode `close` (AC5): after the work, the beta issue carries a comment matching `N of N criteria met` with a line per criterion saying what proved it; the check removes its own comment afterwards. Beta only: no other repo is touched.
+
+Removal demos in `demo_method_removals.py`: ac3 (loop forced into the brain's folder), ac5 (no comment at all). Extend ac4 to cut the new branch rule too.
+
+Then one full regression pass — `src/` changes this cycle: `check_diligence.py --all`, `check_clone.py --all`, `check_context.py --all`, `check_tracker.py --all`, `check_monitor.py --all`, and `check_method.py --all`.
