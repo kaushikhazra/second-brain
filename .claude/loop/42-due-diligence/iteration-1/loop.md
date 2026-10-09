@@ -24,7 +24,7 @@ Each cycle is written to `logs/cycle-N.md`. **Immutable** — never edited after
 STALLED in `../../queue.md`, report on crosschat, and stop the whole run (the issues
 after this one build on it).
 
-**Fail-safe: at 2026-10-09 07:30 +0530**, stop and delete the cron, converged or not, mark this loop
+**Fail-safe: the deadline in `../../queue.md`**, stop and delete the cron, converged or not, mark this loop
 in `../../queue.md` with where it stopped, and report on crosschat.
 
 **Work on `feature/multi-project`.** Check the branch before writing; a cycle that wakes elsewhere
