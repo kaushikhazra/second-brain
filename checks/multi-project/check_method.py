@@ -25,6 +25,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -37,7 +39,7 @@ BRAIN = SCRATCH_ROOT / "brain"
 ALPHA = BRAIN / "projects" / "sb-sandbox-alpha"
 BETA = BRAIN / "projects" / "sb-sandbox-beta"
 
-MODES = ("detect", "follow")
+MODES = ("detect", "follow", "work")
 
 BASELINE = "method-baseline.json"
 
@@ -106,6 +108,48 @@ def remote_main() -> str:
     return out[0] if out else ""
 
 
+BETA_REPO = "kaushikhazra/sb-sandbox-beta"
+COMMENTS = "method-beta-comments.json"
+
+
+def beta_comments() -> list[dict]:
+    """The comments on beta #1, as the tracker has them."""
+    out = subprocess.run(
+        [
+            "gh",
+            "api",
+            f"repos/{BETA_REPO}/issues/1/comments",
+            "--jq",
+            "[.[] | {id: .id, body: .body}]",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    return json.loads(out.stdout or "[]")
+
+
+def beta_criteria_count() -> int:
+    out = subprocess.run(
+        [
+            "gh",
+            "issue",
+            "view",
+            "1",
+            "-R",
+            BETA_REPO,
+            "--json",
+            "body",
+            "--jq",
+            ".body",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    return len(re.findall(r"(?m)^\s*\d+\.\s+\S", out.stdout))
+
+
 def do_run(mode: str) -> None:
     if mode == "detect":
         owner(f"Take this project in: {sb.ALPHA_HTTPS}", "takein-alpha")
@@ -134,6 +178,44 @@ def do_run(mode: str) -> None:
             "follow",
             resume=sb.session_id(events("follow-present")),
         )
+
+    elif mode == "work":
+        # Beta states no method: the brain brings loop engineering. The owner asks it
+        # to close the work out, without saying where, so the closing comment is the
+        # brain's own doing and can be seen. The comment lands
+        # on the shared sandbox issue, so it is saved and removed again.
+        before = {c["id"] for c in beta_comments()}
+        (SCRATCH_ROOT / BASELINE).write_text(
+            json.dumps(
+                {
+                    "main": sha("main", BETA),
+                    "branches": sb.git(
+                        "branch", "--all", "--format=%(refname:short)", cwd=BETA
+                    ).stdout.split(),
+                }
+            ),
+            encoding="utf-8",
+        )
+        owner("Let's work on sb-sandbox-beta issue #1.", "work-present")
+        owner(
+            "Yes, go ahead. Build it on a new branch of your own, and close the work "
+            "out when the criteria hold.",
+            "work",
+            resume=sb.session_id(events("work-present")),
+        )
+        new = [c for c in beta_comments() if c["id"] not in before]
+        (SCRATCH_ROOT / COMMENTS).write_text(json.dumps(new), encoding="utf-8")
+        for c in new:
+            subprocess.run(
+                [
+                    "gh",
+                    "api",
+                    "-X",
+                    "DELETE",
+                    f"repos/{BETA_REPO}/issues/comments/{c['id']}",
+                ],
+                capture_output=True,
+            )
 
 
 def do_verify(mode: str) -> int:
@@ -246,6 +328,66 @@ def do_verify(mode: str) -> int:
                 "AC4: work happens on a feature branch; the brain never merges",
                 on_feature and main_same and remote_same and not merges and not folded,
                 f"feature_branch={new} main_unmoved={main_same} origin_main_unmoved={remote_same} merges={merges} folded_into_main={folded}",
+            )
+        )
+
+    elif mode == "work":
+        # AC 3 -- no method in beta: loop engineering, the loop in beta's own
+        # .claude/loop/{issue}-{slug}/, the issue's criteria as its goal
+        loops = (
+            sorted(d for d in (BETA / ".claude" / "loop").glob("1-*") if d.is_dir())
+            if (BETA / ".claude" / "loop").exists()
+            else []
+        )
+        goal = ""
+        for d in loops:
+            g = d / "goal.md"
+            if g.is_file():
+                goal += g.read_text(encoding="utf-8", errors="replace")
+        goal_has_criteria = sb.has(
+            r"delete\s+2|removes the second|second note", goal
+        ) and sb.has(r"does not exist|unchanged|no such|out of range|nonexistent", goal)
+        brain_loop = BRAIN / ".claude" / "loop"
+        brain_empty = not brain_loop.exists() or not any(brain_loop.iterdir())
+        results.append(
+            (
+                "AC3: a project with no method gets loop engineering in its own .claude/loop/{issue}-{slug}/",
+                bool(loops) and bool(goal) and goal_has_criteria and brain_empty,
+                f"loop_folders={[d.name for d in loops]} goal_holds_criteria={goal_has_criteria} brain_loop_empty={brain_empty}",
+            )
+        )
+        # AC 4 on beta too: a feature branch, nothing merged
+        base = json.loads((SCRATCH_ROOT / BASELINE).read_text(encoding="utf-8"))
+        merges = sb.git(
+            "log", "--merges", "--format=%h", "--all", cwd=BETA
+        ).stdout.split()
+        results.append(
+            (
+                "AC4 (beta): main did not move, nothing merged",
+                sha("main", BETA) == base["main"] and not merges,
+                f"main_unmoved={sha('main', BETA) == base['main']} merges={merges}",
+            )
+        )
+        # AC 5 -- the closing comment on the project's own tracker: N of N, and what
+        # proved each criterion
+        comments = json.loads((SCRATCH_ROOT / COMMENTS).read_text(encoding="utf-8"))
+        n = beta_criteria_count()
+        hit = [
+            c["body"]
+            for c in comments
+            if re.search(rf"\b{n} of {n} criteria met", c["body"], re.I)
+        ]
+        body = hit[0] if hit else ""
+        proof_lines = re.findall(
+            r"(?m)^\W*(?:[-*]|\d+[.)]|\|)\s*\S.*(?:test|ran|run|output|check|prov|verif|result|exit)",
+            body,
+            re.I,
+        )
+        results.append(
+            (
+                "AC5: the project's issue gets a comment saying N of N criteria met, with what proved each",
+                bool(hit) and len(proof_lines) >= n,
+                f"criteria={n} comments_added={len(comments)} n_of_n_comment={bool(hit)} proof_lines={len(proof_lines)}",
             )
         )
 

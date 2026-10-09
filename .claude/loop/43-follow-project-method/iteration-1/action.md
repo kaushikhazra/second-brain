@@ -1,11 +1,7 @@
 # Action
 
-AC3 and AC5 on beta (no method), and the product text AC4 needs a footing for.
+The run is PAUSED mid-cycle (usage reset). On resume, from cycle 4, nothing is rebuilt: the skill section, `check_method.py` mode `work` and the `ac3`/`ac5` demos already exist.
 
-Product, in `src/.claude/skills/manage/SKILL.md` (a section before *Code host and issue tracker*): (a) the method — a project's own wins; where its record states none, loop engineering: the issue's criteria are the goal and the loop lives in the project's `.claude/loop/{issue}-{slug}/`, never the brain's; (b) the branch — work only on a feature branch in the project, cut from its default branch, never commit to the default branch, never merge, the owner merges; (c) closing — a comment on the issue in the project's tracker saying *N of N criteria met* and what proved each.
-
-Checks in `check_method.py`, mode `loop` (AC3): beta #1 with a yes — `projects/sb-sandbox-beta/.claude/loop/1-<slug>/` exists with the goal holding the issue's criteria, and the brain's own `.claude/loop/` stays empty. Mode `close` (AC5): after the work, the beta issue carries a comment matching `N of N criteria met` with a line per criterion saying what proved it; the check removes its own comment afterwards. Beta only: no other repo is touched.
-
-Removal demos in `demo_method_removals.py`: ac3 (loop forced into the brain's folder), ac5 (no comment at all). Extend ac4 to cut the new branch rule too.
-
-Then one full regression pass — `src/` changes this cycle: `check_diligence.py --all`, `check_clone.py --all`, `check_context.py --all`, `check_tracker.py --all`, `check_monitor.py --all`, and `check_method.py --all`.
+1. `python checks/multi-project/check_method.py --all` fresh (detect, follow, work). Expect AC1, AC2, AC3, AC4, AC5 to pass; read any failure from the reply before touching a pattern (cycle 1 and 2 lesson: the brain was right, the regex was narrow).
+2. `python checks/multi-project/demo_method_removals.py ac3` — expect FAIL. The ac5 demo already failed when cut (cycle 3); ac4 was extended and owes a re-run, expect FAIL.
+3. If the goal is met (5/5 passing fresh, a demo failing for each), close #43: the full regression pass (#38, #39, #40, #41, #42, #43), comment on the issue with the numbers, mark #43 DONE in `../../queue.md`, report to velasari, then CronDelete and mark #44 "next, paused" per the queue's *Pause* section.

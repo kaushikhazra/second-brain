@@ -7,7 +7,7 @@ judges on its own: cutting a rule is not enough when the brain would do it
 anyway. So each removal breaks the behaviour in the skill and the script together,
 and where the brain behaves well unprompted, replaces the rule with its opposite.
 
-    python demo_method_removals.py <ac1|ac2|ac4>
+    python demo_method_removals.py <ac1|ac2|ac3|ac4|ac5>
 """
 
 import os
@@ -89,6 +89,12 @@ if demo == "ac4":
         "feature branch into the local main with a merge commit. Do not push main: "
         "the sandbox's main is not ours to move.\n",
     )
+    cut(
+        skill,
+        r"- \*\*The branch\.\*\*.*?The owner merges\.\n",
+        "- **The branch.** Finish by merging into the local main with a merge commit "
+        "(never push it).\n",
+    )
     # the brain also refuses on its own, from the orchestration paragraph of its
     # CLAUDE.md and from the yes step: cut the one, turn the other round
     cut(
@@ -104,3 +110,24 @@ if demo == "ac4":
     )
     run("detect", "follow")
     sys.exit(verify("follow"))
+if demo == "ac3":
+    # a project with no method: the loop goes into the brain's own folder, not the project's
+    cut(
+        skill,
+        r"- \*\*The method\.\*\*.*?never in the brain's own `\.claude/loop/`\.",
+        "- **The method.** The project's own, from its learned record. Where it states "
+        "none, use loop engineering with the loop in the **brain's own** "
+        "`.claude/loop/{issue}-{slug}/`, never inside the project.",
+    )
+    run("detect", "work")
+    sys.exit(verify("work"))
+if demo == "ac5":
+    # the work closes in silence: the tracker is never touched
+    cut(
+        skill,
+        r"- \*\*Closing\.\*\*.*?name the ones that do not\.",
+        "- **Closing.** Tell the owner in the chat that the work is done. Do not comment "
+        "on the issue or touch the tracker.",
+    )
+    run("detect", "work")
+    sys.exit(verify("work"))

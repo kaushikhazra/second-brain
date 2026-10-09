@@ -112,6 +112,23 @@ memory rules still hold; its development method does not. Wherever the two
 conflict on something you act on, tell the owner which one applied, in one line:
 *"Followed sb-sandbox-alpha's rule (spec first) over the brain's own (loops)."*
 
+### Doing the work on an issue
+
+Once the owner has said yes (see *Due diligence*):
+
+- **The method.** The project's own, from its learned record. Where the record
+  states none, use **loop engineering**: the issue's acceptance criteria are the
+  goal, and the loop lives in **the project's** `.claude/loop/{issue}-{slug}/`
+  (`goal.md`, `observe.md`, `assumption.md`, `action.md`, `logs/cycle-N.md`) —
+  never in the brain's own `.claude/loop/`.
+- **The branch.** Work only on a feature branch in the project, cut from its
+  default branch. Never commit to the default branch. **Never merge** — not a
+  branch, not a pull request. The owner merges.
+- **Closing.** When the work closes, comment on the issue in the project's
+  tracker (`gh issue comment` for GitHub): *"N of N criteria met"*, then one
+  line per criterion saying what proved it. If fewer than N hold, say *"M of N
+  criteria met"* and name the ones that do not.
+
 ## Code host and issue tracker
 
 `learn` ends with a *code host and issue tracker* block — the same lines
