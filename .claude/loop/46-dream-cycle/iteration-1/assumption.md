@@ -16,6 +16,13 @@ Standing inputs for issue #46.
 - Dev runs of synaptra use `SYNAPTRA_PORT=8150` and a scratch `SYNAPTRA_DB`; the default
   port belongs to the live service.
 
+- **The dry-run action list is computed once per day** (Kaushik, 2026-10-10, answering the
+  cycle 1 cost risk; a design note, not a new criterion). It is saved machine-local in
+  `.claude/dream-cycle-plan.json`, which must survive `/update` the way
+  `activations.json` does (`update_brain.py` MACHINE_LOCAL, and `.gitignore`). Each cycle
+  takes its next batch from the saved list and marks what it applied. The dry run re-runs
+  only on a new day or when the list is used up.
+
 ## Open (resolve by evidence, not by guess)
 
 - Can one cycle be capped at N memories (does `memory_consolidate` accept a limit), or must
