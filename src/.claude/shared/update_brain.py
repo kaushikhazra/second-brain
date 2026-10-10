@@ -54,6 +54,7 @@ MACHINE_LOCAL = frozenset(
         ".claude/.protected-ids.json",
         ".claude/.list-holder-check.json",
         ".claude/activations.json",
+        ".claude/dream-cycle-plan.json",
         ".claude/skills/local-agent/config.json",
     }
 )

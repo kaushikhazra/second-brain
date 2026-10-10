@@ -168,6 +168,45 @@ def main() -> int:
         for name, (got, want) in table.items():
             check(name, got is want, f"got={got} want={want}")
 
+        # Design note (no criterion): the day's saved dry-run plan.
+        acts = [
+            {"action": "promote", "source_ids": ["a"]},
+            {"action": "archive", "source_ids": ["b"]},
+            {"action": "archive", "source_ids": ["c"]},
+            {"action": "merge", "source_ids": ["d", "e"]},
+            {"action": "flag_contradiction", "source_ids": ["f", "g"]},
+        ]
+        plan = dc.new_plan(acts, "2026-10-10")
+        check(
+            "PLAN: only reversible actions are planned, the rest are counted",
+            len(plan["actions"]) == 3 and plan["needs_dream"] == 2,
+            f"actions={len(plan['actions'])} needs_dream={plan['needs_dream']}",
+        )
+        batch = dc.next_batch(plan, 2)
+        plan2 = dc.mark_applied(plan, [a["key"] for a in batch])
+        batch2 = dc.next_batch(plan2, 2)
+        check(
+            "PLAN: a batch is capped and never re-takes an applied action",
+            len(batch) == 2
+            and [a["source_ids"][0] for a in batch2] == ["c"]
+            and dc.backlog(plan2) == 1,
+            f"batch={[a['key'] for a in batch]} next={[a['key'] for a in batch2]}",
+        )
+        used = dc.mark_applied(plan2, [a["key"] for a in batch2])
+        check(
+            "PLAN: stale on a new day or when used up, fresh otherwise",
+            dc.plan_is_stale(plan, "2026-10-11")
+            and dc.plan_is_stale(used, "2026-10-10")
+            and dc.plan_is_stale(None, "2026-10-10")
+            and not dc.plan_is_stale(plan2, "2026-10-10"),
+        )
+        ppath = scratch / ".claude" / dc.PLAN_FILE
+        dc.save_plan(ppath, plan2)
+        check(
+            "PLAN: saved plan reloads identically",
+            dc.load_plan(ppath) == plan2,
+        )
+
     # AC 6: the heartbeat's own files name the dream cycle, paired by id.
     goal = (HEARTBEAT / "goal.md").read_text(encoding="utf-8")
     observe = (HEARTBEAT / "observe.md").read_text(encoding="utf-8")
@@ -191,6 +230,11 @@ def main() -> int:
     check(
         "AC11b: update_brain.py treats activations.json as machine-local",
         ".claude/activations.json" in ub,
+    )
+    gi = (SRC_ROOT / ".gitignore").read_text(encoding="utf-8")
+    check(
+        "PLAN: the saved plan is machine-local and git-ignored",
+        ".claude/dream-cycle-plan.json" in ub and ".claude/dream-cycle-plan.json" in gi,
     )
 
     width = max(len(n) for n, _, _ in results)

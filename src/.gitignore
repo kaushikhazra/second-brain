@@ -63,6 +63,10 @@ __pycache__/
 # `/curiosity on|off`; the owner's answer to "switch this on", not shared state.
 .claude/activations.json
 
+# Dream cycle's saved plan (issue #46) — the day's dry-run action list and what
+# each cycle has applied from it. Machine-local, rewritten by the cycle.
+.claude/dream-cycle-plan.json
+
 # Isolated Claude config, created by brain-claude-sandbox.bat.
 # Holds this machine's Claude settings and sign-in. Never committed.
 .claude-config/
