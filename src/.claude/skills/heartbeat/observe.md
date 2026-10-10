@@ -67,6 +67,21 @@ do.
 
 ---
 
+## A quiet beat the dream cycle may use
+
+`id: dream-cycle` → act: `goal.md` § `dream-cycle`
+
+A quiet beat is one that observed nothing else, where the brain's last turn did not hand
+the owner something to do (the same discriminator as `quiet-cycles`). Read the activation
+record through `.claude/shared/dream_cycle.py`: is the dream cycle switched on?
+
+Observe whether the beat is quiet, whether `quiet-cycles` ran `/curiosity` in this same
+beat, and whether the owner has sent a message in this session within the last 10 minutes.
+Those three, with the switch, are the inputs to the gate. Nothing else in the window
+matters to this section.
+
+---
+
 ## Something happened that the next session must hold
 
 `id: surface-map` → act: `goal.md` § `surface-map`

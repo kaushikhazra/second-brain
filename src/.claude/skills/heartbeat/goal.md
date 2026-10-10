@@ -86,6 +86,32 @@ nobody asked for, and it is wasted if it is spent waiting instead.
 
 ---
 
+## A quiet beat the dream cycle may use
+
+`id: dream-cycle` ← observed by: `observe.md` § `dream-cycle`
+
+### Goal
+
+A large consolidation backlog shrinks a little at a time while the owner is away, and only
+then, without a full `/dream` and without the owner running anything by hand.
+
+### Instructions
+
+- Ask the gate, not the skill: `dream_cycle.should_run(record, quiet, curiosity_ran,
+  owner_active)` over the activation record. If it is false, do nothing.
+- **Off means never.** While the switch is off the heartbeat never runs a cycle.
+- **One cycle per beat**, at the stored batch size: run `/dream-cycle "requested by
+  heartbeat"`.
+- **Curiosity and the dream cycle share quiet beats by one rule: never both in the same
+  beat.** `quiet-cycles` runs first; if it ran `/curiosity` this beat, the dream cycle
+  waits for the next quiet beat.
+- **Never while the owner is in conversation** — a message from the owner within the last
+  10 minutes — the same refusal `/dream` already has.
+- No backup before a cycle: it consolidates only on quiet beats and only archives, never
+  deletes, so it is reversible without one.
+
+---
+
 ## Something happened that the next session must hold
 
 `id: surface-map` ← observed by: `observe.md` § `surface-map`
