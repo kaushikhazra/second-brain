@@ -222,7 +222,32 @@ def main() -> int:
     # AC 7 (text half): the rule is written in the heartbeat goal.
     check(
         "AC7b: heartbeat goal states curiosity and the dream cycle never share a beat",
-        bool(re.search(r"never both in the same beat", goal, re.I)),
+        bool(re.search(r"never\s+both\s+in\s+the\s+same\s+beat", goal, re.I)),
+    )
+
+    # AC 5 and AC 8 (text half): the heartbeat goal says off means never, and the
+    # 10-minute owner-in-conversation refusal, inside the dream-cycle section only.
+    section = re.split(r"\n## ", goal)
+    dream_section = next(
+        (s for s in section if re.search(r"`?id:\s*dream-cycle`?", s)), ""
+    )
+    check(
+        "AC6c: the dream-cycle goal section was found to be inspected",
+        bool(dream_section),
+    )
+    check(
+        "AC5c: dream-cycle goal section says off means never",
+        bool(re.search(r"off\s+means\s+never", dream_section, re.I)),
+    )
+    check(
+        "AC8b: dream-cycle goal section refuses while the owner is in conversation (10 minutes)",
+        bool(re.search(r"owner[^.]*conversation", dream_section, re.I))
+        and "10 minutes" in dream_section,
+    )
+    check(
+        "AC4c: dream-cycle goal section runs one cycle per beat at the stored batch size",
+        bool(re.search(r"one\s+cycle\s+per\s+beat", dream_section, re.I))
+        and bool(re.search(r"batch\s+size", dream_section, re.I)),
     )
 
     # AC 11b: the record is carried across /update.
