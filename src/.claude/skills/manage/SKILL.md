@@ -1,0 +1,302 @@
+---
+name: manage
+description: Take a project in from a git URL and learn its instructions, list the projects this brain manages, find where one lives, or say what the brain knows about one. Use when the owner hands over a repository URL ("take this project in", "manage this repo", "clone <url>"), asks which projects the brain looks after, asks "what do you know about <project>?", asks about or overrides a project's code host or issue tracker, asks which trackers the brain works with, switches a project's monitoring on or off or asks which are monitored, raises or answers about an issue to work on (due diligence first, nothing starts without a yes), views, reorders or removes items of the work queue, lists a project's hooks or adopts or removes one, or before any piece of work inside a managed project.
+---
+
+# Manage
+
+One brain can look after more than one project. Each one is a git clone under
+`projects/<repo-name>/` in the brain's root. That folder is the whole registry —
+nothing records a path anywhere, so renaming or moving the brain leaves every
+project found.
+
+`projects/` is never committed to the brain's own repo; `.gitignore` excludes it.
+
+## Invocation
+
+Run via Bash from the brain root — the script finds the root itself, at runtime:
+
+```bash
+python .claude/skills/manage/scripts/projects.py clone "<git-url>"
+python .claude/skills/manage/scripts/projects.py list
+python .claude/skills/manage/scripts/projects.py locate "<name-or-url>"
+python .claude/skills/manage/scripts/projects.py learn "<name>"
+python .claude/skills/manage/scripts/projects.py stale "<name>"
+python .claude/skills/manage/scripts/projects.py refresh "<name>"
+python .claude/skills/manage/scripts/projects.py trackers
+python .claude/skills/manage/scripts/projects.py tracker "<name>" [--set field=value] [--clear]
+python .claude/skills/manage/scripts/projects.py monitor "<name>" on|off
+python .claude/skills/manage/scripts/projects.py monitored
+python .claude/skills/manage/scripts/projects.py issues
+python .claude/skills/manage/scripts/projects.py issue "<name>" <number>
+python .claude/skills/manage/scripts/projects.py decide "<name>" <number> yes|no|later
+```
+
+Always clone through the script. Never `git clone` by hand, and never anywhere
+but `projects/` — the script is what guarantees no re-clone and no partial folder.
+
+## Telling the owner
+
+The script prints `KEY: value` lines, the first `STATUS:`. Put each in the
+owner's terms, with the values shown as they are:
+
+| STATUS | Say |
+|--------|-----|
+| `CLONED` | Taken in. Show the **path** and the **default branch**. |
+| `ALREADY_MANAGED` | Already here — not cloned again. Show the path. |
+| `NAME_TAKEN` | A different project already sits at that path. Show it and its origin; clone nothing. |
+| `UNREACHABLE` | Could not reach the host — a network or address problem. Nothing was created. |
+| `NO_ACCESS` | Reached the host, but this machine has no access to that repo (or it does not exist there). Nothing was created. |
+| `NOT_A_GIT_REPO` | The URL does not point at a git repository. Nothing was created. |
+| `CLONE_FAILED` | The clone failed for another reason — quote `DETAIL`. Nothing was created. |
+| `LISTED` | One line per project: name, path, origin. With `COUNT: 0`, say the brain manages no projects yet. |
+| `FOUND` / `NOT_MANAGED` | Where it is, or that the brain does not manage it. |
+| `LEARN_MATERIAL` | See *Learning a project* below. |
+
+Each failure is its own message. Do not merge them into a generic "couldn't clone".
+Lead with the cause in plain words — the `STATUS` code is for you, never shown
+to the owner.
+
+## Learning a project
+
+Taking a project in is not done until it is learned. Straight after `CLONED`,
+run `learn <name>` in the same turn.
+
+`learn` writes the record `.claude/projects/<name>.md` — frontmatter
+fingerprint and the hooks list are already filled in by the script — and prints
+the material: the project's `CLAUDE.md`, README, every file under its `.claude/`
+(skills and rules in full), its hooks and its top-level folders. Read all of it,
+then replace each `_(to fill …)_` line in the record with what you learned, in
+a few lines each:
+
+| Section | What goes there |
+|---------|-----------------|
+| Purpose | What the project is and is for. |
+| Development method | How work is done there (spec-driven, loops, TDD, …), from its `CLAUDE.md`. |
+| Conventions | Language and version, dependencies, naming, style rules. |
+| Code and tests | Where code lives, where tests live, the command that runs them. |
+| Project skills and rules (.claude/) | Each skill or rule file, one line on what it does. |
+
+Never touch the frontmatter or the hooks list — the script owns them.
+
+`HAS_CLAUDE_MD: no` → say so to the owner in plain words, and learn from the
+README and the folder structure instead; the record already says so at the top.
+
+Then tell the owner, after the path and branch: one line on what the project
+is, its development method, and its hooks **listed by name, with "not adopted"**
+— a project's hooks never become the brain's own until the owner names one to
+adopt (*A project's hooks*, below).
+
+### What the brain knows about a project
+
+"What do you know about X?" is answered **from the record** — `locate` X, read
+`.claude/projects/<name>.md`, and give its purpose, development method,
+conventions, and where code and tests live, plus anything else the record holds.
+No record → run `learn` first.
+
+### Staying current
+
+Before any piece of work inside a managed project, run `stale <name>`:
+
+| STATUS | Do |
+|--------|----|
+| `CURRENT` | Work. |
+| `STALE` | The project's `CLAUDE.md` changed upstream. `refresh <name>`, then `learn <name>` and fill the record again, **before** the work. Tell the owner it was relearned and what changed. |
+| `NO_RECORD` | `learn <name>` first. |
+| `REFRESH_FAILED` | Local work blocks a fast-forward. Tell the owner; do not work on stale instructions. |
+
+### Whose rules win
+
+While working inside a project, **the project's rules win over the brain's own**
+— its `CLAUDE.md`, its `.claude/` rules, its method. The brain's identity and
+memory rules still hold; its development method does not. Wherever the two
+conflict on something you act on, tell the owner which one applied, in one line:
+*"Followed sb-sandbox-alpha's rule (spec first) over the brain's own (loops)."*
+
+### A project's hooks
+
+A project's hooks are **listed, never adopted by default** — the brain's guard rails
+stay the brain's. The owner chooses which, if any, become the brain's own:
+
+```bash
+python .claude/skills/manage/scripts/projecthooks.py list "<name>"
+python .claude/skills/manage/scripts/projecthooks.py adopt "<name>" <number>
+python .claude/skills/manage/scripts/projecthooks.py adopted
+python .claude/skills/manage/scripts/projecthooks.py remove <id>
+```
+
+| Line | Do |
+|------|----|
+| `list` → `HOOK: <n> \| event \| matcher \| command …` | Show the numbered hooks and which are adopted. `list` changes nothing — say so if the owner worries. |
+| `adopt` → `STATUS: ADOPTED` + `APPLIES_TO: every project in this brain` | Say plainly that the hook **now applies to every project in this brain**, not only to the project it came from; and that it is in `.claude/settings.local.json`. |
+| `adopt` → `STATUS: DUPLICATE` or `STATUS: CONFLICT` + `EXISTING:` | Report which existing hook it duplicates or conflicts with, and that **nothing was added**. Do not add it another way; the owner decides (remove the other first, or leave it). |
+| `adopted` / `remove <id>` | When the owner asks what was adopted, or to take one out. |
+
+Adopt only a hook the owner **names**. The script roots the hook's command at
+`$CLAUDE_PROJECT_DIR`, so it keeps firing when the brain folder is renamed or moved.
+
+### The work queue
+
+One brain on one machine never runs two builds at once, whatever the projects.
+Approved work goes on a queue; one piece is active, the rest wait in the order they
+were approved. The queue is `.claude/projects/queue.json`, kept by
+
+```bash
+python .claude/skills/manage/scripts/workqueue.py add "<name>" <number> --title "<title>"
+python .claude/skills/manage/scripts/workqueue.py list [--all]
+python .claude/skills/manage/scripts/workqueue.py move <id> <position>
+python .claude/skills/manage/scripts/workqueue.py remove <id>
+python .claude/skills/manage/scripts/workqueue.py finish
+python .claude/skills/manage/scripts/workqueue.py stop "<reason>"
+python .claude/skills/manage/scripts/workqueue.py recover
+```
+
+| Line | Do |
+|------|----|
+| `add` → `STATUS: STARTED` | Nothing was running: begin the work now. |
+| `add` → `STATUS: QUEUED` + `POSITION` + `ACTIVE` | Tell the owner its position and what is running. Do not begin. |
+| `add` → `STATUS: ALREADY_QUEUED` | Say so; add nothing. |
+| `list` | Show the owner the `ITEM:` rows — project, issue, state, and the position of each waiting one. |
+| `move` / `remove` | When the owner asks to reorder or drop an item. The running item cannot be moved. |
+| `finish` / `stop` | When the active work closes, or is stopped. Read `NEXT_STARTED:` — if an item started, begin it (its own due diligence is already done: it was approved). |
+
+Never start work on an issue while another item is `active`.
+
+### Doing the work on an issue
+
+Once the owner has said yes (see *Due diligence*):
+
+- **The method.** The project's own, from its learned record. Where the record
+  states none, use **loop engineering**: the issue's acceptance criteria are the
+  goal, and the loop lives in **the project's** `.claude/loop/{issue}-{slug}/`
+  (`goal.md`, `observe.md`, `assumption.md`, `action.md`, `logs/cycle-N.md`) —
+  never in the brain's own `.claude/loop/`.
+- **The branch.** Work only on a feature branch in the project, cut from its
+  default branch. Never commit to the default branch. **Never merge** — not a
+  branch, not a pull request. The owner merges.
+- **Closing.** When the work closes, comment on the issue in the project's
+  tracker (`gh issue comment` for GitHub): *"N of N criteria met"*, then one
+  line per criterion saying what proved it. If fewer than N hold, say *"M of N
+  criteria met"* and name the ones that do not.
+
+## Code host and issue tracker
+
+`learn` ends with a *code host and issue tracker* block — the same lines
+`tracker <name>` prints. Nothing there calls a tracker's API: the code host
+comes from the remote URL, the tracker from the project's own files (a Jira
+link in its `CLAUDE.md` or README) or else the code host's own issues.
+
+On taking a project in, tell the owner the **code host**, the **issue
+tracker**, and **how you know** (`HOW_DETECTED`, in plain words: "from the
+remote URL (gitlab.com) and its `.gitlab-ci.yml`").
+
+| Line | Do |
+|------|----|
+| `SUPPORTED: no` | Say plainly: the project is still managed, but monitoring and issue work are not available for that tracker. |
+| `CREDENTIALS: missing` + `TELL_OWNER: yes …` | Tell the owner what is needed (`NEEDED`), once. |
+| `CREDENTIALS: missing` + `TELL_OWNER: no …` | Already told — do not repeat it. |
+
+**Which trackers work** — "which trackers can you work with?" → `trackers`,
+and answer with exactly what it lists; the script is the one source of that list.
+
+**Override** — the owner can set either one explicitly ("alpha's issues are in
+GitLab", "treat beta's code host as gitlab"):
+
+```bash
+python .claude/skills/manage/scripts/projects.py tracker "<name>" --set tracker=gitlab
+python .claude/skills/manage/scripts/projects.py tracker "<name>" --set code_host=gitlab
+python .claude/skills/manage/scripts/projects.py tracker "<name>" --clear
+```
+
+What was detected and what was overridden live in `.claude/projects/<name>.json`
+and survive a restart and a relearn. For any question about a project's
+tracker, run `tracker <name>` — never answer from memory of an earlier session.
+
+## Monitoring
+
+**Ask once, at take-in.** After a project is taken in and learned, and its
+tracker is supported, end the reply by asking the owner whether to monitor it:
+*"Shall I watch sb-sandbox-alpha's issues and tell you about new ones?"* On a
+yes, `monitor <name> on`; on a no, `monitor <name> off`. Never switch it on
+unasked.
+
+The owner can change it any time, or ask which projects are watched:
+
+```bash
+python .claude/skills/manage/scripts/projects.py monitor "<name>" on
+python .claude/skills/manage/scripts/projects.py monitor "<name>" off
+python .claude/skills/manage/scripts/projects.py monitored
+```
+
+`MONITOR_UNAVAILABLE` → the tracker is not supported; say monitoring is not
+available for it.
+
+The watching itself is the heartbeat's (`heartbeat/observe.md` § `project-issues`):
+each beat runs `issues`, which reads the open issues of monitored projects only,
+each from its own tracker, and prints
+
+| Line | Tell the owner |
+|------|----------------|
+| `NEW: <project> \| #<n> \| <title>` | Each one: project, number, title. It is reported once and never again while open. |
+| `CLOSED: …` | Nothing — a closed issue just drops off what has been seen. |
+| `FAILURE: <project> \| <cause> \| TELL_OWNER: yes …` | Once: the tracker is unreachable, or not signed in (with `NEEDED`). |
+| `FAILURE: … \| TELL_OWNER: no …` | Nothing — already told. |
+| `RECOVERED: <project>` | Nothing needed; say so if it was failing for long. |
+
+What has been seen lives in `.claude/projects/<name>.json` and survives a
+restart — never re-report from memory of a past session; `issues` is the truth.
+
+## Due diligence — before any work on an issue
+
+Nothing gets built that the owner did not choose. Whenever work on an issue of a
+managed project comes up — the owner names one, or a heartbeat reported it and
+the owner asks about it — run:
+
+```bash
+python .claude/skills/manage/scripts/projects.py issue "<name>" <number>
+```
+
+**`PRIOR_DECISION: no` or `later` with `CHANGED_SINCE: no`** → do not walk
+through it again. Say it was set aside (when, and as no or later) and that you
+will raise it again once the issue changes. Ask nothing.
+
+**Otherwise, present the diligence** — and nothing else happens in this turn:
+
+1. **What it asks** — the issue in two or three plain lines.
+2. **Its acceptance criteria** — listed as written.
+3. **Size and risk** — your read: small / medium / large, and what could go wrong
+   (what it touches, what it might break), from the learned record and the code.
+4. **Open questions** — what is unclear or missing.
+
+Then ask: *"Shall I start on it?"* — yes, no, or later.
+
+**`CHECKABLE_CRITERIA: no`** → present 1, 3 and 4, then say plainly, in these words,
+*"this cannot converge"* — work on it cannot converge without criteria a result can
+be checked against — and ask the owner for them. Do not offer to start.
+
+**Until the owner says yes, change nothing**: no branch, no file, no spec, no
+loop folder, in the project or in the brain. Reading is fine.
+
+**The answer:**
+
+```bash
+python .claude/skills/manage/scripts/projects.py decide "<name>" <number> yes|no|later
+```
+
+- **no / later** → record it, confirm in one line, stop.
+- **yes** → record it, then state, before anything else:
+  - **the branch** — named by the project's own convention if its record states
+    one, else `feature/<number>-<short-slug>`, cut from the default branch;
+  - **the development method** — the project's, from its learned record (its
+    rules win while working there), named in a phrase.
+  Then put it on the queue (*The work queue*, below) and begin only if it starts,
+  following that method.
+
+## Do not
+
+- Clone a URL the owner did not give. On a failure, never retry with a
+  different spelling of it (HTTPS for SSH, another host, a fork) — report the
+  failure, say what would work, and let the owner hand over the URL they want.
+- Copy a project's files into the brain, or clone beside the brain.
+- Write a project's path into memory, a config file or `CLAUDE.md` — ask the
+  script with `locate` each time instead.

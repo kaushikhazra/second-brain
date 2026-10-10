@@ -15,6 +15,14 @@ user.md
 # Distributable artifacts — the builder is committed, its output is not
 dist/
 
+# Managed projects (issue #38) — each is its own git clone with its own origin;
+# never part of the brain's repo
+projects/
+
+# What the brain learned about each managed project (issue #39) — derived from
+# the project's own files, machine-local, rewritten on every relearn
+.claude/projects/
+
 # Temp — never check in
 temp/
 *temp*

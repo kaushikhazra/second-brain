@@ -171,3 +171,25 @@ routine edit — say so to the owner and change nothing.
 
 Churn in the surface map is the mechanism working; churn in the self map is a
 finding.
+
+---
+
+## A monitored project has an issue the brain has not seen
+
+`id: project-issues` ← observed by: `observe.md` § `project-issues`
+
+### Goal
+
+New work in a project the owner chose to watch reaches them without their going to
+look — once, and never again while it stays open.
+
+### Instructions
+
+- This is the world speaking through the brain: it breaks the beat's silence.
+- For each `NEW:` line, tell the owner the project, the issue number and the title —
+  one line each, nothing more. `issues` has already recorded them as seen; do not
+  re-report one from memory of an earlier beat or session.
+- For a `FAILURE:` line marked `TELL_OWNER: yes`, say once that the project's tracker
+  is unreachable or not signed in (with what is needed). A failure marked
+  `TELL_OWNER: no` was already told — say nothing.
+- Store nothing in Synaptra for this; the seen record lives in the project's settings.

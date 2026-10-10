@@ -99,3 +99,20 @@ The full entry test and the ceiling live in `goal.md`.
 
 Do not maintain this at session end — a mid-session compaction destroys an
 end-of-session write.
+
+---
+
+## A monitored project has an issue the brain has not seen
+
+`id: project-issues` → act: `goal.md` § `project-issues`
+
+Every beat — quiet or not, and whether or not Synaptra is reachable — run:
+
+```bash
+python .claude/skills/manage/scripts/projects.py issues
+```
+
+It reads the open issues of **monitored projects only**, each from its own tracker,
+and compares them with what was already seen. A `NEW:` line, or a `FAILURE:` line
+marked `TELL_OWNER: yes`, is an observation. `CLOSED:`, `RECOVERED:` and failures
+already told are not. No monitored projects → nothing to observe.
