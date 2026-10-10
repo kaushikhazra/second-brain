@@ -18,6 +18,7 @@ Usage: python check_dream_cycle_cli.py
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -25,7 +26,8 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SRC = REPO_ROOT / "src"
+# DREAM_CYCLE_SRC points the check at a mutant copy of `src` (see mutate.py).
+SRC = Path(os.environ.get("DREAM_CYCLE_SRC", REPO_ROOT / "src"))
 SHARED = SRC / ".claude" / "shared"
 SKILL = SRC / ".claude" / "skills" / "dream-cycle" / "SKILL.md"
 SRC_CLAUDE_MD = SRC / "CLAUDE.md"
@@ -50,6 +52,16 @@ def run(script: Path, *args: str) -> tuple[int, str]:
         [sys.executable, str(script), *args], capture_output=True, text=True
     )
     return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def parse_batch(out: str) -> list[dict]:
+    """The `batch` command's JSON list. Anything else (`STALE`, an error) is an empty
+    batch, so a broken cycle fails the check on its own line instead of crashing it."""
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        return []
+    return data if isinstance(data, list) else []
 
 
 def main() -> int:
@@ -115,7 +127,7 @@ def main() -> int:
 
     # Two cycles, one by hand with the switch OFF, one from the heartbeat.
     _, b1 = run(script, "batch")
-    batch1 = json.loads(b1)
+    batch1 = parse_batch(b1)
     keys1 = ",".join(a["key"] for a in batch1)
     rc1, f1 = run(
         script,
@@ -132,7 +144,7 @@ def main() -> int:
         keys1,
     )
     _, b2 = run(script, "batch")
-    batch2 = json.loads(b2)
+    batch2 = parse_batch(b2)
     keys2 = ",".join(a["key"] for a in batch2)
     rc2, f2 = run(
         script,
@@ -206,7 +218,7 @@ def main() -> int:
         "--by",
         "heartbeat",
         "--keys",
-        ",".join(a["key"] for a in json.loads(b3)),
+        ",".join(a["key"] for a in parse_batch(b3)),
     )
     _, b4 = run(script, "batch")
     check("PLAN: a used-up plan is reported STALE", b4 == "STALE", b4)

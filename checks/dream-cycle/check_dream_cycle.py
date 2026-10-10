@@ -15,6 +15,7 @@ Usage: python check_dream_cycle.py
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -22,7 +23,8 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SRC_ROOT = REPO_ROOT / "src"
+# DREAM_CYCLE_SRC points the check at a mutant copy of `src` (see mutate.py).
+SRC_ROOT = Path(os.environ.get("DREAM_CYCLE_SRC", REPO_ROOT / "src"))
 SHARED = SRC_ROOT / ".claude" / "shared"
 HEARTBEAT = SRC_ROOT / ".claude" / "skills" / "heartbeat"
 UPDATE_BRAIN = SHARED / "update_brain.py"
