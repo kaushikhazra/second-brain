@@ -66,6 +66,8 @@ __pycache__/
 # Dream cycle's saved plan (issue #46) — the day's dry-run action list and what
 # each cycle has applied from it. Machine-local, rewritten by the cycle.
 .claude/dream-cycle-plan.json
+# ...and its log, one line per cycle.
+.claude/dream-cycle-log.md
 
 # Isolated Claude config, created by brain-claude-sandbox.bat.
 # Holds this machine's Claude settings and sign-in. Never committed.

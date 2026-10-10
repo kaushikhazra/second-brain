@@ -22,14 +22,18 @@ talks to synaptra.
 
 from __future__ import annotations
 
+import argparse
 import json
+import sys
+from datetime import datetime
 from pathlib import Path
 
-from activation import brain_root
+from activation import brain_root, load_record, record_path, save_record
 
 HABIT = "dream_cycle"
 DEFAULT_BATCH = 25
 PLAN_FILE = "dream-cycle-plan.json"
+LOG_FILE = "dream-cycle-log.md"
 REVERSIBLE = ("promote", "archive")
 
 
@@ -185,3 +189,141 @@ def save_plan(path: Path | None, plan: dict) -> None:
         raise ValueError("save_plan: no path -- brain root could not be resolved")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+# --- the brain's log ------------------------------------------------------------------
+
+
+def log_path(root: Path | None = None) -> Path | None:
+    root = root or brain_root()
+    return None if root is None else root / ".claude" / LOG_FILE
+
+
+def log_line(
+    by: str,
+    done: dict,
+    backlog_before: int,
+    backlog_after: int,
+    now: datetime | None = None,
+) -> str:
+    """One line per cycle, the same shape whether it was started by hand or by the
+    heartbeat (AC 9, AC 10)."""
+    stamp = (now or datetime.now()).strftime("%Y-%m-%d %H:%M")
+    return (
+        f"{stamp} by={by} promoted={done.get('promoted', 0)} "
+        f"archived={done.get('archived', 0)} skipped={done.get('skipped', 0)} "
+        f"backlog {backlog_before}->{backlog_after}"
+    )
+
+
+def append_log(path: Path | None, line: str) -> None:
+    if path is None:
+        raise ValueError("append_log: no path -- brain root could not be resolved")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+
+# --- the command line the skill drives ------------------------------------------------
+
+
+def _version(root: Path | None) -> str:
+    v = (root / "VERSION") if root else None
+    return v.read_text(encoding="utf-8").strip() if v and v.is_file() else "unknown"
+
+
+def _describe(rec: dict) -> str:
+    s = status(rec)
+    backlog_txt = (
+        "unknown until the first plan" if s["backlog"] is None else str(s["backlog"])
+    )
+    extra = f", {s['needs_dream']} more need a hand /dream" if s["needs_dream"] else ""
+    return (
+        f"Dream cycle is {'on' if s['active'] else 'off'}. Batch size {s['batch_size']}. "
+        f"Cycles run {s['cycles_run']}. Backlog {backlog_txt}{extra}."
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(prog="dream_cycle")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("on")
+    sub.add_parser("off")
+    sz = sub.add_parser("size")
+    sz.add_argument("n", type=int)
+    sub.add_parser("status")
+    pf = sub.add_parser(
+        "plan-from", help="save the day's plan from a dry-run actions JSON file"
+    )
+    pf.add_argument("actions_file")
+    sub.add_parser(
+        "batch", help="print the next batch as JSON; STALE means re-run the dry run"
+    )
+    fin = sub.add_parser("finish", help="record one finished cycle")
+    fin.add_argument("--by", choices=("hand", "heartbeat"), required=True)
+    fin.add_argument("--promoted", type=int, default=0)
+    fin.add_argument("--archived", type=int, default=0)
+    fin.add_argument("--skipped", type=int, default=0)
+    fin.add_argument(
+        "--keys", default="", help="comma-separated keys of every action handled"
+    )
+    a = p.parse_args(argv)
+
+    root = brain_root()
+    rpath = record_path(root)
+    rec = load_record(rpath)
+    today = datetime.now().date().isoformat()
+
+    if a.cmd in ("on", "off"):
+        rec = switch(rec, _version(root), active=a.cmd == "on")
+        save_record(rpath, rec)
+        print(f"Dream cycle is {a.cmd}.")
+    elif a.cmd == "size":
+        try:
+            rec = set_batch_size(rec, a.n)
+        except ValueError as e:
+            print(f"Not changed: {e}.")
+            return 2
+        save_record(rpath, rec)
+        print(f"Batch size is {a.n}.")
+    elif a.cmd == "status":
+        print(_describe(rec))
+    elif a.cmd == "plan-from":
+        actions = json.loads(Path(a.actions_file).read_text(encoding="utf-8"))
+        plan = new_plan(actions, today)
+        save_plan(plan_path(root), plan)
+        entry = {
+            **_entry(rec),
+            "backlog": backlog(plan),
+            "needs_dream": plan["needs_dream"],
+        }
+        rec = {**rec, HABIT: {"active": False, "answered_at_version": None, **entry}}
+        save_record(rpath, rec)
+        print(
+            f"Plan saved: {backlog(plan)} to apply, {plan['needs_dream']} need a hand /dream."
+        )
+    elif a.cmd == "batch":
+        plan = load_plan(plan_path(root))
+        if plan_is_stale(plan, today):
+            print("STALE")
+            return 0
+        print(json.dumps(next_batch(plan, status(rec)["batch_size"])))
+    elif a.cmd == "finish":
+        plan = load_plan(plan_path(root))
+        if not plan:
+            print("No plan to finish against.")
+            return 2
+        before = backlog(plan)
+        keys = [k for k in a.keys.split(",") if k]
+        plan = mark_applied(plan, keys)
+        save_plan(plan_path(root), plan)
+        done = {"promoted": a.promoted, "archived": a.archived, "skipped": a.skipped}
+        rec = record_cycle(rec, done, backlog_after=backlog(plan))
+        save_record(rpath, rec)
+        append_log(log_path(root), log_line(a.by, done, before, backlog(plan)))
+        print(f"Cycle logged. Backlog {before} -> {backlog(plan)}.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

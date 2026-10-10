@@ -1,18 +1,18 @@
-# Action — cycle 4
+# Action — cycle 5
 
-Constraint from cycle 3: 8/11. `/dream-cycle` does not exist; AC 4, 9, 10 need it, and AC 1-3
-need an owner-facing command.
+Constraint from cycle 4: 8/11. AC 4, 9, 10 are proved only against a scratch brain's
+bookkeeping; the memory operations and the falling count need a real store.
 
 1. Read `gh issue view 46` (criteria) first.
-2. Write `src/.claude/skills/dream-cycle/SKILL.md`: subcommands `on`, `off`, `size <n>`,
-   `status`, and the run itself (`requested by heartbeat` or by hand). The run: load or
-   refresh the day's plan (`dream_cycle.plan_is_stale`; refresh with
-   `memory_consolidate(dry_run=true)`), take `next_batch`, apply each `promote` through
-   `/update-memory` (type change) and each `archive` through `/delete-memory` (archive),
-   skip boot-list ids and the current handoff and report them, `mark_applied`, then
-   `record_cycle` and write one log entry. Archive, never delete. No backup (Kaushik).
-   Refuse while the owner is in conversation. Hand and heartbeat runs count the same.
-3. Add the skill to `src/CLAUDE.md`'s lifecycle table and structure table.
-4. Extend the check: SKILL.md exists, names the three subcommands plus run, never calls
-   `memory_delete`/`memory_store`/`memory_update` directly, never mentions a backup step.
+2. Store run on a scratch synaptra, never the live store and never the live port (rule:
+   `SYNAPTRA_PORT=8150`, scratch `SYNAPTRA_DB` under `C:/Projects/.tmp/second-brain-loop-46/store`).
+   Use this maintainer brain's `.claude/.venv` python (synaptra 2.1.1) and drive synaptra's
+   engine from one script in this session: seed memories (some that a dry run will promote,
+   some that will archive), take `consolidate(dry_run=True)`, build the plan with
+   `dream_cycle.new_plan`, apply a batch of its promote/archive actions through the engine's
+   update/archive path, re-run the dry run. Assert: the pending reversible count fell by the
+   batch, no memory was deleted, an archived one can be restored intact.
+3. Make that script `checks/dream-cycle/check_dream_cycle_store.py`, with the scratch store
+   path and port taken from constants at the top. Run it.
+4. If it passes, AC 4, 9, 10 are met: 11/11 pending only the mutation pass.
 5. Record criteria met out of 11, commit and push, report on crosschat.

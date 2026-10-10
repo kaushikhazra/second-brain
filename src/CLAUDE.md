@@ -138,6 +138,7 @@ improvise or replicate its steps from here.
 | User wants to create a new Claude Code subagent | `/agent-creator` |
 | A newer release exists, or the owner asks to update the brain and its synaptra substrate | `/update` |
 | User asks for it, when memory feels flat or a major arc closed — never scheduled | `/dream` |
+| Owner wants to switch the small dream cycle on/off, set its batch size, check its state, or run one batch by hand — otherwise fires only from the heartbeat's quiet beats | `/dream-cycle` |
 | Owner references a past session by regex, not something already in cognitive memory | `/recall-session` |
 | Owner wants to switch idle curiosity on/off/check its state, or run one pass by hand — otherwise fires only from the heartbeat's quiet cycles | `/curiosity` |
 | Owner wants to switch the morning news on/off/check its state, or wants the list right now — otherwise it runs once daily, after `/session-start`, when active | `/news` |
@@ -155,6 +156,7 @@ improvise or replicate its steps from here.
 | `.claude/skills/heartbeat/` | Cron-fired consolidation cycle — silent synaptra bookkeeping. |
 | `.claude/skills/update/` | Update the brain and synaptra to a released version — backup, replace, record. |
 | `.claude/skills/dream/` | Deep memory consolidation — graph reshaping, user-invoked. |
+| `.claude/skills/dream-cycle/` | The small dream cycle — one batch of reversible consolidation per quiet heartbeat beat, taken from the day's saved plan; switched on by the owner. |
 | `.claude/skills/local-agent/` | Hands a whole task to a local ollama model that runs its own agentic loop and returns one typed result. |
 | `.claude/skills/agent-creator/` | Interactively creates a real Claude Code subagent — six-question flow, generates `.claude/agents/*.md`, indexes it below. |
 | `.claude/skills/recall-session/` | Regex search across this brain's own Claude Code session transcripts, scoped to this project only. |
