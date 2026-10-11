@@ -589,11 +589,38 @@ def repo_slug(p: Path) -> str:
     return normalise(origin_of(p)).split("/", 1)[1] if origin_of(p) else ""
 
 
-def open_issues(p: Path, tracker: str) -> tuple[dict[str, str] | None, str]:
-    """({number: title}, "") or (None, failure code). GitHub through `gh`,
-    GitLab through `glab` -- each project's own tracker, never another's."""
+NO_ERROR_OUTPUT = "(no error output)"
+ERROR_LINE_MAX = 200
+# Anything token- or credential-shaped is blanked before the line reaches the
+# owner's screen or a log: well-known token prefixes, `Bearer ...`, secrets in a
+# URL's userinfo, and `key=value` / `key: value` pairs for secret-ish keys.
+_SECRETS = re.compile(
+    r"(?:gh[pousr]_|github_pat_|glpat-|xox[abprs]-)[A-Za-z0-9_\-]+"
+    r"|(?i:bearer)\s+\S+"
+    r"|(?<=://)[^/\s@]+@"
+    r"|(?i:(?:token|password|passwd|secret|authorization|api[_-]?key)\s*[=:]\s*)\S+"
+)
+
+
+def error_line(stderr: str) -> str:
+    """First line of a tool's error output, capped and scrubbed of secrets;
+    a stated absence when the tool printed nothing."""
+    for line in (stderr or "").splitlines():
+        line = line.strip()
+        if line:
+            line = _SECRETS.sub("[redacted]", line)
+            if len(line) > ERROR_LINE_MAX:
+                line = line[:ERROR_LINE_MAX] + "..."
+            return line
+    return NO_ERROR_OUTPUT
+
+
+def open_issues(p: Path, tracker: str) -> tuple[dict[str, str] | None, str, str]:
+    """({number: title}, "", "") or (None, failure code, error line). GitHub
+    through `gh`, GitLab through `glab` -- each project's own tracker, never
+    another's. The error line is the tool's own first line of error output."""
     if not credentials(tracker):
-        return None, "NOT_SIGNED_IN"
+        return None, "NOT_SIGNED_IN", NO_ERROR_OUTPUT
     slug = repo_slug(p)
     if tracker == "github":
         args = [
@@ -631,18 +658,19 @@ def open_issues(p: Path, tracker: str) -> tuple[dict[str, str] | None, str]:
             timeout=120,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return None, f"UNREACHABLE ({exc.__class__.__name__})"
+        return None, f"UNREACHABLE ({exc.__class__.__name__})", error_line(str(exc))
+    line = error_line(out.stderr)
     if out.returncode != 0:
         err = out.stderr.lower()
         if any(w in err for w in ("auth", "login", "401", "403", "token")):
-            return None, "NOT_SIGNED_IN"
-        return None, "UNREACHABLE"
+            return None, "NOT_SIGNED_IN", line
+        return None, "UNREACHABLE", line
     try:
         items = json.loads(out.stdout or "[]")
     except ValueError:
-        return None, "UNREACHABLE"
+        return None, "UNREACHABLE", line
     key = "number" if tracker == "github" else "iid"
-    return {str(i[key]): i.get("title", "") for i in items}, ""
+    return {str(i[key]): i.get("title", "") for i in items}, "", ""
 
 
 def cmd_monitor(key: str, state: str) -> int:
@@ -689,11 +717,13 @@ def cmd_issues() -> int:
         if not settings.get("monitor"):
             continue  # monitored projects only -- nothing is fetched otherwise
         _, tracker, _ = effective(settings)
-        current, failure = open_issues(p, tracker)
+        current, failure, line = open_issues(p, tracker)
         if current is None:
+            # Told-once is keyed on the cause alone: the error line is for the
+            # owner's eyes and may differ between beats without re-reporting.
             told = settings.get("issues_failure") == failure
             print(
-                f"FAILURE: {p.name} | {failure} | TELL_OWNER: {'no -- already told' if told else 'yes -- first time'}"
+                f"FAILURE: {p.name} | {failure} | ERROR: {line} | TELL_OWNER: {'no -- already told' if told else 'yes -- first time'}"
             )
             if failure == "NOT_SIGNED_IN" and tracker in NEEDS:
                 print(f"NEEDED: {NEEDS[tracker]}")

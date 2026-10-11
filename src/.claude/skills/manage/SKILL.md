@@ -239,7 +239,7 @@ each from its own tracker, and prints
 |------|----------------|
 | `NEW: <project> \| #<n> \| <title>` | Each one: project, number, title. It is reported once and never again while open. |
 | `CLOSED: …` | Nothing — a closed issue just drops off what has been seen. |
-| `FAILURE: <project> \| <cause> \| TELL_OWNER: yes …` | Once: the tracker is unreachable, or not signed in (with `NEEDED`). |
+| `FAILURE: <project> \| <cause> \| ERROR: <line> \| TELL_OWNER: yes …` | Once: the project, the cause (unreachable, or not signed in with `NEEDED`) and the `ERROR:` line as printed — the tool's own first line of error output, or `(no error output)` when it printed none. The line never decides whether to tell again; only the cause does. |
 | `FAILURE: … \| TELL_OWNER: no …` | Nothing — already told. |
 | `RECOVERED: <project>` | Nothing needed; say so if it was failing for long. |
 
