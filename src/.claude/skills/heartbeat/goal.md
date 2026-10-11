@@ -215,7 +215,8 @@ look — once, and never again while it stays open.
 - For each `NEW:` line, tell the owner the project, the issue number and the title —
   one line each, nothing more. `issues` has already recorded them as seen; do not
   re-report one from memory of an earlier beat or session.
-- For a `FAILURE:` line marked `TELL_OWNER: yes`, say once that the project's tracker
-  is unreachable or not signed in (with what is needed). A failure marked
+- For a `FAILURE:` line marked `TELL_OWNER: yes`, say once, naming the project, that
+  its tracker is unreachable or not signed in (with what is needed), and quote the
+  line's `ERROR:` text as printed. A failure marked
   `TELL_OWNER: no` was already told — say nothing.
 - Store nothing in Synaptra for this; the seen record lives in the project's settings.
