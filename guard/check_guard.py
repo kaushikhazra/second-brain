@@ -141,6 +141,31 @@ def ac7(generate, train, data):
     )
 
 
+def ac8(notes, measured):
+    """The release notes state both numbers for each test set, and they match a fresh measurement."""
+    try:
+        text = Path(notes).read_text(encoding="utf-8")
+    except OSError:
+        return False, "no release-notes file"
+    want = {"Plain": measured["plain"], "Wrapped": measured["wrapped"]}
+    sc = measured["scorecard"]
+    if sc:
+        want["Real-world"] = {
+            "risky_blocked": sc["weighted_risky_blocked"],
+            "safe_wrongly_blocked": sc["weighted_safe_wrongly_blocked"],
+        }
+    for key, m in want.items():
+        row = re.search(rf"^\| {key}[^|]*\| ([\d.]+)% \| ([\d.]+)% \|", text, re.M)
+        if not row:
+            return False, f"{key} row missing or lacks both numbers"
+        for got, name in zip(row.groups(), ("risky_blocked", "safe_wrongly_blocked")):
+            if abs(float(got) - m[name]) > 0.1:
+                return False, f"{key} {name}: notes say {got}%, measured {m[name]:.1f}%"
+    if not sc and "not measured" not in text:
+        return False, "scorecard absent here but the notes do not say so"
+    return True, f"notes match a fresh measurement ({', '.join(want)})"
+
+
 # ------------------------------------------------------------------ break-it demos
 # each builds a copy of the thing with the behaviour removed; the check must fail on it
 
@@ -244,6 +269,37 @@ def main():
             ac7,
             (GUARD / "generate.py", GUARD / "train.py", GUARD / "data" / "train.jsonl"),
             (g, GUARD / "train.py", d),
+        )
+        # AC 8: notes with one edited number; notes with a column dropped
+        import report
+
+        measured = report.measure()
+        notes = (GUARD / "RELEASE-NOTES-47.md").read_text(encoding="utf-8")
+        edited = work / "edited.md"
+        edited.write_text(
+            re.sub(
+                r"(\| Wrapped[^|]*\| )([\d.]+)%",
+                lambda m: f"{m[1]}{float(m[2]) - 3:.1f}%",
+                notes,
+                count=1,
+            ),
+            encoding="utf-8",
+        )
+        dropped = work / "dropped.md"
+        dropped.write_text(
+            re.sub(r"(\| Plain[^|]*\| [\d.]+% \|) [\d.]+% \|", r"\1", notes, count=1),
+            encoding="utf-8",
+        )
+        run(
+            "AC 8 release notes state both numbers, measured",
+            ac8,
+            (GUARD / "RELEASE-NOTES-47.md", measured),
+            (edited, measured),
+        )
+        ok, detail = ac8(dropped, measured)
+        results.append(not ok)
+        print(
+            f"      column dropped -> {'still passes (check is blind)' if ok else 'fails: ' + detail}"
         )
     finally:
         shutil.rmtree(work, ignore_errors=True)
