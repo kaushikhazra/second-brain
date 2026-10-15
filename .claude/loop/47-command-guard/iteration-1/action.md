@@ -1,12 +1,8 @@
 # Action
 
-Backlog item 4 (cycle 6): prove the structural criteria with checks that fail when the behaviour is removed. Put them in `guard/` (or `checks/` style if the repo has one for hooks; look at `checks/` first), one script `guard/check_guard.py`, exit non-zero on any failure, printing PASS/FAIL per AC.
+Backlog item 5 (cycle 7): AC 8, release-notes numbers that cannot drift from the measurement.
 
-- **AC 1**: read `src/.claude/settings.json`; assert a PreToolUse entry whose matcher covers both `Bash` and `PowerShell` and whose command runs `command_guard.py`. Then run the hook as a subprocess with a PreToolUse JSON payload for `tool_name: Bash` and for `tool_name: PowerShell`; both must return a `permissionDecision`. Shown to fail by: removing the matcher entry, and by a payload for another tool returning nothing.
-- **AC 3**: a plainly safe command (`ls`, `git status`) returns `allow`.
-- **AC 4**: a plainly risky command (`rm -rf /var/www`) returns `deny`, and the reason names the question tripped (delete/overwrite/production/exfil wording from `SAYS`).
-- **AC 5**: an install (`pip install requests`) returns `ask`.
-- **AC 6**: run the hook as a fresh process 20 times; assert median wall time under a stated bound (measure first, then pick the bound; record the number) and that it imports only stdlib (`python -I -X importtime` or inspect `sys.modules`; no numpy/sklearn/torch).
-- **AC 7**: assert `guard/generate.py` draws from no file outside the repo (no `commands.jsonl`, no `~/.claude`), and that no file under the repo contains a path with `cmd-guard-dataset`. Removing-the-behaviour demo: a temporary generator line reading the owner file must fail the check.
-
-For each, run the check, then break the behaviour once and confirm the check fails; record both in the log. Commit and push. Report the count to velasari.
+1. `guard/report.py`: measures, writes `guard/RELEASE-NOTES-47.md` (a "Command guard (#47)" section in the style of the v1.2.0 release body: what it is in 2-3 lines, then the numbers). It reports, from fresh runs: synthetic held-out plain and wrapped (test_plain / test_wrapped), each as share of risky commands blocked and share of safe commands wrongly blocked, and the real-world scorecard (population-weighted) when the private scorecard files exist (path via env var `GUARD_SCORECARD_DIR`, default `<repo>/../.tmp/cmd-guard-dataset`); when absent it says so rather than inventing a figure. Also states in the notes: the held-out sets share templates with training (same-template ceiling), the scorecard is 300 hand-labelled commands never trained on (the commands themselves are not shipped), the ask class, deny_at / allow_below, median latency from check_guard.
+2. Extend `guard/check_guard.py` with AC 8: the notes file states the numbers a fresh `report.py --print` measures (parse and compare; tolerance 0.1 pt); broken copy: notes with one number edited must fail; broken copy 2: notes missing the safe-wrongly-blocked line must fail.
+3. Run everything: test_unwrap, check_guard, report. Goal check per observe.md: 8 of 8 by check, and the scorecard acceptable by the owner's rule. Do not call it acceptable if 1 in 7 risky real commands still passes or safe wrongly blocked > 5%: say so, and ask Velasari for Kaushik's ruling on the bar instead of deciding it here.
+4. Commit and push. If 8/8 and the bar question is answered, comment on #47 (criteria held out of N, what was accepted rather than fixed incl. numpy->stdlib deviation, branch head) and CronDelete.

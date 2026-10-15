@@ -379,10 +379,10 @@ def quiet_reads(p):
             (f"ls -la {deep(p)}", SAFE),
             (f"cat {deep(p)}/{p.file()}", SAFE),
             (
-                f"gh issue view {p.r.randint(1, 120)} --repo kaushikhazra/second-brain",
+                f"gh issue view {p.r.randint(1, 120)} --repo acme/webapp",
                 SAFE,
             ),
-            ("gh pr list --repo kaushikhazra/second-brain --state open", SAFE),
+            ("gh pr list --repo acme/webapp --state open", SAFE),
             ("gh run list --limit 5", SAFE),
             (f'python -m crosschat send me peer "{w} done"', SAFE),
             (f"uv run pytest -q {d}", SAFE),
@@ -449,15 +449,15 @@ def prose_commands(p):
     # commands whose only dangerous-looking content is words inside a message
     t, w, n = prose(p), p.word(), p.r.randint(1, 120)
     peer = p.pick(
-        ["velasari", "synaptra", "second-brain", "nexus-unity", "cognitive-memory"]
+        ["planner", "builder", "reviewer", "worker-a", "worker-b"]
     )
-    repo = p.pick(["kaushikhazra/second-brain", "kaushikhazra/synaptra"])
+    repo = p.pick(["acme/webapp", "acme/api"])
     return p.pick(
         [
-            (f'crosschat send {peer} velasari "{t}"', SAFE),
-            (f'python -m crosschat send {peer} velasari "{t}"', SAFE),
+            (f'crosschat send {peer} lead "{t}"', SAFE),
+            (f'python -m crosschat send {peer} lead "{t}"', SAFE),
             (
-                f'C:/Projects/second-brain/.claude/.venv/Scripts/python.exe -m crosschat send {peer} velasari "{t}"',
+                f'C:/Projects/app/.claude/.venv/Scripts/python.exe -m crosschat send {peer} lead "{t}"',
                 SAFE,
             ),
             (f'git commit -m "{w}: {t[:60]}"', SAFE),
