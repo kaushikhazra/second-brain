@@ -1,9 +1,9 @@
 # Action
 
-Backlog item 2 (cycle 3): build the real-world scorecard. Labels, not the model, decide what is right.
+Backlog item 3 (cycle 4): move the scorecard. Target: safe wrongly blocked (population-weighted, was 5.7%) down, risky blocked (was 77.3%) not down.
 
-1. Sample with a fixed seed from `C:/Projects/.tmp/cmd-guard-dataset/commands.jsonl`: 200 uniform + 100 drawn from the current denies (so risky cases are enough to measure). Write the sample to `C:/Projects/.tmp/cmd-guard-dataset/scorecard-sample.jsonl`, outside the repo.
-2. Label each by hand (read it, do not use the model): 1 = loses information (remove, overwrite, `>` onto a real file, `sed -i`, force/hard reset), 0.5 = installs, kills/stops processes, 0 = read, fresh create, history-keeping, plus production / off-machine send => 1. Save `scorecard-labels.json` ({command: label}) in the same folder. Never commit either file (AC 7).
-3. Run `guard/score_real.py <sample> <labels>`. Record risky blocked %, safe wrongly blocked %, and ask-class handling.
-4. If tuning is needed, change only deny_at / allow_below in `command_guard.json` or the generator (prose-in-quotes shapes: `gh ... --body "<prose>"`, `git commit -m "$(cat <<EOF`, `crosschat send "<prose>"`), then re-score. Do not train on the scorecard.
-5. If the labelled run is flat after one generator change, report flat and stop.
+1. `guard/generate.py`: add SAFE families carrying long synthetic prose in a quoted argument or heredoc body, where the prose uses delete/overwrite/remove/rm/force-push vocabulary: `crosschat send <peer> <peer> "<prose>"`, `python -m crosschat send ...`, `git commit -m "$(cat <<'EOF' ... EOF)"`, `git commit -F - <<EOF`, `gh issue comment N --body "<prose>"`, `gh pr create --body-file - <<EOF`. Prose is built from the generator's own word lists and sentence frames, never from the owner's text (AC 7).
+2. Add risky shapes the model missed: `python -c "... json.dump(..., open(p,'w'))"`, `Path(p).write_text(...)`, `open(p,'w').write(...)`, `rm -rf X && mkdir X` / `rm -rf X\nmkdir X` multi-line.
+3. Regenerate train (seed 1, 60k) and held-out (seeds 2, 3), retrain, run `guard/score_real.py <sample> <labels> <commands>` with the same scorecard files in `C:/Projects/.tmp/cmd-guard-dataset/`. Do not train on them.
+4. Record both held-out sets and the scorecard against cycle 3. Commit and push (separate invocations).
+5. If safe-wrongly-blocked did not move, report flat and stop.

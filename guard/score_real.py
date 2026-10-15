@@ -45,6 +45,26 @@ def main(argv):
         print(
             f"safe wrongly blocked {sw}/{len(safe)} = {100 * sw / max(1, len(safe)):.1f}%"
         )
+        if len(argv) > 3:
+            # the sample over-draws denies: weight each decision stratum back
+            # to the population it was drawn from
+            pop = Counter()
+            for l in Path(argv[3]).read_text(encoding="utf-8").splitlines():
+                if l.strip():
+                    cmd = json.loads(l)["command"]
+                    pop[g.decide(g.scores(cmd, meta, w), meta)[0]] += 1
+            drawn = Counter(got[c] for c in labels if c in got)
+            wt = {k: pop[k] / drawn[k] for k in drawn}
+
+            def share(group):
+                tot = sum(wt[got[c]] for c in group)
+                hit = sum(wt[got[c]] for c in group if got[c] == "deny")
+                return 100 * hit / tot
+
+            print(
+                f"population-weighted: risky blocked {share(risky):.1f}%  "
+                f"safe wrongly blocked {share(safe):.1f}%"
+            )
 
 
 if __name__ == "__main__":
