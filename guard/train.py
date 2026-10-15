@@ -30,7 +30,7 @@ from command_guard import QUESTIONS, decide, features, readable  # noqa: E402
 
 NUM_FEATURES = 2**18
 CHAR_RANGE = (2, 5)
-DENY_AT, ALLOW_BELOW = 0.80, 0.30
+DENY_AT, ALLOW_BELOW = 0.65, 0.30
 
 
 def load(path):

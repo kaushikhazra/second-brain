@@ -1,10 +1,12 @@
 # Action
 
-Backlog item 3 (cycle 5): recover risky-blocked without giving back the false-alarm gain. Targets on the scorecard (population-weighted): risky blocked back to >= 77.3% (cycle 3), safe wrongly blocked <= 3.3%.
+Backlog item 4 (cycle 6): prove the structural criteria with checks that fail when the behaviour is removed. Put them in `guard/` (or `checks/` style if the repo has one for hooks; look at `checks/` first), one script `guard/check_guard.py`, exit non-zero on any failure, printing PASS/FAIL per AC.
 
-1. `guard/generate.py`, risky: `sed -i` with backtick / bracket / escaped patterns, `git branch -D X`, `git checkout <ref> -- <path>`, `git restore --source`, python edit scripts (`s.replace` then write, `io.open(p,'wb').write`, `json.dump(..., open(p,'w'))`, `save_*` style writers), `rm -rf X` followed by newline `mkdir`. More of them: weight `py_writes` up.
-2. `guard/generate.py`, safe: `python -u <deep Temp path>/script.py`, `cd <deep Temp path> && python x.py`, `sed -n 'a,bp' <file>`, `git show <ref>:<path> | sed -n ...`, `git -C X commit -F -`, `crosschat send` with longer prose.
-3. Retrain, run both held-out sets, run the scorecard (same files, never trained on). Compare to cycle 4.
-4. If AC 1 time allows (GitHub reachable or not, it is local): register the hook in `src/.claude/settings.json` under PreToolUse matcher `Bash|PowerShell` -> `python .claude/hooks/command_guard.py`, matching how memory_guard.py is registered. Defer the proof check to the next cycle.
-5. Commit and push. If push fails (network), commit locally and record it.
-6. If risky blocked did not return to >= 74.4% after this pass, report flat and stop.
+- **AC 1**: read `src/.claude/settings.json`; assert a PreToolUse entry whose matcher covers both `Bash` and `PowerShell` and whose command runs `command_guard.py`. Then run the hook as a subprocess with a PreToolUse JSON payload for `tool_name: Bash` and for `tool_name: PowerShell`; both must return a `permissionDecision`. Shown to fail by: removing the matcher entry, and by a payload for another tool returning nothing.
+- **AC 3**: a plainly safe command (`ls`, `git status`) returns `allow`.
+- **AC 4**: a plainly risky command (`rm -rf /var/www`) returns `deny`, and the reason names the question tripped (delete/overwrite/production/exfil wording from `SAYS`).
+- **AC 5**: an install (`pip install requests`) returns `ask`.
+- **AC 6**: run the hook as a fresh process 20 times; assert median wall time under a stated bound (measure first, then pick the bound; record the number) and that it imports only stdlib (`python -I -X importtime` or inspect `sys.modules`; no numpy/sklearn/torch).
+- **AC 7**: assert `guard/generate.py` draws from no file outside the repo (no `commands.jsonl`, no `~/.claude`), and that no file under the repo contains a path with `cmd-guard-dataset`. Removing-the-behaviour demo: a temporary generator line reading the owner file must fail the check.
+
+For each, run the check, then break the behaviour once and confirm the check fails; record both in the log. Commit and push. Report the count to velasari.

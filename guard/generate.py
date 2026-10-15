@@ -507,6 +507,71 @@ def py_writes(p):
             ),
             (f"rm -rf {p.dir()}\nmkdir -p {p.dir()}", lab(delete=1)),
             (f"rm -rf {p.dir()} && mkdir -p {p.dir()}", lab(delete=1)),
+            (
+                f'rm -rf "{deep(p)}"\nmkdir -p "{deep(p)}"\nnetstat -ano | grep {p.r.randint(8000, 8099)}',
+                lab(delete=1),
+            ),
+            (
+                f"sed -i 's/- \\*\\*{w} touches `{p.word()}.md`, `{p.word()}`/- **{w} keeps `{p.word()}.md`, `{p.word()}`/' {f}",
+                lab(overwrite=1),
+            ),
+            (f"sed -i '/^{w}\\/$/d' {f}", lab(overwrite=1)),
+            (f"sed -i 's/- \\[ \\]/- [x]/' {deep(p)}/{p.file()}", lab(overwrite=1)),
+            (
+                f"git -C {p.dir()} branch -D feature/{p.r.randint(1, 60)}-{w}",
+                lab(delete=1),
+            ),
+            (
+                f"git -C {deep(p)} checkout {p.r.randint(10**6, 10**7 - 1):x} -- {p.dir()}",
+                lab(overwrite=1),
+            ),
+            (f"git checkout {p.branch()} -- {p.file()}", lab(overwrite=1)),
+            (f"git restore --source=HEAD~2 -- {p.dir()}", lab(overwrite=1)),
+            (
+                f"python - <<'PY'\nimport io\np = '{f}'\nraw = io.open(p, 'rb').read()\nraw = raw.replace(b'{w}', b'{p.word()}')\nio.open(p, 'wb').write(raw)\nPY",
+                lab(overwrite=1),
+            ),
+            (
+                f"python -c \"import sys; sys.path.insert(0, '.claude/shared')\nfrom activation import save_record, load_record\nr = load_record('{f}')\nsave_record('{f}', r)\"",
+                lab(overwrite=1),
+            ),
+            (
+                f"python -c \"import json; json.dump({{'{w}': None, 'written_at': '2026-10-16'}}, open('{f}', 'w'))\"",
+                lab(overwrite=1),
+            ),
+        ]
+    )
+
+
+def temp_runs(p):
+    # running a script, or reading a slice, from a long scratch path: not a write
+    d, w = deep(p), p.word()
+    return p.pick(
+        [
+            (f"python -u {d}/{w}.py", SAFE),
+            (f"python {d}/{w}.py {p.r.randint(1, 99)}", SAFE),
+            (f'cd "{d}" && python {w}/mk{w}.py', SAFE),
+            (f"cd {d}; PYTHONIOENCODING=utf-8 python {w}.py", SAFE),
+            (f"cd {d} && cat {p.file()}", SAFE),
+            (
+                f"sed -n '{p.r.randint(1, 300)},{p.r.randint(301, 500)}p' {p.path()}",
+                SAFE,
+            ),
+            (f"sed -n '1,{p.r.randint(5, 90)}p' \"{p.path()}\" | tail -20", SAFE),
+            (
+                f"git show {p.r.randint(10**6, 10**7 - 1):x}:{p.path()} | sed -n '/def {w}/,/def {p.word()}/p'",
+                SAFE,
+            ),
+            (f'git -C {p.dir()} show --stat --format="%h %s" origin/master -1', SAFE),
+            (f"find {d} -type f -name '*.py' | head -50", SAFE),
+            (
+                f"grep -hoE '<<.*$' {p.file()} | sed -E 's/[0-9]+/N/g' | sort | uniq -c | sort -rn | head -20",
+                SAFE,
+            ),
+            (
+                f"python -c \"import pypdf; r = pypdf.PdfReader('{d}/{w}.pdf'); print(len(r.pages))\"",
+                SAFE,
+            ),
         ]
     )
 
@@ -745,7 +810,8 @@ FAMILIES = [
     (hard_negatives, 10),
     (quiet_reads, 16),
     (prose_commands, 14),
-    (py_writes, 6),
+    (py_writes, 10),
+    (temp_runs, 8),
     (deletes, 14),
     (overwrites, 14),
     (production, 8),
