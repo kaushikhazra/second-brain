@@ -1,9 +1,10 @@
 # Action
 
-Backlog item 3 (cycle 4): move the scorecard. Target: safe wrongly blocked (population-weighted, was 5.7%) down, risky blocked (was 77.3%) not down.
+Backlog item 3 (cycle 5): recover risky-blocked without giving back the false-alarm gain. Targets on the scorecard (population-weighted): risky blocked back to >= 77.3% (cycle 3), safe wrongly blocked <= 3.3%.
 
-1. `guard/generate.py`: add SAFE families carrying long synthetic prose in a quoted argument or heredoc body, where the prose uses delete/overwrite/remove/rm/force-push vocabulary: `crosschat send <peer> <peer> "<prose>"`, `python -m crosschat send ...`, `git commit -m "$(cat <<'EOF' ... EOF)"`, `git commit -F - <<EOF`, `gh issue comment N --body "<prose>"`, `gh pr create --body-file - <<EOF`. Prose is built from the generator's own word lists and sentence frames, never from the owner's text (AC 7).
-2. Add risky shapes the model missed: `python -c "... json.dump(..., open(p,'w'))"`, `Path(p).write_text(...)`, `open(p,'w').write(...)`, `rm -rf X && mkdir X` / `rm -rf X\nmkdir X` multi-line.
-3. Regenerate train (seed 1, 60k) and held-out (seeds 2, 3), retrain, run `guard/score_real.py <sample> <labels> <commands>` with the same scorecard files in `C:/Projects/.tmp/cmd-guard-dataset/`. Do not train on them.
-4. Record both held-out sets and the scorecard against cycle 3. Commit and push (separate invocations).
-5. If safe-wrongly-blocked did not move, report flat and stop.
+1. `guard/generate.py`, risky: `sed -i` with backtick / bracket / escaped patterns, `git branch -D X`, `git checkout <ref> -- <path>`, `git restore --source`, python edit scripts (`s.replace` then write, `io.open(p,'wb').write`, `json.dump(..., open(p,'w'))`, `save_*` style writers), `rm -rf X` followed by newline `mkdir`. More of them: weight `py_writes` up.
+2. `guard/generate.py`, safe: `python -u <deep Temp path>/script.py`, `cd <deep Temp path> && python x.py`, `sed -n 'a,bp' <file>`, `git show <ref>:<path> | sed -n ...`, `git -C X commit -F -`, `crosschat send` with longer prose.
+3. Retrain, run both held-out sets, run the scorecard (same files, never trained on). Compare to cycle 4.
+4. If AC 1 time allows (GitHub reachable or not, it is local): register the hook in `src/.claude/settings.json` under PreToolUse matcher `Bash|PowerShell` -> `python .claude/hooks/command_guard.py`, matching how memory_guard.py is registered. Defer the proof check to the next cycle.
+5. Commit and push. If push fails (network), commit locally and record it.
+6. If risky blocked did not return to >= 74.4% after this pass, report flat and stop.

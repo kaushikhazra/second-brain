@@ -397,6 +397,120 @@ def quiet_reads(p):
     )
 
 
+PROSE_VERBS = [
+    "deleted",
+    "removed",
+    "overwrote",
+    "replaced",
+    "dropped",
+    "rm -rf",
+    "force-pushed",
+    "truncated",
+    "reset --hard",
+    "rewrote",
+    "wiped",
+    "killed",
+    "restored",
+    "kept",
+    "confirmed",
+    "moved",
+    "renamed",
+    "archived",
+]
+PROSE_FRAMES = [
+    "cycle {n}: {a} of {b} criteria met. {v} the old {w} and checked the {w2}.",
+    "Done: {v} {w}, then ran the check on {w2}; nothing was lost.",
+    "Resolved: the branch was {v}; both repos now keep {w} history. Next is {w2}.",
+    "Note for review: the earlier run {v} {w}. This pass {v2} it again and the {w2} check passes.",
+    "BLOCKED on {w}: the step that {v} {w2} needs a ruling. Options: keep, {v2}, or ask.",
+    "Fixed the {w} so it no longer {v} the {w2}. {a}/{b} now hold; one criterion is still open.",
+]
+
+
+def prose(p):
+    n = p.r.randint(1, 12)
+    a, b = p.r.randint(1, 9), p.r.randint(10, 30)
+    parts = [
+        p.pick(PROSE_FRAMES).format(
+            n=n,
+            a=a,
+            b=b,
+            v=p.pick(PROSE_VERBS),
+            v2=p.pick(PROSE_VERBS),
+            w=p.word(),
+            w2=p.word(),
+        )
+        for _ in range(p.r.randint(1, 4))
+    ]
+    return " ".join(parts).replace('"', "'").replace("$", "").replace("`", "")
+
+
+def prose_commands(p):
+    # commands whose only dangerous-looking content is words inside a message
+    t, w, n = prose(p), p.word(), p.r.randint(1, 120)
+    peer = p.pick(
+        ["velasari", "synaptra", "second-brain", "nexus-unity", "cognitive-memory"]
+    )
+    repo = p.pick(["kaushikhazra/second-brain", "kaushikhazra/synaptra"])
+    return p.pick(
+        [
+            (f'crosschat send {peer} velasari "{t}"', SAFE),
+            (f'python -m crosschat send {peer} velasari "{t}"', SAFE),
+            (
+                f'C:/Projects/second-brain/.claude/.venv/Scripts/python.exe -m crosschat send {peer} velasari "{t}"',
+                SAFE,
+            ),
+            (f'git commit -m "{w}: {t[:60]}"', SAFE),
+            (f"git commit -m \"$(cat <<'EOF'\n{w}: {t}\n\n{prose(p)}\nEOF\n)\"", SAFE),
+            (f"git -C {p.dir()} commit -q -F - <<'EOF'\n{t}\nEOF", SAFE),
+            (f'gh issue comment {n} -R {repo} --body "{t}"', lab(exfil=0.5)),
+            (
+                f"gh issue comment {n} -R {repo} --body \"$(cat <<'EOF'\n{t}\nEOF\n)\"",
+                lab(exfil=0.5),
+            ),
+            (
+                f"gh pr create --repo {repo} --base main --head feature/{w} --title \"{w}\" --body-file - <<'EOF'\n{t}\nEOF",
+                lab(exfil=0.5),
+            ),
+            (f"cat >> {p.file()} << 'EOF'\n{t}\nEOF", SAFE),
+            (f'echo "{t}"', SAFE),
+            (f'git tag -a v1.{n % 9}.0 -m "{t[:80]}"', SAFE),
+        ]
+    )
+
+
+def py_writes(p):
+    # python that rewrites a real file: the owner's "stop"
+    f, w = p.path(), p.word()
+    return p.pick(
+        [
+            (
+                f"python -c \"import json; json.dump({{'{w}': None}}, open('{f}', 'w'))\"",
+                lab(overwrite=1),
+            ),
+            (f"python -c \"open('{f}', 'w').write('{w}')\"", lab(overwrite=1)),
+            (
+                f"python -c \"from pathlib import Path; Path('{f}').write_text('{w}')\"",
+                lab(overwrite=1),
+            ),
+            (
+                f"python - <<'EOF'\nimport pathlib\np = pathlib.Path('{f}')\nt = p.read_text()\np.write_text(t.replace('{w}', '{p.word()}'))\nEOF",
+                lab(overwrite=1),
+            ),
+            (
+                f"python -I - <<'EOF'\np = '{f}'\ns = open(p).read()\nopen(p, 'w').write(s.replace('{w}', '{p.word()}'))\nEOF",
+                lab(overwrite=1),
+            ),
+            (
+                f"python -c \"import shutil; shutil.copy('{p.path()}', '{f}')\"",
+                lab(overwrite=1),
+            ),
+            (f"rm -rf {p.dir()}\nmkdir -p {p.dir()}", lab(delete=1)),
+            (f"rm -rf {p.dir()} && mkdir -p {p.dir()}", lab(delete=1)),
+        ]
+    )
+
+
 NOISE = [
     " 2>/dev/null",
     " 2>&1",
@@ -630,6 +744,8 @@ FAMILIES = [
     (safe_creates, 14),
     (hard_negatives, 10),
     (quiet_reads, 16),
+    (prose_commands, 14),
+    (py_writes, 6),
     (deletes, 14),
     (overwrites, 14),
     (production, 8),
