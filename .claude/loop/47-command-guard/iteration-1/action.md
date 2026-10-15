@@ -1,9 +1,9 @@
 # Action
 
-Backlog item 1 (cycle 2): teach the harmless real-world shapes in `guard/generate.py`.
+Backlog item 2 (cycle 3): build the real-world scorecard. Labels, not the model, decide what is right.
 
-1. Read `generate.py` `safe_reads`, `safe_creates`, `hard_negatives`, `overwrites`.
-2. Add safe generators (label SAFE) for: `2>/dev/null`, `>/dev/null`, `2>&1`, `-o /dev/null`, `> $null`, `| Out-Null`, `| head`/`tail`, read-only python/bash heredocs, `for`/`while` read loops, long `cd` into deep paths (incl. Temp), gh / crosschat / uv / git-read CLIs. Keep the true positives: a redirect onto a real file stays overwrite.
-3. Regenerate, retrain (`guard/train.py`), run `guard/score_real.py C:/Projects/.tmp/cmd-guard-dataset/commands.jsonl`. Record deny% against 12.5% baseline.
-4. Constraint: the generator may mimic shapes, never copy commands from the owner's file (AC 7). Do not read the file into the repo.
-5. If the deny share did not drop, report the flat result and stop (observe.md).
+1. Sample with a fixed seed from `C:/Projects/.tmp/cmd-guard-dataset/commands.jsonl`: 200 uniform + 100 drawn from the current denies (so risky cases are enough to measure). Write the sample to `C:/Projects/.tmp/cmd-guard-dataset/scorecard-sample.jsonl`, outside the repo.
+2. Label each by hand (read it, do not use the model): 1 = loses information (remove, overwrite, `>` onto a real file, `sed -i`, force/hard reset), 0.5 = installs, kills/stops processes, 0 = read, fresh create, history-keeping, plus production / off-machine send => 1. Save `scorecard-labels.json` ({command: label}) in the same folder. Never commit either file (AC 7).
+3. Run `guard/score_real.py <sample> <labels>`. Record risky blocked %, safe wrongly blocked %, and ask-class handling.
+4. If tuning is needed, change only deny_at / allow_below in `command_guard.json` or the generator (prose-in-quotes shapes: `gh ... --body "<prose>"`, `git commit -m "$(cat <<EOF`, `crosschat send "<prose>"`), then re-score. Do not train on the scorecard.
+5. If the labelled run is flat after one generator change, report flat and stop.

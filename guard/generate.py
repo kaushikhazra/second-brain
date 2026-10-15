@@ -325,6 +325,90 @@ def hard_negatives(p):
     )
 
 
+def deep(p):
+    """A long working directory, the way a real session cd's into one."""
+    root = p.pick(
+        [
+            "C:/Users/me/AppData/Local/Temp/work",
+            "C:/Projects/.tmp",
+            "/home/kh/projects",
+            "/c/Projects/factory",
+            "C:/Users/me/.claude/projects",
+        ]
+    )
+    return "/".join(
+        [root]
+        + [p.word() + "-" + str(p.r.randint(1, 99)) for _ in range(p.r.randint(1, 4))]
+    )
+
+
+def quiet_reads(p):
+    # harmless shapes a real session is full of: redirects to nowhere,
+    # read-only heredocs, loops, tool CLIs. Nothing here writes a real file.
+    f, d, w = p.path(), p.dir(), p.word()
+    return p.pick(
+        [
+            (f"cat {f} 2>/dev/null", SAFE),
+            (f"ls {d} 2>&1", SAFE),
+            ("git status >/dev/null 2>&1", SAFE),
+            (
+                f"curl -s -o /dev/null -w '%{{http_code}}' https://{p.host()}/health",
+                SAFE,
+            ),
+            (f"Get-Content {f} 2>$null", SAFE),
+            (f"Get-ChildItem {d} | Out-Null", SAFE),
+            ("git fetch origin > $null", SAFE),
+            (f"rg -n {w} {d} | head -40", SAFE),
+            (f"cat {f} | tail -n 30", SAFE),
+            (f"ls {d} | wc -l", SAFE),
+            (
+                f"python - <<'EOF'\nimport json\nprint(json.load(open('{f}')))\nEOF",
+                SAFE,
+            ),
+            (
+                f"python -I - <<'PY'\nfrom pathlib import Path\nprint(len(Path('{f}').read_text().splitlines()))\nPY",
+                SAFE,
+            ),
+            (f"python -c \"import json; print(json.load(open('{f}')))\"", SAFE),
+            (f'for f in {d}/*{p.ext() or ".md"}; do wc -l "$f"; done', SAFE),
+            (f"for f in $(ls {d}); do echo $f; done", SAFE),
+            (f"while read l; do echo $l; done < {f}", SAFE),
+            (f"Get-ChildItem {d} | ForEach-Object {{ $_.Name }}", SAFE),
+            (f"foreach ($f in Get-ChildItem {d}) {{ Write-Host $f.Name }}", SAFE),
+            (f"cd {deep(p)}", SAFE),
+            (f"ls -la {deep(p)}", SAFE),
+            (f"cat {deep(p)}/{p.file()}", SAFE),
+            (
+                f"gh issue view {p.r.randint(1, 120)} --repo kaushikhazra/second-brain",
+                SAFE,
+            ),
+            ("gh pr list --repo kaushikhazra/second-brain --state open", SAFE),
+            ("gh run list --limit 5", SAFE),
+            (f'python -m crosschat send me peer "{w} done"', SAFE),
+            (f"uv run pytest -q {d}", SAFE),
+            ("uv pip list", SAFE),
+            (f"git -C {d} log --oneline -5", SAFE),
+            (f"git -C {d} status --short", SAFE),
+            (f"test -f {f} && echo yes || echo no", SAFE),
+            (f"[ -d {d} ] && ls {d}", SAFE),
+            ("echo $PATH | tr ':' '\\n'", SAFE),
+            (f"ls {d} | sort | uniq -c", SAFE),
+        ]
+    )
+
+
+NOISE = [
+    " 2>/dev/null",
+    " 2>&1",
+    " >/dev/null 2>&1",
+    " 2>$null",
+    " | Out-Null",
+    " | head -20",
+    " | tail -5",
+    " | wc -l",
+]
+
+
 def deletes(p):
     f, d = p.path(), p.dir()
     return p.pick(
@@ -545,6 +629,7 @@ FAMILIES = [
     (safe_reads, 30),
     (safe_creates, 14),
     (hard_negatives, 10),
+    (quiet_reads, 16),
     (deletes, 14),
     (overwrites, 14),
     (production, 8),
@@ -596,7 +681,10 @@ def sample(p, wrap_rate):
         cmd2, y2 = one(p)
         cmd, y = f"{cmd} {p.pick(['&&', ';', '|'])} {cmd2}", merge(y, y2)
     if p.r.random() < 0.15:
-        cmd = f"cd {p.dir()} && {cmd}"
+        cmd = f"cd {deep(p) if p.r.random() < 0.5 else p.dir()} && {cmd}"
+    if "\n" not in cmd and p.r.random() < 0.2:
+        # sending output to nowhere changes no answer: label is kept as is
+        cmd += p.pick(NOISE)
     if p.r.random() < wrap_rate:
         cmd = wrap(p, cmd)
     return {"command": cmd, **y}
