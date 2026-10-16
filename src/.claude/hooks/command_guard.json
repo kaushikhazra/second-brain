@@ -1,0 +1,18 @@
+{
+ "version": 1,
+ "num_features": 262144,
+ "char_range": [
+  2,
+  5
+ ],
+ "deny_at": 0.65,
+ "allow_below": 0.3,
+ "questions": [
+  "delete",
+  "overwrite",
+  "production",
+  "exfil"
+ ],
+ "trained_on": "synthetic commands from guard/generate.py (no owner history)",
+ "trained": "2026-10-16"
+}
