@@ -75,3 +75,6 @@ __pycache__/
 
 # Linting cache
 .ruff_cache/
+
+# Guard training data (issue #47) — 13 MB, regenerable from the generator, never committed
+guard/data/
