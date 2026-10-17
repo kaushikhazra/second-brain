@@ -701,6 +701,91 @@ def maintainer_work(p):
     )
 
 
+def ask_work(p):
+    """The owner's "ask" class, written in the same contexts as maintainer_work.
+
+    maintainer_work waves through a package installed into a venv that the
+    command names (`--python <venv>`). The sibling shapes below differ from it
+    in exactly that: an install that lands in whatever interpreter happens to be
+    first, a global tool, a system package. Those ask. Stopping a process asks
+    too, however the process is named. Commenting on an issue sends text to a
+    third party, so it asks (a pull request on the project's own repo does not).
+    """
+    w, w2, d = p.word(), p.word(), p.dir()
+    sp, py = scratch(p), venv_python(p)
+    pkg = p.pick(["requests", "pyyaml", "numpy", "acme-core", "synaptra", "flask"])
+    ver = f"{p.r.randint(0, 3)}.{p.r.randint(0, 9)}.{p.r.randint(0, 9)}"
+    pid, port = p.r.randint(100, 9999), p.r.randint(3000, 9099)
+    repo = p.pick(["acme/webapp", "acme/api", "acme/tools"])
+    n = p.r.randint(1, 120)
+    t = prose(p)
+    uv = p.pick(["uv", "C:/Projects/app/.claude/uv.exe", "/home/kh/app/.claude/uv.exe"])
+    return p.pick(
+        [
+            # installs that name no venv
+            (f"uv pip install {pkg}=={ver}", lab(overwrite=0.5)),
+            (f"uv pip install --system {pkg}", lab(overwrite=0.5)),
+            (f"{uv} pip install {pkg}", lab(overwrite=0.5)),
+            (f"uv pip install -r {d}/requirements.txt", lab(overwrite=0.5)),
+            (f"python -m pip install {pkg}=={ver}", lab(overwrite=0.5)),
+            (f"python3 -m pip install --upgrade {pkg}", lab(overwrite=0.5)),
+            (f"pip install -r {d}/requirements.txt", lab(overwrite=0.5)),
+            (f"pip3 install --user {pkg}", lab(overwrite=0.5)),
+            (f"pip install {pkg}=={ver} && python {sp}/{w}.py", lab(overwrite=0.5)),
+            (f"uv tool install {pkg}", lab(overwrite=0.5)),
+            (f"uv add {pkg}", lab(overwrite=0.5)),
+            (f"npm install -g {pkg}", lab(overwrite=0.5)),
+            (f"npm install --save {pkg}", lab(overwrite=0.5)),
+            (f"cd {sp} && npm install {pkg}", lab(overwrite=0.5)),
+            (f"yarn add {pkg}", lab(overwrite=0.5)),
+            (f"cargo install {pkg}", lab(overwrite=0.5)),
+            (f"choco install -y {pkg}", lab(overwrite=0.5)),
+            (f"brew install {pkg}", lab(overwrite=0.5)),
+            (f"sudo apt-get install -y {pkg}", lab(overwrite=0.5)),
+            (f"winget install --id {pkg} -e", lab(overwrite=0.5)),
+            # stopping a process, named or numbered
+            (f"kill {pid}", lab(delete=0.5)),
+            (f"kill -TERM {pid}", lab(delete=0.5)),
+            (f"cd {sp} && kill -9 {pid}", lab(delete=0.5)),
+            (f"kill $(lsof -t -i:{port})", lab(delete=0.5)),
+            (f"kill -9 $(pgrep -f {w})", lab(delete=0.5)),
+            (f"pkill -f {w}", lab(delete=0.5)),
+            (f"pkill -9 {w}", lab(delete=0.5)),
+            (f"killall {w}", lab(delete=0.5)),
+            (f"taskkill /F /IM {w}.exe", lab(delete=0.5)),
+            (f"taskkill /PID {pid} /T /F", lab(delete=0.5)),
+            (f"Stop-Process -Id {pid}", lab(delete=0.5)),
+            (f"Stop-Process -Id {pid} -Force", lab(delete=0.5)),
+            (f"Stop-Process -Name {w} -Force", lab(delete=0.5)),
+            (f"Get-Process {w} | Stop-Process -Force", lab(delete=0.5)),
+            (
+                f"Get-NetTCPConnection -LocalPort {port} | ForEach-Object {{ Stop-Process -Id $_.OwningProcess -Force }}",
+                lab(delete=0.5),
+            ),
+            (f"Stop-Service {w}", lab(delete=0.5)),
+            (f"Stop-Service -Name {w} -Force", lab(delete=0.5)),
+            (f"sudo systemctl stop {w}", lab(delete=0.5)),
+            (f"docker stop {w}", lab(delete=0.5)),
+            (f"cd {d} && Stop-Process -Id {pid} -Force", lab(delete=0.5)),
+            # text sent to a third party
+            (f'gh issue comment {n} -R {repo} --body "{t}"', lab(exfil=0.5)),
+            (
+                f"gh issue comment {n} -R {repo} --body \"$(cat <<'EOF'\n{t}\nEOF\n)\"",
+                lab(exfil=0.5),
+            ),
+            (
+                f"gh issue comment {n} --repo {repo} --body-file {sp}/{w}.md",
+                lab(exfil=0.5),
+            ),
+            (
+                f'gh pr comment {n} --repo {repo} --body "{w}: {w2} done"',
+                lab(exfil=0.5),
+            ),
+            (f'gh issue close {n} -R {repo} --comment "{w} fixed"', lab(exfil=0.5)),
+        ]
+    )
+
+
 NOISE = [
     " 2>/dev/null",
     " 2>&1",
@@ -938,6 +1023,7 @@ FAMILIES = [
     (py_writes, 10),
     (temp_runs, 8),
     (maintainer_work, 12),
+    (ask_work, 8),
     (deletes, 14),
     (overwrites, 14),
     (production, 8),
