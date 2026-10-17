@@ -1,4 +1,4 @@
-"""#55 / #56: the shapes the guard used to stop for no reason now run, and their risky look-alikes still do not.
+"""#55 / #56, hint-only: the shapes the guard used to stop for no reason get no hint, and their risky look-alikes still do.
 
     python guard/test_cases.py
 
@@ -17,7 +17,7 @@ SP = "C:/Users/me/AppData/Local/Temp/claude/C--Projects-app/4b1f0c7e/scratchpad"
 PY = "C:/Projects/app/.venv/Scripts/python.exe"
 BRAIN = "C:\\Projects\\app"
 
-RUNS = [  # (what it does, command): the hook must answer "allow"
+RUNS = [  # (what it does, command): the hook must stay silent, no hint
     (
         "#55 installs into the brain's own fresh venv",
         f"& '{BRAIN}\\.claude\\uv.exe' pip install --python '{BRAIN}\\.claude\\.venv\\Scripts\\python.exe' acme-core==2.1.1",
@@ -68,7 +68,7 @@ RUNS = [  # (what it does, command): the hook must answer "allow"
     ),
 ]
 
-STILL_ASKED = [  # look-alikes that change something: the hook must not say "allow"
+STILL_HINTED = [  # look-alikes that change something: the hook must hint, never decide
     (
         "sed -i rewrites a file",
         "sed -i 's/a/b/' learn/join.py; sed -n 1,5p learn/join.py",
@@ -90,21 +90,21 @@ def main():
     bad = 0
     for what, cmd in RUNS:
         d, why, _ = check_guard.call(check_guard.HOOKS, "Bash", cmd)
-        ok = d == "allow"
+        ok = d == "none"
         bad += not ok
         print(
-            f"{'PASS' if ok else 'FAIL'}  runs: {what}"
+            f"{'PASS' if ok else 'FAIL'}  silent: {what}"
             + ("" if ok else f" -> {d} {why[:80]}")
         )
-    for what, cmd in STILL_ASKED:
+    for what, cmd in STILL_HINTED:
         d, why, _ = check_guard.call(check_guard.HOOKS, "Bash", cmd)
-        ok = d in ("ask", "deny")
+        ok = d == "hint"
         bad += not ok
         print(
-            f"{'PASS' if ok else 'FAIL'}  still stopped: {what}"
+            f"{'PASS' if ok else 'FAIL'}  still hinted: {what}"
             + ("" if ok else f" -> {d}")
         )
-    n = len(RUNS) + len(STILL_ASKED)
+    n = len(RUNS) + len(STILL_HINTED)
     print(f"\n{n - bad}/{n} hold")
     return 1 if bad else 0
 

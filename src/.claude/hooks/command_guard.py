@@ -2,9 +2,10 @@
 """PreToolUse hook for issue #47: every shell command is judged before it runs.
 
 Protocol: JSON on stdin -- {"tool_name": "Bash"|"PowerShell", "tool_input":
-{"command": ...}}. Answers with the hook JSON on stdout:
-permissionDecision "allow" (confident safe), "deny" (confident risky, with the
-questions it tripped) or "ask" (unsure: the owner decides).
+{"command": ...}}. Hint-only: it never denies, asks or allows. When it suspects
+something it answers with hookSpecificOutput.additionalContext naming what it
+suspects (deletes / overwrites / production / off-machine); otherwise it prints
+nothing. The command always runs under the owner's own permission rules.
 
 Stdlib only, like memory_guard.py: it runs with the bare `python` on PATH and
 starts fresh on every tool call, so nothing heavy is imported. The model is a
@@ -181,7 +182,10 @@ def scores(command, meta, w):
 
 
 def decide(p, meta):
-    """allow / ask / deny, and the questions that tripped."""
+    """Band and the questions that tripped. The band only shapes the hint's
+    wording: "deny" is a confident suspicion, "ask" a possible one, "allow"
+    says nothing. The names predate hint-only and stay so training and the
+    reports keep reading the same bands."""
     risky = [q for q in QUESTIONS if p[q] >= meta["deny_at"]]
     if risky:
         return "deny", risky
@@ -202,23 +206,27 @@ def main():
     try:
         meta, w = load()
     except OSError:
-        # no weights shipped: say so, and let the owner decide rather than guess
-        decision, why = "ask", []
-        reason = "command guard has no weights; please check this command yourself"
+        hint = "The command guard has no weights, so this command was not checked."
     else:
-        decision, why = decide(scores(command, meta, w), meta)
-        reason = (
-            "command guard: this " + " and ".join(SAYS[q] for q in why)
-            if why
-            else "command guard: judged safe"
+        band, why = decide(scores(command, meta, w), meta)
+        if not why:
+            return 0  # nothing suspected: no output, the normal permission flow decides
+        hint = (
+            "The command guard "
+            + ("is confident" if band == "deny" else "suspects")
+            + " this command "
+            + " and ".join(SAYS[q] for q in why)
+            + ". It is a hint from a small model and can be wrong; the command was not stopped."
         )
+    # No permissionDecision on purpose: the hook never allows, denies or asks, so the
+    # owner's own permission rules still decide. The context reaches the model next to
+    # the tool result.
     print(
         json.dumps(
             {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
-                    "permissionDecision": decision,
-                    "permissionDecisionReason": reason,
+                    "additionalContext": hint,
                 }
             }
         )
