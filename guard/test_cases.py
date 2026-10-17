@@ -1,4 +1,4 @@
-"""#55 / #56: the shapes the guard used to stop for no reason now run, and their risky look-alikes still do not.
+"""#55 / #56, deny-then-ack: the shapes the guard used to stop for no reason stay silent, and their risky look-alikes are denied until re-run with their own ack.
 
     python guard/test_cases.py
 
@@ -17,7 +17,7 @@ SP = "C:/Users/me/AppData/Local/Temp/claude/C--Projects-app/4b1f0c7e/scratchpad"
 PY = "C:/Projects/app/.venv/Scripts/python.exe"
 BRAIN = "C:\\Projects\\app"
 
-RUNS = [  # (what it does, command): the hook must answer "allow"
+RUNS = [  # (what it does, command): the hook must stay silent
     (
         "#55 installs into the brain's own fresh venv",
         f"& '{BRAIN}\\.claude\\uv.exe' pip install --python '{BRAIN}\\.claude\\.venv\\Scripts\\python.exe' acme-core==2.1.1",
@@ -68,7 +68,7 @@ RUNS = [  # (what it does, command): the hook must answer "allow"
     ),
 ]
 
-STILL_ASKED = [  # look-alikes that change something: the hook must not say "allow"
+STILL_DENIED = [  # look-alikes that change something: denied, until re-run with their own ack
     (
         "sed -i rewrites a file",
         "sed -i 's/a/b/' learn/join.py; sed -n 1,5p learn/join.py",
@@ -90,21 +90,24 @@ def main():
     bad = 0
     for what, cmd in RUNS:
         d, why, _ = check_guard.call(check_guard.HOOKS, "Bash", cmd)
-        ok = d == "allow"
+        ok = d == "none"
         bad += not ok
         print(
-            f"{'PASS' if ok else 'FAIL'}  runs: {what}"
+            f"{'PASS' if ok else 'FAIL'}  silent: {what}"
             + ("" if ok else f" -> {d} {why[:80]}")
         )
-    for what, cmd in STILL_ASKED:
+    for what, cmd in STILL_DENIED:
         d, why, _ = check_guard.call(check_guard.HOOKS, "Bash", cmd)
-        ok = d in ("ask", "deny")
+        acked = check_guard.call(
+            check_guard.HOOKS, "Bash", f"{cmd} # guard-ack:{check_guard.ack_of(cmd)}"
+        )[0]
+        ok = d == "deny" and acked == "none"
         bad += not ok
         print(
-            f"{'PASS' if ok else 'FAIL'}  still stopped: {what}"
-            + ("" if ok else f" -> {d}")
+            f"{'PASS' if ok else 'FAIL'}  denied, then silent on its ack: {what}"
+            + ("" if ok else f" -> {d}, with ack {acked}")
         )
-    n = len(RUNS) + len(STILL_ASKED)
+    n = len(RUNS) + len(STILL_DENIED)
     print(f"\n{n - bad}/{n} hold")
     return 1 if bad else 0
 

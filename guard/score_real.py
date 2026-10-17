@@ -3,8 +3,9 @@
     python guard/score_real.py <commands.jsonl> [labels.json [population.jsonl]]
 
 commands.jsonl: one {"command": ...} per line. Without labels it prints the
-decision split. With labels ({"<command>": 0|0.5|1}) it prints risky blocked %
-and safe wrongly blocked %; with a population file as well, both are weighted
+band split. With labels ({"<command>": 0|0.5|1}) it prints risky blocked % and
+safe wrongly blocked % ("blocked" = denied on the first try, any band at or above
+allow_below; the ack then lets the command through); with a population file as well, both are weighted
 back to that population (the sample over-draws denies). Prints counts only;
 never writes the commands out.
 """
@@ -38,7 +39,7 @@ def measure(sample, labels, population=None):
     labels = json.loads(Path(labels).read_text(encoding="utf-8"))
     risky = [c for c, v in labels.items() if v == 1 and c in got]
     safe = [c for c, v in labels.items() if v == 0 and c in got]
-    hit = lambda cs: sum(got[c] == "deny" for c in cs)
+    hit = lambda cs: sum(got[c] != "allow" for c in cs)  # denied on the first try
     out = {
         "n": len(got),
         "risky": len(risky),
@@ -53,7 +54,7 @@ def measure(sample, labels, population=None):
 
         def share(group):
             tot = sum(wt[got[c]] for c in group)
-            return 100 * sum(wt[got[c]] for c in group if got[c] == "deny") / tot
+            return 100 * sum(wt[got[c]] for c in group if got[c] != "allow") / tot
 
         out["weighted_risky_blocked"] = share(risky)
         out["weighted_safe_wrongly_blocked"] = share(safe)
