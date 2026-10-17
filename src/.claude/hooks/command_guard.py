@@ -2,10 +2,13 @@
 """PreToolUse hook for issue #47: every shell command is judged before it runs.
 
 Protocol: JSON on stdin -- {"tool_name": "Bash"|"PowerShell", "tool_input":
-{"command": ...}}. Hint-only: it never denies, asks or allows. When it suspects
-something it answers with hookSpecificOutput.additionalContext naming what it
-suspects (deletes / overwrites / production / off-machine); otherwise it prints
-nothing. The command always runs under the owner's own permission rules.
+{"command": ...}}. Deny-then-ack, and it never allows. A suspicious command
+(deletes / overwrites / production / off-machine, any band at or above allow_below)
+is denied once, with the reason and an ack code: the hash of the exact command text.
+Re-running the same command with `# guard-ack:<code>` appended makes the hook stay
+silent, so the owner's own permission rules decide. A missing, wrong or borrowed ack
+is denied again. A safe command gets no output at all. `#` starts a comment in both
+Bash and PowerShell, so the ack changes nothing that runs.
 
 Stdlib only, like memory_guard.py: it runs with the bare `python` on PATH and
 starts fresh on every tool call, so nothing heavy is imported. The model is a
@@ -24,6 +27,7 @@ guard/train.py. Trained on synthetic and public commands only (AC 7).
 
 import base64
 import binascii
+import hashlib
 import json
 import re
 import sys
@@ -181,11 +185,29 @@ def scores(command, meta, w):
     return out
 
 
+ACK = re.compile(r"\s*#\s*guard-ack:(?P<code>[0-9a-fA-F]+)\s*\Z")
+ACK_LEN = 6
+
+
+def split_ack(command):
+    """(command without its trailing ack comment, the code the ack carried or None)."""
+    m = ACK.search(command)
+    if not m:
+        return command.strip(), None
+    return command[: m.start()].strip(), m.group("code").lower()
+
+
+def ack_code(command):
+    """Short hash of the exact command text: an ack cannot be written before the
+    command is known, and one command's ack means nothing on another."""
+    return hashlib.sha256(command.encode("utf-8", "replace")).hexdigest()[:ACK_LEN]
+
+
 def decide(p, meta):
-    """Band and the questions that tripped. The band only shapes the hint's
-    wording: "deny" is a confident suspicion, "ask" a possible one, "allow"
-    says nothing. The names predate hint-only and stay so training and the
-    reports keep reading the same bands."""
+    """Band and the questions that tripped. The band only shapes the wording of the
+    denial: "deny" is a confident suspicion, "ask" a possible one, "allow" says
+    nothing. Any band but "allow" is denied until acked. The names predate this
+    and stay so training and the reports keep reading the same bands."""
     risky = [q for q in QUESTIONS if p[q] >= meta["deny_at"]]
     if risky:
         return "deny", risky
@@ -202,31 +224,38 @@ def main():
         return 0
     if call.get("tool_name") not in ("Bash", "PowerShell"):
         return 0
-    command = (call.get("tool_input") or {}).get("command") or ""
+    raw = (call.get("tool_input") or {}).get("command") or ""
+    command, acked = split_ack(raw)
+    code = ack_code(command)
     try:
         meta, w = load()
     except OSError:
-        hint = "The command guard has no weights, so this command was not checked."
+        reason = "The command guard has no weights, so it could not check this command."
     else:
         band, why = decide(scores(command, meta, w), meta)
         if not why:
             return 0  # nothing suspected: no output, the normal permission flow decides
-        hint = (
+        reason = (
             "The command guard "
             + ("is confident" if band == "deny" else "suspects")
             + " this command "
             + " and ".join(SAYS[q] for q in why)
-            + ". It is a hint from a small model and can be wrong; the command was not stopped."
+            + ". It is a small model and can be wrong."
         )
-    # No permissionDecision on purpose: the hook never allows, denies or asks, so the
-    # owner's own permission rules still decide. The context reaches the model next to
-    # the tool result.
+    if acked == code:
+        return 0  # checked and re-run with the matching ack: the owner's rules decide
+    reason += (
+        f" If you checked and still want it, re-run the same command with ` # guard-ack:{code}`"
+        " appended (on a new last line if it ends in a heredoc)."
+    )
+    # deny, never allow: allow would skip the owner's own permission rules
     print(
         json.dumps(
             {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
-                    "additionalContext": hint,
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason,
                 }
             }
         )
