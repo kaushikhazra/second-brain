@@ -115,7 +115,7 @@ def render(m):
         "",
         "Read the numbers with care: the synthetic sets are built from the same templates as the training",
         "data, so they are a ceiling, not a forecast. The real-world scorecard is the honest figure; it is",
-        "300 commands labelled by hand, never trained on, and not shipped. The weights are trained on",
+        f"{s['n'] if s else 300} commands labelled by hand, never trained on, and not shipped. The weights are trained on",
         "synthetic commands only; no owner's command history is in them.",
         "",
         f"Blocks at {t['deny_at']:.2f} confidence, runs below {t['allow_below']:.2f}, asks in between. "

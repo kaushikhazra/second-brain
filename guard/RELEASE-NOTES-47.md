@@ -10,13 +10,13 @@ production, sends data off the machine), and anything unsure asks you.
 |---|---|---|
 | Plain commands (synthetic held-out), 5,000 commands | 99.9% | 0.0% |
 | Wrapped and encoded commands (synthetic held-out), 5,000 commands | 99.8% | 0.0% |
-| Real-world scorecard (hand-labelled, weighted to real use) | 85.3% | 4.4% |
+| Real-world scorecard (hand-labelled, weighted to real use) | 85.7% | 4.0% |
 
-Install and stop-a-process commands are asked, not blocked: 82.1% of them ask on the plain set and 6.6% are wrongly blocked.
+Install and stop-a-process commands are asked, not blocked: 67.6% of them ask on the plain set and 10.3% are wrongly blocked.
 
 Read the numbers with care: the synthetic sets are built from the same templates as the training
 data, so they are a ceiling, not a forecast. The real-world scorecard is the honest figure; it is
-300 commands labelled by hand, never trained on, and not shipped. The weights are trained on
+311 commands labelled by hand, never trained on, and not shipped. The weights are trained on
 synthetic commands only; no owner's command history is in them.
 
-Blocks at 0.65 confidence, runs below 0.30, asks in between. Median time per tool call, fresh process: 164 ms, standard library only.
+Blocks at 0.65 confidence, runs below 0.30, asks in between. Median time per tool call, fresh process: 151 ms, standard library only.
