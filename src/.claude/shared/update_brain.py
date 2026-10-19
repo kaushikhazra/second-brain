@@ -70,6 +70,53 @@ def release_root_from_script() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+_REEXEC_ENV = "_UPDATE_BRAIN_REEXEC"
+
+
+def _is_under(path: str | Path, parent: Path) -> bool:
+    p = os.path.normcase(os.path.abspath(str(path)))
+    d = os.path.normcase(os.path.abspath(str(parent)))
+    return p == d or p.startswith(d + os.sep)
+
+
+def running_from_venv(brain: Path) -> bool:
+    """True if this process is the brain's own venv Python."""
+    venv = brain / ".claude" / ".venv"
+    return _is_under(sys.executable, venv) or _is_under(sys.prefix, venv)
+
+
+def find_standalone_python(brain: Path) -> Path | None:
+    """The standalone interpreter /init-brain installed under .claude/.python."""
+    layout = "*/python.exe" if sys.platform == "win32" else "*/bin/python3"
+    found = sorted((brain / ".claude" / ".python").glob(layout))
+    return found[0] if found else None
+
+
+def hand_over_to_standalone(brain: Path) -> int | None:
+    """Rerun this command under the standalone interpreter if started from the venv.
+
+    The venv's Python is what the update replaces and what stop_synaptra
+    stops, so the update should not run on it.  Returns the child's exit code,
+    or None to carry on in this process.
+    """
+    if os.environ.get(_REEXEC_ENV) or not running_from_venv(brain):
+        return None
+    py = find_standalone_python(brain)
+    if py is None:
+        print(
+            "NOTE  started from the brain's venv Python and no standalone"
+            " interpreter found under .claude/.python -- continuing here"
+        )
+        return None
+    print(
+        f"MOVE  started from the brain's venv Python -- continuing under {py}",
+        flush=True,
+    )
+    cmd = [str(py), str(Path(__file__).resolve()), *sys.argv[1:]]
+    env = {**os.environ, _REEXEC_ENV: "1"}
+    return subprocess.run(cmd, env=env).returncode
+
+
 def read_version_file(root: Path, name: str) -> str:
     p = root / name
     if not p.exists():
@@ -337,25 +384,33 @@ def stop_synaptra(brain: Path) -> bool:
         return False
 
     venv_str = str(venv).replace("'", "''")  # escape for PS single-quote
+    # This script is a child of the updater, so walking up from $PID reaches the
+    # updater and whatever launched it.  None of those may be stopped.
     ps_script = "\n".join(
         [
             "$venv = '" + venv_str + "'",
-            "$procs = Get-CimInstance Win32_Process | Where-Object {",
-            "    $_.ExecutablePath -and",
-            "    $_.ExecutablePath.StartsWith($venv, [StringComparison]::OrdinalIgnoreCase)",
+            "$skip = @{}",
+            "$cur = $PID",
+            "while ($cur -and -not $skip.ContainsKey([int]$cur)) {",
+            "    $skip[[int]$cur] = $true",
+            '    $row = Get-CimInstance Win32_Process -Filter "ProcessId=$cur"',
+            "    $cur = if ($row) { $row.ParentProcessId } else { 0 }",
+            "}",
+            "$mine = {",
+            "    Get-CimInstance Win32_Process | Where-Object {",
+            "        $_.ExecutablePath -and",
+            "        $_.ExecutablePath.StartsWith($venv, [StringComparison]::OrdinalIgnoreCase) -and",
+            "        -not $skip.ContainsKey([int]$_.ProcessId)",
+            "    }",
             "}",
             "$count = 0",
-            "foreach ($p in $procs) {",
+            "foreach ($p in @(& $mine)) {",
             "    Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue",
             "    $count++",
             "}",
             "if ($count -gt 0) {",
             "    for ($i = 0; $i -lt 20; $i++) {",
-            "        $left = @(Get-CimInstance Win32_Process | Where-Object {",
-            "            $_.ExecutablePath -and",
-            "            $_.ExecutablePath.StartsWith($venv, [StringComparison]::OrdinalIgnoreCase)",
-            "        })",
-            "        if (-not $left) { break }",
+            "        if (-not @(& $mine)) { break }",
             "        Start-Sleep -Milliseconds 500",
             "    }",
             "}",
@@ -627,6 +682,10 @@ def main() -> int:
         raise SystemExit(
             f"FAIL: {brain} does not look like a brain root (no CLAUDE.md)"
         )
+
+    handed_over = hand_over_to_standalone(brain)
+    if handed_over is not None:
+        return handed_over
 
     if args.restore:
         if args.backup_dir:
