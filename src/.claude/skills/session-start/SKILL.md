@@ -360,6 +360,16 @@ failure this line exists to prevent.
 
 If step 6b found a newer release, include that one line in the report.
 
+**The command guard.** Run
+
+```bash
+python .claude/skills/guard/scripts/guard.py line
+```
+
+It prints one line when the guard is off and nothing when it is on. Put what it
+prints in the report as its own line, verbatim. The guard is the owner's to
+switch (`/guard on | off`); it is never asked about here.
+
 ## 8. Daily habits
 
 After the report above, not before it — a habit's own output should never

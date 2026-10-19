@@ -260,6 +260,17 @@ def main():
     SCRATCH.mkdir(exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="guard-check-", dir=SCRATCH))
     results = []
+    # The hook reads the owner's /guard setting beside its folder (#61), and a brain
+    # starts with the guard off. These checks are about a guard that is on, so the
+    # shipped hooks and every broken copy run in `work`, next to a record that says so.
+    (work / "activations.json").write_text(
+        json.dumps({"guard": {"active": True, "answered_at_version": "check"}}),
+        encoding="utf-8",
+    )
+    shipped = work / "shipped-hooks"
+    shutil.copytree(
+        HOOKS, shipped, ignore=shutil.ignore_patterns("__pycache__", "memory_guard.py")
+    )
 
     def run(name, check, shipped, broken):
         ok, detail = check(*shipped)
@@ -294,26 +305,26 @@ def main():
             ),
             encoding="utf-8",
         )
-        run("AC 1 both shells reach the guard", ac1, (SETTINGS, HOOKS), (s, HOOKS))
+        run("AC 1 both shells reach the guard", ac1, (SETTINGS, shipped), (s, shipped))
         # AC 3: a hook that never allows
         run(
             "AC 3 confident safe stays silent",
             ac3,
-            (HOOKS,),
+            (shipped,),
             (broken_hooks(work, allow_below=-1.0),),
         )
         # AC 4: a hook with no confident band
         run(
             "AC 4 confident risky is denied, question named",
             ac4,
-            (HOOKS,),
+            (shipped,),
             (broken_hooks(work, deny_at=2.0),),
         )
         # AC 5: a hook with no unsure band (everything confident)
         run(
             "AC 5 unsure is denied as a suspicion",
             ac5,
-            (HOOKS,),
+            (shipped,),
             (broken_hooks(work, deny_at=0.0),),
         )
 
@@ -329,14 +340,14 @@ def main():
         run(
             "AC H never allows or asks",
             ac_never_allows,
-            (HOOKS,),
+            (shipped,),
             (patched('"permissionDecision": "deny"', '"permissionDecision": "allow"'),),
         )
         # ack: a hook that ignores the ack; a hook that takes any ack
         run(
             "AC A deny, then silent on the ack of that exact command",
             ac_ack,
-            (HOOKS,),
+            (shipped,),
             (patched("if acked == code:", "if False:"),),
         )
         ok, detail = ac_ack(patched("if acked == code:", "if acked is not None:"))
@@ -353,9 +364,9 @@ def main():
         )
         # AC 6: the bound itself, shown to bite
         global TIME_BOUND_S
-        ok, detail = ac6(HOOKS)
+        ok, detail = ac6(shipped)
         saved, TIME_BOUND_S = TIME_BOUND_S, 0.0
-        bad_ok, _ = ac6(HOOKS)
+        bad_ok, _ = ac6(shipped)
         TIME_BOUND_S = saved
         results.append(ok and not bad_ok)
         print(
