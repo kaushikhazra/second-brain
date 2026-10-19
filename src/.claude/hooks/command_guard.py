@@ -217,6 +217,18 @@ def decide(p, meta):
     return "allow", []
 
 
+def switched_on():
+    """The owner's /guard setting, from the activation record beside this hook folder
+    (.claude/activations.json, entry "guard"; the shape shared/activation.py writes).
+    Read inline, not through that module: the hook runs on its own and stays fast.
+    No record, no entry or an unreadable file all mean off -- a new brain starts off."""
+    try:
+        record = json.loads((HERE.parent / "activations.json").read_text("utf-8"))
+        return record["guard"]["active"] is True
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
 def main():
     try:
         call = json.load(sys.stdin)
@@ -224,6 +236,8 @@ def main():
         return 0
     if call.get("tool_name") not in ("Bash", "PowerShell"):
         return 0
+    if not switched_on():
+        return 0  # the guard is off: nothing is checked, denied or acknowledged
     raw = (call.get("tool_input") or {}).get("command") or ""
     command, acked = split_ack(raw)
     code = ack_code(command)

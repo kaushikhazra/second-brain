@@ -300,6 +300,11 @@ def restore_backup(
             record_path.unlink()
             print("  removed .release-record.json (did not exist before update)")
 
+        # Command guard setting the update added
+        added = meta.get("guard_entry_added")
+        if added is not None:
+            remove_guard_entry(brain, added["file_existed"])
+
         # Synaptra version
         if not skip_synaptra:
             prior_synaptra = meta.get("prior_synaptra_version")
@@ -489,6 +494,64 @@ def write_release_record(
     return p
 
 
+# -- command guard setting ---------------------------------------------
+
+
+def had_command_guard(brain: Path) -> bool:
+    """True if this brain already ran the command guard, before the update."""
+    return (brain / ".claude" / "hooks" / "command_guard.py").is_file()
+
+
+def _write_activations(path: Path, record: dict) -> None:
+    path.write_text(
+        json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def keep_guard_setting(
+    brain: Path, had_guard: bool, version: str, backup_dir: Path
+) -> None:
+    """Record the guard as on for a brain that had it and never chose a setting.
+
+    Before /guard existed the guard was always on. Without an entry the hook reads
+    "off", so an updated brain would lose it; writing the entry keeps what it had.
+    An entry already there, on or off, is the owner's and is left alone. What is
+    added is noted in the backup so --restore can take it out again.
+    """
+    path = brain / ".claude" / "activations.json"
+    existed = path.is_file()
+    try:
+        record = json.loads(path.read_text(encoding="utf-8")) if existed else {}
+    except (OSError, ValueError):
+        return  # unreadable: not ours to overwrite
+    if not had_guard or not isinstance(record, dict) or "guard" in record:
+        return
+    meta_path = backup_dir / _RESTORE_META
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["guard_entry_added"] = {"file_existed": existed}
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    record["guard"] = {"answered_at_version": version, "active": True}
+    _write_activations(path, record)
+    print("  command guard stays on (this brain already had it)")
+
+
+def remove_guard_entry(brain: Path, file_existed: bool) -> None:
+    """Undo keep_guard_setting: take the entry out, and the file if it was ours."""
+    path = brain / ".claude" / "activations.json"
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if not isinstance(record, dict) or "guard" not in record:
+        return
+    del record["guard"]
+    if record or file_existed:
+        _write_activations(path, record)
+    else:
+        path.unlink()
+    print("  removed the command guard setting the update added")
+
+
 # -- main --------------------------------------------------------------
 
 
@@ -518,6 +581,7 @@ def run_update(
     print(f"UPDATE  brain at {brain}")
     print(f"  release: second-brain {brain_version}, synaptra {synaptra_version}")
 
+    had_guard = had_command_guard(brain)  # asked before the copy adds the hook
     release_files = list_release_files(release)
     print(f"  release contains {len(release_files)} files")
 
@@ -560,6 +624,7 @@ def run_update(
         if fault_step == "record":
             raise _UpdateStepFailed("record", RuntimeError("injected fault"))
         write_release_record(brain, brain_version, synaptra_version)
+        keep_guard_setting(brain, had_guard, brain_version, backup_dir)
 
     except _UpdateStepFailed as exc:
         print(f"\nFAILED at step '{exc.step}': {exc.cause}")
