@@ -138,6 +138,99 @@ def is_owner_path(relpath: str) -> bool:
     return False
 
 
+# -- owner edits ---------------------------------------------------------
+#
+# Every release ships SHIPPED_HASHES: the sha256 of each product file in every
+# release up to and including itself.  A live file whose hash is in its path's
+# list is a shipped copy the owner never touched, so replacing it loses nothing.
+# Any other live file is the owner's; it is kept and the release's version is
+# written beside it as <name>.new.
+
+SHIPPED_HASHES = ".claude/shared/shipped_hashes.json"
+NEW_SUFFIX = ".new"
+
+
+def normalized_sha256(data: bytes) -> str:
+    """sha256 of *data*, with CRLF read as LF for text.
+
+    git checks text out with the platform's line endings, so a Windows copy of an
+    untouched file differs from the archive byte for byte.  Binary data (any NUL
+    in the first 8000 bytes) is hashed as it is.
+    """
+    if b"\0" not in data[:8000]:
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
+
+
+def load_shipped_hashes(release: Path) -> dict[str, list[str]] | None:
+    p = release / SHIPPED_HASHES
+    if not p.is_file():
+        return None
+    return json.loads(p.read_text(encoding="utf-8"))["files"]
+
+
+def plan_update(
+    brain: Path, release: Path, release_files: list[str]
+) -> tuple[list[str], list[str]]:
+    """Split the release's product files into (replace, keep).
+
+    *keep* are files the brain already has whose content is neither the new
+    release's nor any shipped version: the owner's edits.  Everything else is
+    replaced.  A release without a hash table cannot tell, so it replaces all.
+    """
+    table = load_shipped_hashes(release)
+    if table is None:
+        print("  NOTE  release has no shipped-hash table -- replacing every file")
+        return list(release_files), []
+    replace: list[str] = []
+    keep: list[str] = []
+    for rel in release_files:
+        live = brain / rel
+        if rel == SHIPPED_HASHES or is_owner_path(rel) or not live.is_file():
+            replace.append(rel)
+            continue
+        live_hash = normalized_sha256(live.read_bytes())
+        if live_hash in table.get(rel, ()) or live_hash == normalized_sha256(
+            (release / rel).read_bytes()
+        ):
+            replace.append(rel)
+        else:
+            keep.append(rel)
+    return replace, keep
+
+
+def diff_summary(live: Path, new: Path) -> str:
+    """'+A -R lines' going from the owner's file to the release's."""
+    try:
+        a = live.read_text(encoding="utf-8").splitlines()
+        b = new.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return "binary or unreadable"
+    added = removed = 0
+    for line in difflib.ndiff(a, b):
+        if line.startswith("+ "):
+            added += 1
+        elif line.startswith("- "):
+            removed += 1
+    return f"+{added} -{removed} lines"
+
+
+def write_new_files(brain: Path, release: Path, keep: list[str]) -> None:
+    for rel in keep:
+        shutil.copy2(str(release / rel), str(brain / (rel + NEW_SUFFIX)))
+
+
+def report_kept(brain: Path, keep: list[str]) -> None:
+    if not keep:
+        return
+    print(f"KEPT {len(keep)} file(s) you edited -- not overwritten")
+    for rel in keep:
+        new = brain / (rel + NEW_SUFFIX)
+        print(f"  {rel}  ({diff_summary(brain / rel, new)} to reach the release)")
+        print(f"    release version: {rel + NEW_SUFFIX}")
+    print("  Merge what you want from each .new file, then delete it.")
+
+
 def list_release_files(release: Path) -> list[str]:
     """All files in the release tree, as forward-slash relative paths."""
     files: list[str] = []
@@ -217,8 +310,13 @@ def backup_current(
     brain: Path,
     backup_dir: Path,
     release_files: list[str],
+    kept: list[str] = (),
 ) -> int:
     """Copy every file the update will replace into the backup directory.
+
+    *kept* are the owner-edited files the update leaves alone; the ``.new`` files
+    written beside them are recorded like any other file the update adds, or
+    backed up if one was already there.
 
     Also records:
     - _manifest_new_files.json: release paths that did NOT exist in the brain
@@ -243,6 +341,16 @@ def backup_current(
             backed += 1
         else:
             new_files.append(rel)
+
+    for rel in kept:
+        beside = rel + NEW_SUFFIX
+        if (brain / beside).exists():
+            dst = backup_dir / beside
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(brain / beside), str(dst))
+            backed += 1
+        else:
+            new_files.append(beside)
 
     # Write manifest of new files
     manifest_path = backup_dir / _MANIFEST_NEW
@@ -639,11 +747,12 @@ def run_update(
     had_guard = had_command_guard(brain)  # asked before the copy adds the hook
     release_files = list_release_files(release)
     print(f"  release contains {len(release_files)} files")
+    release_files, kept_files = plan_update(brain, release, release_files)
 
     # 1. Backup (timestamped)
     backup_dir = _make_timestamped_backup_dir(brain)
     print("BACKUP")
-    n = backup_current(brain, backup_dir, release_files)
+    n = backup_current(brain, backup_dir, release_files, kept_files)
     print(f"  backed up {n} files to {backup_dir}")
 
     # -- Fault injection for testing (never in production) --
@@ -673,6 +782,7 @@ def run_update(
             raise _UpdateStepFailed("copy", RuntimeError("injected fault"))
         copied = copy_release_files(release, brain, release_files)
         print(f"  copied {copied} product files")
+        write_new_files(brain, release, kept_files)
 
         # 5. Record  (R5)
         print("RECORD")
@@ -707,6 +817,7 @@ def run_update(
         f" + synaptra {synaptra_version}"
     )
     print("  Restart Claude to reconnect the memory server.")
+    report_kept(brain, kept_files)
 
 
 def main() -> int:
