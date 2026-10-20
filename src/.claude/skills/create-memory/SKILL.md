@@ -86,9 +86,10 @@ and retrofitting a split afterwards costs a rewrite of everything.
 
 ### 3. Choose the store type — separately
 
-**Type is a decay choice, not a topic choice.** `working` hours · `episodic`
-a fortnight · `semantic` a season · `procedural` about a year · `person` 18
-months · `identity` years.
+**Type is a decay choice, not a topic choice.** Initial stability in days — the
+figures in `CLAUDE.md`'s table and `memory-shapes.md`: `working` 0.04 · `episodic`
+2.0 · `semantic` 14.0 · `procedural` 60.0 · `person` 90.0 · `identity` 365.0.
+The larger the number, the slower the memory fades.
 
 - **`identity` holds only what signifies *this should be my character*** — a
   disposition or a value, including a standing weakness. **An instance of

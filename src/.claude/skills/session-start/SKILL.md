@@ -94,7 +94,7 @@ existing failure handling (package unresolvable, Windows `MAX_PATH`) covers
 failures here; do not duplicate it.
 
 **5. Restart — and stop here.** `/init-brain`'s restart gate tells the user to
-start again with `brain.bat`. The memory server only reconnects in a fresh
+restart the brain. The memory server only reconnects in a fresh
 session, so **do not continue to step 1**: this session ends at the gate.
 Persona adoption, identity grounding, the heartbeat cron, and handoff pickup all
 belong to the fresh session that follows.

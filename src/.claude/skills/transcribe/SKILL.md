@@ -64,7 +64,7 @@ touching the rest.
 | Message | Do |
 |---------|----|
 | `no Python under ...\.python` / `uv was not found` | Run `/init-brain`; it installs the brain's Python and `uv`. |
-| `.claude/.venv is missing or unusable` | Start the brain with `brain.bat` (a moved brain repairs it on `/session-start`) or run `/init-brain`. The skill never builds an environment of its own. |
+| `.claude/.venv is missing or unusable` | Restart the brain (a moved brain repairs it on `/session-start`) or run `/init-brain`. The skill never builds an environment of its own. |
 | `conflicts with the brain's synaptra environment` | The install was undone and your memory environment is exactly as it was. Nothing to repair; report the named conflict. |
 | Download or install error on first use | Check the network and re-run. Only first use needs the network. |
 | A GPU line says `cuda ... failed` | The run continues on the CPU with the same model. Update the GPU driver to use the GPU. |
