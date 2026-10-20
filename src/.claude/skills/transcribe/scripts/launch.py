@@ -40,6 +40,10 @@ CUDA_MARK = VENV / ".transcribe-cuda"
 SNAPSHOT = VENV / ".transcribe-snapshot.txt"
 
 PROBE_SYNAPTRA = "import synaptra; print(synaptra.__version__)"
+# The server module pulls in mcp, pydantic and the rest of synaptra's stack, so
+# this fails when an install breaks a dependency even if `import synaptra` alone
+# would still pass.
+PROBE_SYNAPTRA_STACK = "import synaptra, synaptra.server; print(synaptra.__version__)"
 PROBE_WHISPER = "import faster_whisper"
 
 
@@ -151,7 +155,7 @@ def install(req: Path, mark: Path, label: str, prior: str) -> None:
         "-r",
         str(req),
     )
-    after = probe(PROBE_SYNAPTRA)
+    after = probe(PROBE_SYNAPTRA_STACK)
     if result.returncode != 0 or after != prior:
         why = (
             f"the install failed (uv exit {result.returncode})"
@@ -160,7 +164,7 @@ def install(req: Path, mark: Path, label: str, prior: str) -> None:
         )
         say(f"{why}; restoring the brain's environment to how it was.")
         restore_snapshot(label)
-        restored = probe(PROBE_SYNAPTRA)
+        restored = probe(PROBE_SYNAPTRA_STACK)
         if restored != prior:
             fail(
                 f"restore finished but synaptra reports {restored}, not {prior}; "
