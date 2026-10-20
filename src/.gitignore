@@ -73,6 +73,10 @@ __pycache__/
 # ...and its log, one line per cycle.
 .claude/dream-cycle-log.md
 
+# The date before which the session-end conformance scan does not judge memories
+# (issue #79) — written by the updater on the owner's machine.
+.claude/conformance-baseline.json
+
 # Isolated Claude config, created by brain-claude-sandbox.bat.
 # Holds this machine's Claude settings and sign-in. Never committed.
 .claude-config/
