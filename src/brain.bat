@@ -4,6 +4,11 @@ REM  Second Brain launcher (Windows)
 REM  Starts Claude Code in this project as your second brain,
 REM  using your installed Claude (normal config) -- no sandbox.
 REM  First run: start it, then run  /init-brain  to provision.
+REM
+REM  Starting it with nobody at the keyboard (login, a schedule)?
+REM  Set SECOND_BRAIN_UNATTENDED=1 first. The boot then asks no
+REM  question (switching on curiosity or the news) and records no
+REM  answer; those habits stay off until a boot with someone there.
 REM ============================================================
 cd /d "%~dp0"
 

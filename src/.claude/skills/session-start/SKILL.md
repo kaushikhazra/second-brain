@@ -131,7 +131,7 @@ through this same step; a future habit is one more entry in the table
 below, not a second block of prose here.
 
 ```python
-from activation import brain_root, record_path, load_record, save_record, needs_ask, set_answer
+from activation import brain_root, record_path, load_record, save_record, habits_to_ask, unattended, set_answer
 ```
 
 (`.claude/shared/activation.py` — resolve the import path from this brain's
@@ -145,22 +145,28 @@ no/no-answer:
 | `curiosity` | "Switch curiosity on? When idle, your brain will go to the root of something in memory, read outside the graph, and lay down provisional connections." | `/curiosity on` |
 | `news` | "Switch on the morning news? Once a day, after this step, you'll get today's headlines and links from your keyword list." | `/news on` |
 
-For each row in that table:
-
 1. Read `VERSION` at the brain root (strip whitespace).
 2. `record = load_record(record_path())`.
-3. If `needs_ask(record, habit, version)` is false, skip this habit — already
-   answered for the current `VERSION`.
-4. Otherwise, ask **once**, with `AskUserQuestion`, using that habit's own
-   question text from the table above.
+3. **An unattended boot asks nothing.** If `unattended()` is true — the launcher
+   set `SECOND_BRAIN_UNATTENDED`, so nobody is there to answer — skip this whole
+   step: no `AskUserQuestion`, nothing written to the record, every habit stays
+   off. Print one line: "Unattended boot — activation questions skipped; they
+   will be asked next time someone is present." The next attended boot, on the
+   same `VERSION`, still finds the habits unanswered and asks. This is not a
+   "declined": nothing was asked.
+4. `to_ask = habits_to_ask(record, [the habit keys in the table above], version)`.
+   A habit already answered for the current `VERSION` is not in it.
+
+5. For each habit in `to_ask`, ask **once**, with `AskUserQuestion`, using that
+   habit's own question text from the table above.
    - **A non-interactive (headless) session counts as no answer** — if
      `AskUserQuestion` is unavailable or errors, treat exactly like a
      declined question rather than retrying or blocking the boot.
    - **Yes** → `record = set_answer(record, habit, version, active=True)`.
    - **No, or no answer** → `record = set_answer(record, habit, version, active=False)`,
      and print that habit's one-line hint from the table above.
-5. `save_record(record_path(), record)` once, after every habit in the table
-   above is resolved — not once per habit, so a boot that asks about two
+6. `save_record(record_path(), record)` once, after every habit in `to_ask`
+   is resolved — not once per habit, so a boot that asks about two
    habits writes the record a single time.
 
 The question is asked **once per habit per `VERSION`** — declined or
