@@ -66,6 +66,9 @@ MACHINE_LOCAL = frozenset(
 # Internal manifest filenames stored inside each backup dir
 _MANIFEST_NEW = "_manifest_new_files.json"
 _RESTORE_META = "_restore_meta.json"
+# The memory store's copy: a folder of the backup that restore treats apart from the files.
+_STORE_COPY = "_store"
+STORE_DIR = ".claude/synaptra-data"
 
 
 def release_root_from_script() -> Path:
@@ -326,6 +329,8 @@ def backup_current(
       before the update (so restore can delete them).
     - _restore_meta.json: prior .release-record.json content (or null) and
       prior synaptra version (or null).
+
+    The memory store is copied separately, by backup_store, once synaptra is stopped.
     """
     if backup_dir.exists():
         shutil.rmtree(backup_dir)
@@ -382,6 +387,54 @@ def backup_current(
     return backed
 
 
+def _update_meta(backup_dir: Path, **fields) -> None:
+    meta_path = backup_dir / _RESTORE_META
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta.update(fields)
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+
+def backup_store(brain: Path, backup_dir: Path) -> None:
+    """Copy the memory store into the backup.  Synaptra must already be stopped.
+
+    A synaptra upgrade reopens the store and migrates it in place, so restoring
+    the old synaptra alone leaves old software on a store it did not write.
+    Noted in the backup's metadata only once the copy is complete, so a failed
+    copy is never mistaken for a backup.
+    """
+    store = brain / STORE_DIR
+    if not store.is_dir():
+        print("  (no memory store to back up)")
+        return
+    dst = backup_dir / _STORE_COPY
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(store, dst)
+    _update_meta(backup_dir, store_backed_up=True)
+    print(f"  backed up the memory store to {dst}")
+
+
+def restore_store(brain: Path, backup_dir: Path) -> None:
+    """Put the backed-up memory store back.  Synaptra must already be stopped.
+
+    The store it replaces is moved aside, not deleted: memories written since the
+    update live only there.
+    """
+    saved = backup_dir / _STORE_COPY
+    store = brain / STORE_DIR
+    if store.exists():
+        stamp = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
+        aside = store.with_name(f"{store.name}.replaced-{stamp}")
+        n = 0
+        while aside.exists():
+            n += 1
+            aside = store.with_name(f"{store.name}.replaced-{stamp}-{n}")
+        shutil.move(str(store), str(aside))
+        print(f"  the store it replaces is kept at {aside}")
+    shutil.copytree(saved, store)
+    print("  restored the memory store")
+
+
 def restore_backup(
     brain: Path,
     backup_dir: Path,
@@ -400,7 +453,9 @@ def restore_backup(
 
     # 1. Restore backed-up files
     restored = 0
-    for dirpath, _, filenames in os.walk(str(backup_dir)):
+    for dirpath, dirnames, filenames in os.walk(str(backup_dir)):
+        if Path(dirpath) == backup_dir:
+            dirnames[:] = [d for d in dirnames if d != _STORE_COPY]
         for f in filenames:
             # Skip internal manifests
             if f in (_MANIFEST_NEW, _RESTORE_META):
@@ -463,9 +518,13 @@ def restore_backup(
         if added is not None:
             remove_guard_entry(brain, added["file_existed"])
 
-        # Synaptra version
+        # Synaptra version, then the store it migrated
         if not skip_synaptra:
             prior_synaptra = meta.get("prior_synaptra_version")
+            store_saved = meta.get("store_backed_up") is True
+            if store_saved and not prior_synaptra:
+                print("STOP synaptra")
+                stop_synaptra(brain)
             if prior_synaptra:
                 print(f"  restoring synaptra to prior version {prior_synaptra}")
                 print("STOP synaptra")
@@ -482,6 +541,8 @@ def restore_backup(
                     print("  synaptra left at current version")
             else:
                 print("  prior synaptra version unknown -- leaving synaptra as-is")
+            if store_saved:
+                restore_store(brain, backup_dir)
 
     return restored
 
@@ -768,6 +829,10 @@ def run_update(
         if fault_step == "stop":
             raise _UpdateStepFailed("stop", RuntimeError("injected fault"))
         stop_synaptra(brain)
+
+        # 2b. Copy the memory store, now that nothing holds it open
+        if not skip_synaptra:
+            backup_store(brain, backup_dir)
 
         # 3. Install pinned synaptra  (R2)
         if not skip_synaptra:
