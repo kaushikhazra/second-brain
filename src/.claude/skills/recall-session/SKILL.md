@@ -52,6 +52,7 @@ one session.
 ## Scope and boundaries
 
 - Searches only this brain's own transcript directory under
+  `$CLAUDE_CONFIG_DIR/projects/` when `CLAUDE_CONFIG_DIR` is set, else under
   `~/.claude/projects/` — resolved by walking up from the script's own
   location to the nearest directory holding both `.claude/` and `CLAUDE.md`,
   then encoding that root the way Claude Code names its transcript
