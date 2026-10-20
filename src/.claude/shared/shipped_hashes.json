@@ -1,0 +1,585 @@
+{
+ "schema": 1,
+ "releases": [
+  "v0.1.0",
+  "v0.2.0",
+  "v0.3.0",
+  "v0.3.1",
+  "v1.0.0",
+  "v1.0.1",
+  "v1.1.0",
+  "v1.1.1",
+  "v1.1.2",
+  "v1.2.0",
+  "v1.3.0",
+  "v1.4.0",
+  "v1.5.0"
+ ],
+ "files": {
+  ".claude/hooks/command_guard.bin": [
+   "69233a09e5736ed3ed29c8500b4db387fcf4cdbc426caa5e923411b16c4d8fdd",
+   "f196770278b15dd9e452b1e55396a1902da8e1898fe732e09de03c3d3ad89dea"
+  ],
+  ".claude/hooks/command_guard.json": [
+   "36f07cacb7ad66b24ef46cab6d59d0addfa163a977a0575ff120fffcd594a6ab",
+   "75cdd860e2855c0574d5f362a83962c9528825f232ce64e6fe90f11aca972f51"
+  ],
+  ".claude/hooks/command_guard.py": [
+   "90870b03bddaa40039b57834f20d44b4bc0f7a3afca5b31f6780f4d184b262a9",
+   "e5ac7b1bcb1b437b06eb703df0356683d5ea622eaf2f949103608732f61290ca",
+   "fea6af12faa6e92fc633a062710104527136f78e63f536f37f824ffc380e1447"
+  ],
+  ".claude/hooks/memory_guard.py": [
+   "0bd14fc35a79ee14c4dd8dd1b69c46f841273aeb26917de50f9a6e16b05d24a0",
+   "deb9798d79850226838c14c24253ecc14fa9d581a0e37b88b93dc9dd5198d6ee"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/action.md": [
+   "1e16ed2622954efb50174aae29e8d7af90e497382933a28fa61a98d5fe5a6f57"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/assumption.md": [
+   "ae8fac43d1d9ac556bbb369953894daa0827a567d0078023257dc4f409ccc96a"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/goal.md": [
+   "ca84c8e09e8591d864c02a56c53e49cdcc903ede5c3f7ff76a047658723793f0"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-1.md": [
+   "071b73d8c9f909b3e603317949dacfd77ad263029998d03492a432a1ab8cf7a2"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-10.md": [
+   "c8e4fafc25e23e84fb1c4e84a7a98d51ab8028444a7b165ed709a6c988edd028"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-11.md": [
+   "64f5ba7052050a1b7fef2b65488f73917568ed5a07cac4f4c37744de83b21f86"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-12.md": [
+   "b76b10bf291c3a2da7330fb70317398e53f8f29bc713c2f9e132a3987570fb45"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-2.md": [
+   "cbc42af6af70ea3a64534b3e159c4b43e0aa0f276411fbd67033d8dd14ec53d7"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-3.md": [
+   "925fec85ed271c777dad8b4ee212a1d3c715c3cb97eaf7f79ed5b6467c0ee4ce"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-4.md": [
+   "60013e4e42918e308fe118e1dae4b4242c146bc15e9d05ef0e6b0783471a9e2d"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-5.md": [
+   "8dd39d66afe4e645a8b9dbcf64c667d0c707c17e0321701e666009c9e98d34e7"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-6.md": [
+   "4c1fa35d9708cb0997ea6d554fbe0f1a4ac6906f38a3161aaee81e8c458f206b"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-7.md": [
+   "f1f25d6f6209c61459d93520336cba3de56120dd03612ee3cc72c6d5e63f474b"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-8.md": [
+   "cf3ecce0e89296c785be8714cf4770e95f0dcf57727d76f39b403a25c725c3e0"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/logs/cycle-9.md": [
+   "ba5dc63f17f54c69a17175fe95926851b1c39f44ca66f6bca87c9412f982a859"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/loop.md": [
+   "11d28085fb3074491372e66cdfaccd01318d6189995c30f5c8d614f8e336ccf6"
+  ],
+  ".claude/loop/2-memory-shapes/iteration-1/observe.md": [
+   "b2e2d9f6d4c3a75863ef5d18bdcb5de500a66fd8266642de7cfa138a98c413d5"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/action.md": [
+   "c9e2df75fc911d39ac3a8889a5fb207baa1fb68226c8844188b6e64f3b545250"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/assumption.md": [
+   "2e849b7e49d56caaf7c640b55ebb4d4da67c055b2b59bec8bc3902470881cc24"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/goal.md": [
+   "d4756625974eb7034743511a11c18442c36197cfdac595629aa88c5aeb5ca4ce"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/logs/cycle-1.md": [
+   "1c586325bfc99d9395c441e4901fec4f4d29091eb9767c4fc8b0c874a067378e"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/logs/cycle-2.md": [
+   "f98b75f7df1060595eb258ef9bb232dc7fa651ed8491b2e70eed48a716a55b10"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/logs/cycle-3.md": [
+   "702a56b0b4171c839b60cefea0702d17153ec34991fdc19d2a31944f1c097694"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/logs/cycle-4.md": [
+   "923ce50a860f224303f9ae170a15ab8154072e5935b729b3a999e4e61d59edcd"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/logs/cycle-5.md": [
+   "f90bea9ba354cddb58fd7a15639bcd3a4e3be1feb05921a035989c3a0a617a1e"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/loop.md": [
+   "ba8ac6f2e9fb507306c0100a93b1702d1ddeaac8880de3e3d92ede14f8471160"
+  ],
+  ".claude/loop/3-boot-lists/iteration-1/observe.md": [
+   "ed91ad843c5df9f93c23b971cb18ac345fc6460bf06de1a812e129fa20b85cf1"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/action.md": [
+   "f977b6cc7698b0ba6156730037af7c750ee4b3f6c41b089e2743cf05764be18d"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/assumption.md": [
+   "c235f50d820debff8617ebe55810aed116084399deccb2cb5648db2f2eaefc50"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/goal.md": [
+   "cd879ee7897a301ceb2628ba0bb2065907e4806c181c35f29c736ff8ba46ff7b"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-1.md": [
+   "32a371109cf52bb34cef42a10877307818d1a8830aee0efb942a2176f1ebd8f1"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-10.md": [
+   "7fbe9234b9a0fdba6aeec1c8c64239ce2fded52a9e901e84b9d91bc3f0c6b9f0"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-11.md": [
+   "adf5f79a1d3262218c04bac9512ea1f60210889c15d606ad56de6a0e37fa67c1"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-2.md": [
+   "dcc92a80b9d5d10e074e68d37a779754531e532c2a61586212b8d3f39b83fafa"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-3.md": [
+   "1de96aa295d2fc215c9b8509f48998c6baa6a149d9ed880ba46ff85990a392e0"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-4.md": [
+   "47b8ccf86032066be074760351cdec30d853b9e3fc9aaac10bc811c31de3fae6"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-5.md": [
+   "d486de7f96851dad05391779dd0afa2ef9be4ee157038a0d1aa16da70aab638d"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-6.md": [
+   "38584677151cf9dbff8087323c85d8c406154ce250bf89bd215acfb68309ca1f"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-7.md": [
+   "f2b06697b0be4e3bc08149d113c83a6ef29260a6f7d333e602533600b7bfc7ce"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-8.md": [
+   "fe6446696adde034f6911005a403db224701830bc29811d88e0103600309a332"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/logs/cycle-9.md": [
+   "46e30a141c9553ec42e9caad442486d358d4a72c3b4788615d0b27d26543230b"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/loop.md": [
+   "d75a5e79804043a63f994853ee2792b20b56374f974f430df32be177022314b8"
+  ],
+  ".claude/loop/4-heartbeat/iteration-1/observe.md": [
+   "3f3b57dad98b78b1a6aad41a74eb5f1b64c45f23c154fcb16607c5ca9c83280e"
+  ],
+  ".claude/loop/5-dream/iteration-1/action.md": [
+   "997779212ca9d0bd83b4e4e9d1bbaed459953f66168d16bf67716fe6b961e37f"
+  ],
+  ".claude/loop/5-dream/iteration-1/assumption.md": [
+   "31afb271ae764193b2bfef001710cd984f27b2ca92cd0b72a0c7762f1076b788"
+  ],
+  ".claude/loop/5-dream/iteration-1/goal.md": [
+   "4e3346467524b0128aac6a075ab42beb4f7431d755947a7260d088a9347483b9"
+  ],
+  ".claude/loop/5-dream/iteration-1/logs/cycle-1.md": [
+   "649f02f3e48f9112971853f8d6b623c30a4b638216675ed574f06c7851419714"
+  ],
+  ".claude/loop/5-dream/iteration-1/logs/cycle-2.md": [
+   "882138b1a858eb60140750174dc6a95290602726fc465d4ba1fb413103d15ff4"
+  ],
+  ".claude/loop/5-dream/iteration-1/logs/cycle-3.md": [
+   "93cb4acd20af4986f719912e201182500d4e607a9420c8f082a26feb2de4e953"
+  ],
+  ".claude/loop/5-dream/iteration-1/logs/cycle-4.md": [
+   "92527aaa45a130ce895e46e020e10a18a7cb064e16ad6c8e07b42d28d05f4e0d"
+  ],
+  ".claude/loop/5-dream/iteration-1/logs/cycle-5.md": [
+   "2d8bdd6c0470963ea8031204d4c201df1b56ae15bfef8e8248c50a61b6ef4212"
+  ],
+  ".claude/loop/5-dream/iteration-1/loop.md": [
+   "d74854dc5385b50648f269a044a464ed1c8d11bb4e21b40d7c38d8b6a961cf23"
+  ],
+  ".claude/loop/5-dream/iteration-1/observe.md": [
+   "dd973a9d105e288718cf36ddd860935c1da93f12316d5e2785592b37e70199c3"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/action.md": [
+   "e8ee2a54810801666ebd7e662f6a3d6bfe294d834ff744a8aed61d52338a5146"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/assumption.md": [
+   "0d14a2080658bf343d02f749a51514d921c1f3d7c85bc6221343d1e22ccde15d"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/goal.md": [
+   "8f72b7dfd40aab46538012da32cfcd766d30b4b904694ab3240150185a462047"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/logs/cycle-1.md": [
+   "097ba30aacd5b670e91f32ff1bc20d69731c33f662c2029f1126a5e00a0201c8"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/logs/cycle-2.md": [
+   "8af2e1109fb5500b377653b13f937f55bb5c9d29826b2641d0bbc1fbd99e37d4"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/logs/cycle-3.md": [
+   "977d5df6bf6ce6c6a3a99dfeef493a0898f97c6fe8e60f06a1bdd7f3f34d4a8a"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/loop.md": [
+   "2eac2075bb8f1361635986c3fda67a6cf4742728717b07b16bcda61e7cc817ab"
+  ],
+  ".claude/loop/6-curiosity/iteration-1/observe.md": [
+   "2325be8f5917074aaa50c3c80ba3fa4994da89c56ea3f60e93611afd2ecfef8a"
+  ],
+  ".claude/loop/7-news/iteration-1/action.md": [
+   "764a82f58723122a513ece173cc0617ca86fc930320b6d2e34bf864c7116ae0c"
+  ],
+  ".claude/loop/7-news/iteration-1/assumption.md": [
+   "a34f8d1d4734188e6e7a4c25fe99381f19f802930784a4c23cfed5df35f89adf"
+  ],
+  ".claude/loop/7-news/iteration-1/goal.md": [
+   "890c543e3ba8b0e6daf16b58a55cfdeb28849e780502f608b2d35f4ca6ab2eb1"
+  ],
+  ".claude/loop/7-news/iteration-1/logs/cycle-1.md": [
+   "b31d3d1fd32982ffc5e9edba0f98abcbc54539bbe63d7817e346db13a85a10d3"
+  ],
+  ".claude/loop/7-news/iteration-1/logs/cycle-2.md": [
+   "613a0a31b3dfb288579043f57bebc56aabe2ba71f85a564fc792549a35d4082e"
+  ],
+  ".claude/loop/7-news/iteration-1/loop.md": [
+   "4d685faed356064009d4b670c15ff38d46df44353cde8a61de4eb9a24b5eddeb"
+  ],
+  ".claude/loop/7-news/iteration-1/observe.md": [
+   "d8eb9634a7edd482b2237edb19d5a7c5882255c0df85e430bee72eb69dcc3033"
+  ],
+  ".claude/loop/8-recall-session/iteration-1/action.md": [
+   "0022b84efeb571cee894cbcf9c1a051fd4561f5c0360a92b6fa18b7e22232367"
+  ],
+  ".claude/loop/8-recall-session/iteration-1/assumption.md": [
+   "ea167b2ea849f9a7834fa831eaa244038ec7f5a118f1b5dd9ad70e05b9a7295f"
+  ],
+  ".claude/loop/8-recall-session/iteration-1/goal.md": [
+   "7297ad8e784a2408f8b836b7a8cffe809efb4f0b4a3bc128bbb9cdb0508baadd"
+  ],
+  ".claude/loop/8-recall-session/iteration-1/logs/cycle-1.md": [
+   "0981ca276d466d4dae0cb10158aaa83b8b23dae77a3d081d0e14f7e1537033fd"
+  ],
+  ".claude/loop/8-recall-session/iteration-1/loop.md": [
+   "9cc69a583a4ef6061c17c84d03352e8bf84c1c296f2c0b827944929fdf3a0b82"
+  ],
+  ".claude/loop/8-recall-session/iteration-1/observe.md": [
+   "0c317298b6f0f5dda2e7594383ece8cd1bf669ca54c442a48461148ab5465689"
+  ],
+  ".claude/settings.json": [
+   "08a351c40a70d8bbe134fe63b85d167c600c880dd29875a5932c5ae34e8c3698",
+   "1e0b118840106356ef00f67a36e517667f3832387060c2897134b436bb632369",
+   "5f811014f8b8c3bebe680d08cf088197a582f3f959cf4365cbaabaecf306e7ac",
+   "db6ba8ff36c56760f19de3395de4658bb376250ea92c780430a010906b26da3f"
+  ],
+  ".claude/shared/activation.py": [
+   "4ebf7af474600dc24847d7c6943be5d44607cafc4e6cd6a503c03be5dde8ea79",
+   "7662b7fc3a4614975e3b1ce9c09a5fdadf08e0fae2395979e2825177a95be0fe"
+  ],
+  ".claude/shared/dream_cycle.py": [
+   "05c82ccaf22c7b3c721d63edb288bf102593b8f842b4229ba5dadebf34dcbba4"
+  ],
+  ".claude/shared/memory/check_ac8_scripted_agent.py": [
+   "0eaa8b255413c7081fdfd3a57dabc0a21f4c1085224c58c744c17cdbd4787dda"
+  ],
+  ".claude/shared/memory/check_batch_a_scripted_agent.py": [
+   "189a5159bf6d607312b82465370034344dcb24f3f2f92fc1f352a042d5531124"
+  ],
+  ".claude/shared/memory/check_batch_b_scripted_agent.py": [
+   "c9152b922bd771b6e25a26e4322bd2ba597e74aa8336351c219217f9c61bf0f0"
+  ],
+  ".claude/shared/memory/check_batch_c_scripted_agent.py": [
+   "9024efb21af0ccd69e0bb99fef9475136faf32d8e2f1fbf3aee79bcfcc0c7e95"
+  ],
+  ".claude/shared/memory/check_conformance_scan.py": [
+   "83351ac94b3fa813027626e5d9740f46c50d4f579d68b83f1f62e16378c94160"
+  ],
+  ".claude/shared/memory/check_create_memory.py": [
+   "89af07120f44401dde73ea0514309d2b8e295e06b96013574eebce2b1b46fdda"
+  ],
+  ".claude/shared/memory/check_delete_memory.py": [
+   "5673b73414826aea90c1888deb0775bc8e1c136cb8822c71214a31501721cc05"
+  ],
+  ".claude/shared/memory/check_dream_ac10_scripted_agent.py": [
+   "151f8d3f7c28270b6c078343d672ad8158c4c25bd5879c4ed555cad352763695"
+  ],
+  ".claude/shared/memory/check_dream_ac11_ac12_scripted_agent.py": [
+   "4ca7bd6e992af54a74ea0f58360d0d8af566e776cbdf2003f596e0cac985e6f9"
+  ],
+  ".claude/shared/memory/check_dream_ac16_scripted_agent.py": [
+   "279a9a3a8d67f045ae5b4e51c24cee7f6dde4a149155111898412e96f990139e"
+  ],
+  ".claude/shared/memory/check_dream_ac17_scripted_agent.py": [
+   "384e40810700e73adefff54c09a16781789f9c1135704ad605aa1d276e7228df"
+  ],
+  ".claude/shared/memory/check_dream_ac5_ac13_scripted_agent.py": [
+   "75bb383aa5f095d7ddf65a9e3b3e253671899d39dcd87182d11b0093be129e89"
+  ],
+  ".claude/shared/memory/check_dream_gate_scripted_agent.py": [
+   "97d73d3d0f3e56913ed972bb3c1375b0356362b4f303a4214fc8caa92a334a1a"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac10_ac11_scripted_agent.py": [
+   "e6065aa0adcdd5b329062ce48d1fd01f3bea4f1c1785725a58c93c9d95a184ef"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac13_scripted_agent.py": [
+   "760d6039009131c97a0eb3f8d43096b728208c7b1c095f46f25cef3d3bbda4e7"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac14_ac15_scripted_agent.py": [
+   "e8e443b229efa4eab66adcbaac3447b2a3c0cdb5756cdb2fb96a0ce51ced09cf"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac16_scripted_agent.py": [
+   "fbd383d945715b5ba8c0acaa02f21e3c6924c9c0afaa8a6cb5a23dcf76481894"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac19_scripted_agent.py": [
+   "c65ea85823135d7b3d0ecfdc5fe33edce27ab0d7acf20c66568bd7e1e9e85d01"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac3_scripted_agent.py": [
+   "dae21ad950473cd7b8fe42c225764d32939a7632c7546a7297b9617f7809e3da"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac4_ac17_ac18_scripted_agent.py": [
+   "e99653b883dfea031a54918c1d299722391dbfe9b10a2d7eacadf90d8e20bb06"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac5_ac12_scripted_agent.py": [
+   "01eb19b63b3fd6834d5d0168ee6aacc49b9289a0b6cf417808ae657da5460d05"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac6_ac7_scripted_agent.py": [
+   "162f449679fa5470c68f1dc7aafb29fb8e90cb06a7b196076ae8ef4307e1e848"
+  ],
+  ".claude/shared/memory/check_heartbeat_ac8_scripted_agent.py": [
+   "6323d15bf7206cf9533cdcba7bb71b5f8bd1a4dbf5cc951609670d0145891cf2"
+  ],
+  ".claude/shared/memory/check_hooks.py": [
+   "fda81a0ec7f1f928ccd09eb8865ea0d98a4d5de7f131c04f81e23729ac81c48f"
+  ],
+  ".claude/shared/memory/check_init_brain_scripted_agent.py": [
+   "b8bd46c6aa0eeaba5c1dc0d4c577507d353632e6f48b6cf6654967fea82699f2"
+  ],
+  ".claude/shared/memory/check_read_memory.py": [
+   "b68ffa4332c4de4612b48d879ed40ea0362e53d4cdec943560d198ef8cbf1f58"
+  ],
+  ".claude/shared/memory/check_session_end.py": [
+   "046ddc4c77c900f21e9d10cb8f1abee9ff67384bc2772b84c6c75c56c6ae0c61"
+  ],
+  ".claude/shared/memory/check_session_end_scripted_agent.py": [
+   "8b3b1647cd91aac99561b83ac469d0c58b391e29226e390cc06c73a5f737f50e"
+  ],
+  ".claude/shared/memory/check_session_start.py": [
+   "d0d1d39c49155c78955f758704a6572635d6fb5f12e8388f81ab816a444cd8e7"
+  ],
+  ".claude/shared/memory/check_session_start_scripted_agent.py": [
+   "d43bd06e415c7c5642238fcbf0750838ee52eeb896170165edc90bc6aab8ee12"
+  ],
+  ".claude/shared/memory/check_shapes.py": [
+   "19abc9275e52522a65a5b08c3c4581e141768a794c7ba7a429ba819dbfc2b955"
+  ],
+  ".claude/shared/memory/check_update_memory.py": [
+   "5c217963bbc4c9e8bebf77e3918b09aef83b6765fbe4b64c71f21f5c8e424c90"
+  ],
+  ".claude/shared/memory/check_verify_memory.py": [
+   "8a9443af0a933fa3e3b5861ed8942907955de4e0f1bfa685def176d92a69bcbc"
+  ],
+  ".claude/shared/memory/memory-shapes.md": [
+   "7d3ff2d0d2dce50268cbab29493a73d7a7d9a991cf0444ecc7fa7b256f4ae0f7",
+   "9f37ee52cbd3bd676e56a9a8a1771a19677f830497fdbb5c6daa86e1d4384fac"
+  ],
+  ".claude/shared/update_brain.py": [
+   "37e19e70ca20a8f12c30a7c33ced19470b7c69d5e1e6f0d55800cb920ed3f21c",
+   "640dce6c6e2276b2ee4e7c0e2dc90d46091c6b11894caaa4bea66d8d18156f56",
+   "8560a958ee07e0ca680dfedfbdc0e8353f69d2a54487cc43608b88267cc8d0a3",
+   "ae2fc754aee9bdc005f6f18c6a9eb18ef7ffcf27bbabdc27c06c000e3892976b"
+  ],
+  ".claude/skills/agent-creator/SKILL.md": [
+   "43e1513acc219feac2d4bce8a38732ae648f900a14102261629bdb476b8fce3f"
+  ],
+  ".claude/skills/create-memory/SKILL.md": [
+   "02663aeb33d51307788d0edf36e02e52010c937f309f97320c6ced9297847547",
+   "651cfa3cbf2381923e11952dceae19362b32a5bb9063af6736030af72345591b"
+  ],
+  ".claude/skills/curiosity/SKILL.md": [
+   "75b7ae8c0cc6a0a4ee5f862e54011aeed94502d1aa78afa2ae88a87a0efa9d40"
+  ],
+  ".claude/skills/curiosity/check_curiosity.py": [
+   "b9e85f988b521846d692b1778e315129b4d7978fc66fc684c3476cc03d23d53e"
+  ],
+  ".claude/skills/curiosity/check_curiosity_invocation_scripted_agent.py": [
+   "17fca8feee388b50e2cb5df5ebea559965e0af6e3889a122ab3b754612d83b6b"
+  ],
+  ".claude/skills/curiosity/check_curiosity_pass_scripted_agent.py": [
+   "88dcf57744504785e5db926d77fa78db90f0021144762367a36a574ffb0d01a0"
+  ],
+  ".claude/skills/delete-memory/SKILL.md": [
+   "c9a69d6aa15939496b5df098b6c30dad5b56a067f7b88bf244a35fe5d5687bbd",
+   "cdb1446d46ec23c2dabff3532cdcf653e7b358f9433e247ff9185610c837acb4"
+  ],
+  ".claude/skills/dream-cycle/SKILL.md": [
+   "a25e3571a78318036d21449649fe367657c58749932da57e966f408406e7f52a"
+  ],
+  ".claude/skills/dream/SKILL.md": [
+   "057c16ac8f1af255316f463bea8569c56ebf0f20248f32309e89acdfb9372ef0",
+   "1d9aa2ef559044ccffecb4955be2fa033d0d19e5912185480c83861c8614769e",
+   "90307531179892c5f615748f83784c8d7841f7f39111699938d1b01169ca9e56",
+   "b1c34a4624b996b83e6b52c853fb7c1ddf2535480814b7e0bdce2f228120ba94"
+  ],
+  ".claude/skills/dream/check_dream.py": [
+   "82946a5afb49552115cdcc3bf93613ecf0f653c9acabba9b41e8c8593cae9588"
+  ],
+  ".claude/skills/dream/checkpoint.py": [
+   "adf96ce34f07ff0c218a500f2e64a5c2c14d7706e5209a2e967366707e4b15b6"
+  ],
+  ".claude/skills/guard/SKILL.md": [
+   "f8a74b7b14481baaffd0a4cf2eb2b53dd7ef54b26ff617c252dcb167614d7905"
+  ],
+  ".claude/skills/guard/scripts/guard.py": [
+   "0aec511a9cdbf6d814d01dbecc4bf8009a6a0a40c8cd4cd85763ceccfd38c946"
+  ],
+  ".claude/skills/heartbeat/SKILL.md": [
+   "19a7d58430dee2b56941509058a6a016157175464369a936b7f100b9647409a1",
+   "1cda9419097817ba9271512e5b17cc10f816a95ffbfbedf94c2ee995277abdde",
+   "2f617d726f66dcb50fdbe87ed8902a3aa2e64235dcc00e7d70cba5cbe71bf15e",
+   "b6f8d7972006e48ddb2f838bd3b536fc8e4c84c94ae34d93babe52e754ef5ec0"
+  ],
+  ".claude/skills/heartbeat/check_heartbeat.py": [
+   "011df6ab76e938d74cc783016c4bf391b04693655302adabccc91a6b8713af0c"
+  ],
+  ".claude/skills/heartbeat/goal.md": [
+   "746c2a0f41777d8e09a3d5a653357c41c7e0dff3a7098746816d93fa80edd826",
+   "a1c3237e7f34e8100192bc1e5e08a9e52010b631afb145d56af6ebb787ceb0e6",
+   "fa56ea9eb9668537da58a469560d3ead602d72645ba63e0f69d5f3a5b8698b52"
+  ],
+  ".claude/skills/heartbeat/observe.md": [
+   "6783b407f4c2a9001431152091d2580452d2c05234e2c8299a08099f8ea10546",
+   "6add39b858a9e5b95d0abe57391171acba1f61358354c171cd85d44b8e7b55ec"
+  ],
+  ".claude/skills/init-brain/SKILL.md": [
+   "2b708a6805281b06a00c71515fd4ad851932714595e914c1f3f80a7144802f33",
+   "ca69eb94e7711f0fad3fb6887bf3c9597c7129b8a0d8a2fa570e0f3b80cbd3ad",
+   "f0879249f27d6f743e2b1a647f5e40b92722a7c7ce85a5c5417262bf0ae7c5e7"
+  ],
+  ".claude/skills/local-agent/SKILL.md": [
+   "aec6491ed269b2e95d13d3b900f09b372463e1132ffcc705b12ac584a9c4a6e0"
+  ],
+  ".claude/skills/local-agent/requirements.txt": [
+   "b76913c0b310c4d274a45bcb427488d7b120ce50dbb167d0d334ddff6abf8fb2"
+  ],
+  ".claude/skills/local-agent/scripts/agent.py": [
+   "561e42d4959ce3108b95dfc164cefebd7340964353b12cd922e77f7ea80f37db"
+  ],
+  ".claude/skills/local-agent/scripts/config.py": [
+   "0fcc10144e88a0133d1938782d6e8929c315fa47ea3a1d62976370c7cd4bb536"
+  ],
+  ".claude/skills/local-agent/scripts/run.py": [
+   "4f2b0d45153df93d1ad7f7d0361d5134bac792075b6491994ca77fdae051ab80"
+  ],
+  ".claude/skills/local-agent/scripts/tools.py": [
+   "6cfe93e2f4c0e95210cc9b26b918b1187556305aed6895d94542c2e9c483070c"
+  ],
+  ".claude/skills/manage/SKILL.md": [
+   "44214a013c737b4dcc51873d33e8c6f30438f454bc93a913309a0a2e6ff02831",
+   "4a788d5c3eea0f2adc9c9d9ab2a8817f01dd4fbfc1fd2feb229400d447f4125f"
+  ],
+  ".claude/skills/manage/scripts/projecthooks.py": [
+   "0657b96645c9d038f0613196e1d7210f3adbf6d79a001ec2eb0fd9d3679b852f"
+  ],
+  ".claude/skills/manage/scripts/projects.py": [
+   "6ea5a4d2840604e6279fc13a4a1a5a18f2f8d018005818f5d3a6fa8156d83155",
+   "d527c09a0d63fb675513bc35ccff4af1eccc6ec55b41bdf30ce01901f6ca98aa"
+  ],
+  ".claude/skills/manage/scripts/workqueue.py": [
+   "1f4bbbffbd240c76c148391cae75360d92b7272b5d857b8aa92f0d117a3c79b1"
+  ],
+  ".claude/skills/migrate-from/SKILL.md": [
+   "64350e67f39280bb861795db68a4f14206c22c4166138987eb43398a7967313a"
+  ],
+  ".claude/skills/migrate-from/migrate.py": [
+   "6a23990d0611b83f164dc561d8d02ec4afcb1ddaee454afcd3be1d1a0b1b1e8f"
+  ],
+  ".claude/skills/news/SKILL.md": [
+   "6f0db12bec2373029770656145594e31c57d773880f1b923e634dc16f9a4a2c8"
+  ],
+  ".claude/skills/news/check_news.py": [
+   "fa1e1558d8578edf7b0da35b275443c4d6bdf802b71c690beaaf5c2d9f160d31"
+  ],
+  ".claude/skills/news/check_news_pass_scripted_agent.py": [
+   "f35a0e7053a3e9eccadd88c0023ba61421fdbf66e945e4641907d47161e5cc31"
+  ],
+  ".claude/skills/news/check_news_session_start_scripted_agent.py": [
+   "c6290474b117f92ada94a85e8f941a4bba2ddbb8137010e24508505755f455d1"
+  ],
+  ".claude/skills/news/scripts/youtube_auth.py": [
+   "15709af8beb18111a180a676dd56b294109ab744a873d785ce4d50be4b301f2d"
+  ],
+  ".claude/skills/news/scripts/youtube_subs.py": [
+   "4a6ddd1f321df51160d641e8b1e66a2fd10a1f933467cb93100088499b601683"
+  ],
+  ".claude/skills/read-memory/SKILL.md": [
+   "de5063f901a2d530a59a47754270b3eed96dc27d873b8da8c357b7d01c338913"
+  ],
+  ".claude/skills/recall-session/SKILL.md": [
+   "a07aede23a039107c06e4b8674d1729856bc7d9bb31d07e5485bdcf2fd1d39de"
+  ],
+  ".claude/skills/recall-session/check_recall_session.py": [
+   "ad55a9889ead08468eba629aaae4ca8a7cbc0782baa0b208425a1dd5b1e09c5b"
+  ],
+  ".claude/skills/recall-session/tools/search.py": [
+   "96fb9d9ee38747ab583405855f0d38121f8d1594e46975bd54c5aacf6e13a4cf"
+  ],
+  ".claude/skills/session-end/SKILL.md": [
+   "07d0cff91c82d9b94d46653480a57e3e0b1366129f53ad15c7c7182496b86145",
+   "bf7ccc9170fd3bd7f463574527e47a2d0e713ae74ccafdf8976cab777beaa80d",
+   "dd2980238f94df1af18069b8875c5e05387241ffff5848abbf89a1128b6d32b8",
+   "df84f4cffbb1a2672cc5a0111f00c584da52e4fd6918ab24614f899986988b1d"
+  ],
+  ".claude/skills/session-end/verify_memory.py": [
+   "a2e2e65a5a1ad81e40bd3aaa13ff67a08d153c9a223e77b26696be7c8bf2967d"
+  ],
+  ".claude/skills/session-start/SKILL.md": [
+   "22c1b182bb70878d8014a86294f5518403804518519107437b54ddea132c5636",
+   "6723e46a69d61d2b2d766628fda36a419b3bc01b29df3a9e0946ed5aa7114afd",
+   "6f7b785142ee7dd313e5f287df3a3ebfb809ae3141272006f58cbe028f6117a6",
+   "abb3c7429af1bc60c49e5787553e51efbd65b953363f922a27c11377eaa84a91",
+   "e57da1555b52785a799a43f4c2d087642064c69ce9979b6ad197805f2044a8d5"
+  ],
+  ".claude/skills/update-memory/SKILL.md": [
+   "3f002749cb46ad3bcbb46f955ea1fced302504fea129edbd703fd41543294604",
+   "b6b41ce8cb2b5ece9bacf83bb41929dcfe817d3e21ce65339f9a697de639fc73"
+  ],
+  ".claude/skills/update/SKILL.md": [
+   "68ec95567202016505923e6e10c0fba404789de2ff85abfa60b399557d136dd8"
+  ],
+  ".gitignore": [
+   "0b22c5d9d12c917125405036c708f569763cbe2f921b2d91b84ccde9efd63f1d",
+   "49332f2166bd6745b2d91e192482426677e311bd44564bdbfc4da6c7c38965c1",
+   "5187eab043cd7e4a538020061d2e7dd905c5c551b3fc04be3c2dd497fe8937ff",
+   "6737a3b1800270936ba8a733305243874e03555107dca39c47ac715cf9c0e9ca",
+   "7ade084bd12b36af5eccbc2d7db1ae2873a76c17e9a629cdb97d6dd237d7d60c"
+  ],
+  "CLAUDE.md": [
+   "2d9d04182a83b0c2031d7d3a720ae508040325ac7f3a2a17d52549708b308300",
+   "6269953b04c81ec47a158bc9f0edc4f1c97aefc9c7655e5431ca2768c362c0c2",
+   "858e4c8fae6992f5e0d11cb691109af357d881765dbeffc9993a49f6858bf927",
+   "8f556c09dfc73587cb7995156bf2e6c3bde6bcc3057e60159cb6e28a89ad9e09",
+   "c98461866eecfbe4d744db4f9f54a88f28e2d1b26db6debac80057b23b5e0961"
+  ],
+  "README.md": [
+   "7e9874869f04927c0c69058c1c87203a43a6a77365af259c75da6c146f7140ce",
+   "97ca0b77ef97e982d25f4d16b61aa5851c63defe140eab3ca11231aef288066f",
+   "a72316a0f4f41ad7ca7f73ce1c760497514c04753fa31f43288307299f658a32"
+  ],
+  "SYNAPTRA_VERSION": [
+   "7b3ff271f1373cfb97e9e53349794e1450f3794e4c0788c54a2060c7596da821"
+  ],
+  "VERSION": [
+   "1f4dc096d58f7d21e3875671aee6f29b120ab84218fa47db2cb53bc9eb5b4dac",
+   "1f930dd1f133c1f97a94fe3acb8db34372cf4c01ffdb2b3ff4ca72f9494121e9",
+   "59296d23d623ce0adf7675d22156e83b1248c8508135a65dd8a9e38c497e94a8",
+   "74b860b3270666137a4d543c3e3d1e4e473d54636f7593d1c17bf693e6540bbe",
+   "7fbd210ebec11f65a97190ef900795c4b8da3805af3f5a1b8d1d272556b292ca",
+   "83d0c4f9ddc089ab58e322e298b6190f2bf591dc225ff5cdd77d05e6a8420619",
+   "92521fc3cbd964bdc9f584a991b89fddaa5754ed1cc96d6d42445338669c1305",
+   "9f77034b1eb57d24f21ac7deb65c9cc99f63b72775e311f1f280ab2b6c2e06a2",
+   "c5752c93158aa0bc87f4665057b3d30a36b996345fc4250a69368f3ce46277ce",
+   "d51e6ec94058554a84558a5b402ee6ef5fdf5455e35c902feda61cda8752943a",
+   "d915cc95d6ca8f47ae297713ed46d4e5c5d99ddd29fc3c61e263bdf305f2b5b0",
+   "e9dd8507f4bf0c6f42458e41aea833ad0bd3f6127272335eee9bf4d58541ed67",
+   "f4fc956ec61b187cd18790c0b0a6fa5d1d3a30de4a5493e3277460485ed188f2"
+  ],
+  "brain-claude-sandbox.bat": [
+   "7b5e24d1c9e5a9754fc011bef683f5e99b320c3704ca8ae0a4c266a6da50c364"
+  ],
+  "brain.bat": [
+   "eac0349ace85eb9e8287025798736d59bcef25fb1313f6693975e1805306c4b1"
+  ],
+  "news-keywords.txt": [
+   "7ad8960f54a7b2645c78644ab4b4c46d0340e1cf5f167cd3cfe18c551a75c450"
+  ]
+ }
+}
