@@ -49,6 +49,7 @@ own memories* — the interview is only for a brain with no past.
 | `/curiosity` | Idle heartbeats, if switched on | Goes to the root of something in memory, reads one outside source, lays a provisional edge at negative strength, writes a dated record |
 | `/news` | Once a day, if switched on | Headlines and verified links only, scoped by `news-keywords.txt`; YouTube with keys in `.env` |
 | `/recall-session` | On request | Regex search over this brain's own past sessions, read-only |
+| `/transcribe` | On request | Turns a local audio/video file into `.txt` and `.srt`, offline; audio never leaves the machine |
 
 Curiosity and news are asked about once, on a fresh brain and after each `VERSION`
 change; declined, the brain gives a one-line hint and does not ask again.
