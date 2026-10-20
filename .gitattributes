@@ -5,3 +5,6 @@
 #
 # This file is kept for future attributes (linguist, diff drivers, LFS, etc.)
 # but carries no export-ignore rules.
+
+# Shell launchers run under sh on Windows too -- a CRLF checkout breaks them.
+*.sh text eol=lf

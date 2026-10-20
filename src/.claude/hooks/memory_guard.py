@@ -9,9 +9,8 @@ exit 2 with a message on stderr to block (the message reaches the calling sessio
 
 Invoked from .claude/settings.json's PreToolUse hooks, matcher covering
 mcp__synaptra__memory_store, memory_update, memory_relate, memory_archive,
-memory_delete and memory_unrelate. Stdlib only -- runs with the bare `python` on
-PATH, no venv or package dependency, so it works regardless of which project's
-interpreter happens to be active.
+memory_delete and memory_unrelate. Stdlib only -- no package dependency. Started by run_guard.sh on the
+brain's own interpreter (.claude/.venv, else .claude/.python), never the machine's `python`.
 
 This is the backstop, not the only place the rule is stated -- /create-memory's own
 SKILL.md carries the same refusal in prose. See check_hooks.py for the proof (invokes
