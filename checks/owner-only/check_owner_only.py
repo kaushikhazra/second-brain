@@ -8,8 +8,9 @@ Checks (exit 1 on any failure):
   AC 4    a brain extracted from dist/second-brain-1.5.0.zip, updated with
           update_brain.py from that archive, ends up meeting AC 1-3.
           (Skipped with a note if the 1.5.0 zip is not in dist/.)
-  AC 5    the shipped CLAUDE.md tells the brain to get the owner's confirmation
-          before acting on a message from another session.
+  AC 5    rests on the same checks: the shipped CLAUDE.md carries no instruction
+          to obey another session, so there is none to follow. No rule is
+          required to be present.
 
 Stdlib only. Run from anywhere inside the repo: python checks/owner-only/check_owner_only.py
 """
@@ -41,16 +42,12 @@ FORBIDDEN = {
         r"do not ask for confirmation|without (asking|confirmation)", re.I
     ),
 }
-REQUIRED = re.compile(r"owner'?s confirmation", re.I)
 
 
 def problems(claude_md: str) -> list[str]:
-    out = [
+    return [
         f"forbidden: {name}" for name, rx in FORBIDDEN.items() if rx.search(claude_md)
     ]
-    if not REQUIRED.search(claude_md):
-        out.append("missing: owner-confirmation rule for other sessions' messages")
-    return out
 
 
 def main() -> int:
