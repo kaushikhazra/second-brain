@@ -112,29 +112,60 @@ def segments_to_srt(segments) -> str:
     return "\n".join(blocks)
 
 
-def load_model(device: str):
-    """Return (model, device_used, compute_type). Same model on every path."""
+def load_faster_whisper_cuda():
+    """Return (model, device_used, compute_type), or None if the GPU won't load."""
     from faster_whisper import WhisperModel
 
-    if device == "cuda":
-        expose_cuda_libs()
-        for compute in ("float16", "int8_float16"):
-            try:
-                say(f"Loading {MODEL_NAME} on cuda ({compute})...")
-                return (
-                    WhisperModel(str(MODEL_DIR), device="cuda", compute_type=compute),
-                    "cuda",
-                    compute,
-                )
-            except Exception as exc:  # CUDA libs missing, out of memory, ...
-                say(f"cuda {compute} failed: {exc}")
-        say("GPU unavailable; continuing on the CPU with the same model.")
+    expose_cuda_libs()
+    for compute in ("float16", "int8_float16"):
+        try:
+            say(f"Loading {MODEL_NAME} on cuda ({compute})...")
+            return (
+                WhisperModel(str(MODEL_DIR), device="cuda", compute_type=compute),
+                "cuda",
+                compute,
+            )
+        except Exception as exc:  # CUDA libs missing, out of memory, ...
+            say(f"cuda {compute} failed: {exc}")
+    return None
+
+
+def load_faster_whisper_cpu():
+    from faster_whisper import WhisperModel
+
     say(f"Loading {MODEL_NAME} on cpu (int8)...")
     return (
         WhisperModel(str(MODEL_DIR), device="cpu", compute_type="int8"),
         "cpu",
         "int8",
     )
+
+
+# The engine seam. An engine is a loader returning (model, device_used,
+# compute_type) -- or None if it cannot start -- where model.transcribe(path, ...)
+# yields (segments, info) like faster-whisper's. A new engine (e.g. whisper.cpp
+# on Vulkan for AMD/Intel GPUs) is one more entry here plus a branch in
+# pick_engine(); nothing else changes.
+ENGINES = {
+    "faster-whisper-cuda": load_faster_whisper_cuda,
+    "faster-whisper-cpu": load_faster_whisper_cpu,
+}
+
+
+def pick_engine(device: str) -> list[str]:
+    """Engine names to try, in order, for the device the launcher chose."""
+    if device == "cuda":
+        return ["faster-whisper-cuda", "faster-whisper-cpu"]
+    return ["faster-whisper-cpu"]
+
+
+def load_model(device: str):
+    for name in pick_engine(device):
+        loaded = ENGINES[name]()
+        if loaded:
+            return loaded
+        say("GPU unavailable; continuing on the CPU with the same model.")
+    raise RuntimeError("no transcription engine could start")
 
 
 def transcribe(input_path: str, output_dir: str | None) -> int:

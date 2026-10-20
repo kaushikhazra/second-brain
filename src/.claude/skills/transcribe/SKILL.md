@@ -53,6 +53,11 @@ starts immediately and works offline.
 
 Set `TRANSCRIBE_DEVICE=cpu` to force the CPU even when a GPU is present.
 
+AMD and Intel GPUs currently run on the CPU path. The engine choice sits behind
+one function, `pick_engine()` in `scripts/transcribe.py`, so a GPU engine for
+them (whisper.cpp on Vulkan) can be added later as one more entry without
+touching the rest.
+
 ## If it fails
 
 | Message | Do |
