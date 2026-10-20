@@ -89,6 +89,7 @@ def main() -> int:
     bad = skill / "requirements-conflict-test.txt"
     bad.write_text("pydantic==1.10.13\n", encoding="utf-8")  # synaptra needs pydantic 2
     bad_mark = venv / ".transcribe-conflict-test"
+    bad_mark.unlink(missing_ok=True)
     try:
         launch.install(bad, bad_mark, "a conflicting test package", before_version)
         record("AC 7  conflict detected", False, "install did not complain")
