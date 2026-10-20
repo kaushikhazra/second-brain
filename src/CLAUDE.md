@@ -175,8 +175,10 @@ persona and user are whoever `persona.md` and `user.md` currently define.)
   or asks "what did we do/build/discuss." This is a BLOCKING requirement —
   check Synaptra BEFORE saying you don't know. Also use at the start
   of non-trivial tasks to check for prior context.
-- **Self**: Use `memory_self` for identity grounding (operating principles,
-  attention, blind spots). Fired by `/session-start`.
+- **Self**: `/session-start` loads the self map by tag with `memory_list` — an
+  exact fetch, never a search. `memory_self` is a ranked *search* for identity
+  grounding (operating principles, attention, blind spots); use it when asked,
+  not at boot.
 - **Store**: route through `/create-memory` — after completing significant
   work, learning something important about the user or a project, or when
   the user says "remember this." Never call `memory_store` directly; the
@@ -221,9 +223,10 @@ number, stated in both places, not two that can drift apart):
 Python and synaptra into `.claude/`, and generates `.mcp.json`. Nothing
 touches the host system or global PATH.)
 
-**Backup CLI**: the synaptra install also provides the `cm` command
-(`cm backup create`, `cm backup verify --deep <path>`) used by `/dream`'s
-pre-dream checkpoint. Machine-local like the paths above.
+**Backups**: `/dream`'s pre-dream checkpoint is a file copy of
+`.claude/synaptra-data` into `.claude/dream-backups/`, counted by
+`.claude/skills/dream/checkpoint.py`. `cm backup` is not used: it stops and
+starts a scheduled task that a synaptra brain does not own.
 
 ## Conventions
 

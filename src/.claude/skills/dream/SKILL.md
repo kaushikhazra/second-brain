@@ -113,7 +113,8 @@ a genuine lull rather than interrupting one.
    delete landed, not the delete call's own return value. Restart it
    at the end (Act 6).
 2. **Valid `rel_type` vocabulary only**: `causes`, `follows`,
-   `contradicts`, `supports`, `relates_to`, `supersedes`, `part_of`.
+   `contradicts`, `supports`, `relates_to`, `supersedes`, `part_of`,
+   `describes`.
    Custom strings will fail.
 
 ## The six acts

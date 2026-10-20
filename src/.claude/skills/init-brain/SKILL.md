@@ -179,10 +179,10 @@ pre-approve the project MCP server (`enableAllProjectMcpServers: true`, or list
 ### 8. Restart gate
 
 A newly-added MCP server only connects after a **Claude restart**, and a restart
-is a **fresh session** — nothing auto-resumes. Tell the user to start it again
-**with `brain.bat`** (not a bare `claude` — `brain.bat` sets `MCP_TIMEOUT`, and a
-freshly built runtime pays the full cold-start model load on first connect),
-then **re-run `/init-brain`**: step 0 above now sees `mcp__synaptra__*` live,
+is a **fresh session** — nothing auto-resumes. Tell the user to restart the
+brain (a freshly built runtime pays the full cold-start model load on first
+connect, which can take a few minutes — that wait is normal), then
+**re-run `/init-brain`**: step 0 above now sees `mcp__synaptra__*` live,
 skips this whole provisioning round, and continues to Round 0 (restore).
 
 ### 9. Record the provisioned root — `.claude/.self-aware`

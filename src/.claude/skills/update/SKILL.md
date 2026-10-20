@@ -67,7 +67,7 @@ released version.  The core logic lives in `.claude/shared/update_brain.py`
    then delete it.
 
 7. **Restart gate.**  The synaptra MCP server was stopped in step 5.
-   Tell the owner to restart Claude with `brain.bat` so the server
+   Tell the owner to restart the brain so the server
    reconnects.  Do not continue — this session ends at the gate, same as
    `/init-brain`'s restart.
 
@@ -104,7 +104,7 @@ run without Claude:
 1. Download the release zip from GitHub
 2. Extract it (e.g. to C:\tmp\sb-release)
 3. Run:  python C:\tmp\sb-release\.claude\shared\update_brain.py C:\path\to\brain
-4. Restart Claude with brain.bat
+4. Restart the brain
 ```
 
 This is documented **above** any automatic path in the release notes.

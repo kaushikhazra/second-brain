@@ -168,7 +168,7 @@ without its boundary is a different rule.
   reference with no edge behind it produces a memory that *looks* connected
   and is an orphan.
 - 🔴 **Every node in a constellation takes the SAME store type.** A
-  year-lived rule with a fortnight-lived instance means **the rule outlives
+  long-lived rule with a short-lived instance means **the rule outlives
   its own evidence**, and the `supports` edge ends up pointing at something
   archived. Under the ranking above this bites harder, because now it is the
   node that RANKS which would decay first. **The constellation decays
@@ -341,7 +341,8 @@ skills.
 
 **The rules above hold for any store. These are what synaptra does** — the
 first thing to re-check if this file is ever reused elsewhere, and verified
-against the installed synaptra (`2.0.0`) rather than assumed.
+against synaptra `2.1.1` (the version in `SYNAPTRA_VERSION`) rather than assumed.
+Re-check them when that version changes.
 
 - **`memory_store` honors an explicit `type` as given — it does not
   silently reclassify it.** Reclassification (`classify(content, source)`)
