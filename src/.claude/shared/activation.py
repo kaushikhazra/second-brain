@@ -21,6 +21,7 @@ Reads and writes only this one file; nothing here talks to synaptra.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -84,6 +85,30 @@ def needs_ask(record: dict, habit: str, version: str) -> bool:
     if entry is None:
         return True
     return entry.get("answered_at_version") != version
+
+
+UNATTENDED_ENV = "SECOND_BRAIN_UNATTENDED"
+
+
+def unattended(env: dict | None = None) -> bool:
+    """True when whatever launched this brain says nobody is there to answer.
+
+    The launcher (an autostart, a scheduled task) sets SECOND_BRAIN_UNATTENDED; empty,
+    `0`, `false` and `no` mean an attended boot. `env` is injectable for tests."""
+    value = (os.environ if env is None else env).get(UNATTENDED_ENV, "")
+    return value.strip().lower() not in ("", "0", "false", "no")
+
+
+def habits_to_ask(
+    record: dict, habits: list[str], version: str, env: dict | None = None
+) -> list[str]:
+    """The habits `/session-start` should put a question to on this boot.
+
+    An unattended boot asks nothing and so records nothing: the habits stay off, and
+    the next attended boot on the same VERSION still finds them unanswered."""
+    if unattended(env):
+        return []
+    return [h for h in habits if needs_ask(record, h, version)]
 
 
 def is_active(record: dict, habit: str) -> bool:
