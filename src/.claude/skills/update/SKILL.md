@@ -51,13 +51,20 @@ released version.  The core logic lives in `.claude/shared/update_brain.py`
    - Verify `synaptra.__version__` matches
    - Copy product files (skipping owner paths: `persona.md`, `user.md`,
      `.mcp.json`, `.claude/synaptra-data/`, `.claude/dream-backups/`)
+   - **Keep the owner's edits.**  A file whose content matches no shipped
+     version of it (checked against `.claude/shared/shipped_hashes.json`) is the
+     owner's edit: it is not overwritten, and the release's version is written
+     beside it as `<name>.new`
    - Write `.claude/.release-record.json`
    - **Auto-rollback**: if any step after the backup fails, the script
      automatically restores from the backup and exits non-zero naming
      the failed step
 
 6. **Report** what changed: the old and new versions of both the brain and
-   synaptra, the number of files replaced, and the backup location.
+   synaptra, the number of files replaced, and the backup location.  If the
+   script printed `KEPT n file(s) you edited`, list each one with its diff
+   summary and tell the owner to merge what they want from the `.new` file,
+   then delete it.
 
 7. **Restart gate.**  The synaptra MCP server was stopped in step 5.
    Tell the owner to restart Claude with `brain.bat` so the server
