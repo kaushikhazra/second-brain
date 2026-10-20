@@ -34,11 +34,12 @@ you rely on it — a clean exit alone does not prove that.
 
 The first run sets itself up, once, without touching anything outside this brain:
 
-1. Creates `DIR/.venv` using the brain's own Python and `uv` from `.claude/`
-   (installed by `/init-brain`). No Python on your PATH is used or needed.
-2. Installs faster-whisper into that `.venv`.
+1. Uses the brain's one Python environment, `.claude/.venv` (the one synaptra
+   runs in), with the brain's own `uv` from `.claude/`. No Python on your PATH
+   is used or needed, and no second environment is created.
+2. Installs faster-whisper into it.
 3. If an NVIDIA GPU is present (`nvidia-smi` works), also installs the CUDA 12
-   runtime (cuBLAS and cuDNN) into the same `.venv` and transcribes on the GPU.
+   runtime (cuBLAS and cuDNN) there and transcribes on the GPU.
 4. Downloads the `whisper-large-v3-turbo` model (about 1.6 GB) into `DIR/models/`.
 
 Expect several minutes and a few GB of disk the first time. Every later run
@@ -63,9 +64,16 @@ touching the rest.
 | Message | Do |
 |---------|----|
 | `no Python under ...\.python` / `uv was not found` | Run `/init-brain`; it installs the brain's Python and `uv`. |
+| `.claude/.venv is missing or unusable` | Start the brain with `brain.bat` (a moved brain repairs it on `/session-start`) or run `/init-brain`. The skill never builds an environment of its own. |
+| `conflicts with the brain's synaptra environment` | The install was undone and your memory environment is exactly as it was. Nothing to repair; report the named conflict. |
 | Download or install error on first use | Check the network and re-run. Only first use needs the network. |
 | A GPU line says `cuda ... failed` | The run continues on the CPU with the same model. Update the GPU driver to use the GPU. |
 
-Moving or renaming the brain folder is fine; the skill finds its own files again
-on the next run. To free disk space, delete `DIR/.venv` and `DIR/models/` — they
-are rebuilt on next use.
+Before each install the skill takes a list of the brain's installed packages and,
+if synaptra no longer imports at the same version afterwards, puts that list
+back. If `.claude/.venv` is ever rebuilt (an update, a move repair), the next
+run installs faster-whisper again by itself.
+
+After a move or rename of the brain folder, the brain's own repair rebuilds
+`.claude/.venv`; the next transcribe then reinstalls what it needs. To free disk
+space, delete `DIR/models/`; it is downloaded again on next use.

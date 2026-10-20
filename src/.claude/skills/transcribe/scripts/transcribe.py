@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local audio/video transcription with faster-whisper. Runs inside the skill's .venv.
+"""Local audio/video transcription with faster-whisper. Runs inside the brain's .claude/.venv.
 
 Do not run this directly: ``launch.py`` prepares the environment and sets
 TRANSCRIBE_DEVICE. Usage: transcribe.cmd <input_path> [output_dir]
