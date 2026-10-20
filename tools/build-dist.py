@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import json
 import shutil
 import subprocess
 import sys
@@ -127,6 +128,39 @@ def check_forbidden(names: set[str]) -> None:
         )
 
 
+def check_shipped_hashes(root: Path) -> None:
+    """Every file in HEAD:src must be in the release's own hash table.
+
+    The table is what lets an update tell an owner's edit from a shipped file.
+    A table that predates a change would make that change look like an edit on
+    every brain, so a stale table stops the build.
+    """
+    sys.path.insert(0, str(root / "src" / ".claude" / "shared"))
+    from update_brain import SHIPPED_HASHES, normalized_sha256
+
+    blob = git("archive", "--format=tar", "HEAD:src", repo=root, binary=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        tar_path = Path(tmp) / "head.tar"
+        tar_path.write_bytes(blob)
+        with tarfile.open(tar_path) as tar:
+            members = {m.name: m for m in tar.getmembers() if m.isfile()}
+            if SHIPPED_HASHES not in members:
+                raise BuildError(f"{SHIPPED_HASHES} is not in HEAD:src")
+            table = json.loads(tar.extractfile(members[SHIPPED_HASHES]).read())["files"]
+            stale = sorted(
+                name
+                for name, m in members.items()
+                if name != SHIPPED_HASHES
+                and normalized_sha256(tar.extractfile(m).read())
+                not in table.get(name, ())
+            )
+    if stale:
+        raise BuildError(
+            f"{SHIPPED_HASHES} lacks the current hash of {stale} -- run "
+            "`python tools/gen-shipped-hashes.py` and commit the result"
+        )
+
+
 def build(root: Path, version: str, *, force: bool = False) -> Path:
     dist = root / "dist"
     dist.mkdir(exist_ok=True)
@@ -187,6 +221,7 @@ def main() -> int:
         version = read_version(root)
         expected = expected_members(root)
         check_forbidden(expected)
+        check_shipped_hashes(root)
         out = build(root, version, force=args.force)
         files = verify(out, expected)
     except (BuildError, subprocess.CalledProcessError) as exc:
