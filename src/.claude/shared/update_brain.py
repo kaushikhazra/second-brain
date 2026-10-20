@@ -47,7 +47,6 @@ OWNER_DIRS = frozenset(
         ".claude/dream-backups",
         ".claude/.venv",
         ".claude/.python",
-        ".claude/skills/transcribe/.venv",
         ".claude/skills/transcribe/models",
     }
 )

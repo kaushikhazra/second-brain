@@ -149,7 +149,7 @@ improvise or replicate its steps from here.
 | `.claude/skills/recall-session/` | Regex search across this brain's own Claude Code session transcripts, scoped to this project only. |
 | `.claude/skills/curiosity/` | Idle cognitive mode — reads outside the memory graph, stores what comes back, wanders across distant memories, opt-in via the activation record. |
 | `.claude/skills/news/` | Morning news list — headlines and links, web search plus YouTube subscriptions, opt-in via the same activation record. |
-| `.claude/skills/transcribe/` | Offline audio/video → `.txt` and `.srt` with faster-whisper; builds its own `.venv` and downloads its model into the skill folder on first use. |
+| `.claude/skills/transcribe/` | Offline audio/video → `.txt` and `.srt` with faster-whisper; installs into the brain's one `.claude/.venv` and downloads its model into the skill folder on first use. |
 | `.claude/skills/guard/` | The owner's switch for the command guard hook — `/guard on`, `/guard off`, `/guard status`, kept in the activation record; off by default. |
 | `.claude/skills/manage/` | Projects the brain looks after — clones a git URL into `projects/<repo-name>/`, learns its instructions, lists and locates them. |
 | `.claude/projects/` | What the brain learned about each managed project, one record each. Machine-local. |
