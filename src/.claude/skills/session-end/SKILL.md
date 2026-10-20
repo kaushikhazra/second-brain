@@ -87,7 +87,11 @@ maintain, not this skill's).
 4. **Print its full result** — both the conformance scan (a store whose
    `source` doesn't start with `create-memory:`) and the two-list findings
    (each list present exactly once, its count, every id resolving) — per
-   AC 13's literal text, not a summary of one half.
+   AC 13's literal text, not a summary of one half. The conformance scan
+   judges only memories written under the rule: a memory with no `rater`
+   (older than rater tracking) or created before
+   `.claude/conformance-baseline.json`'s date is counted as not judged, and
+   the result says how many — report that line too, it is not a violation.
 
 ⛔ **Nothing here blocks sign-off, and nothing here blocks step 3.** Step 3
 (the handoff) already ran and already landed before this step starts —
