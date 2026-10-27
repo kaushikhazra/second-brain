@@ -47,6 +47,8 @@ released version.  The core logic lives in `.claude/shared/update_brain.py`
      are new in the release, the prior `.release-record.json` (or its
      absence), and the prior synaptra version
    - Stop any running synaptra processes from this brain's venv
+   - Copy the memory store (`.claude/synaptra-data/`) into that backup, once
+     synaptra is stopped — a synaptra upgrade migrates the store in place
    - Install `synaptra==<declared version>` pinned
    - Verify `synaptra.__version__` matches
    - Copy product files (skipping owner paths: `persona.md`, `user.md`,
@@ -88,6 +90,9 @@ This uses the most recent timestamped backup under
   it did not exist before the update)
 - Reinstalls the prior synaptra version (stops services first); if the
   prior version is unknown, leaves synaptra as-is and says so
+- Puts the backed-up memory store back. The store it replaces (with any
+  memories written since the update) is not deleted: it is moved to
+  `.claude/synaptra-data.replaced-<time>/` and the script prints where
 
 To restore from a specific backup, pass `--backup-dir <path>`.
 
@@ -113,7 +118,7 @@ This is documented **above** any automatic path in the release notes.
 
 - `persona.md` — the owner's identity definition
 - `user.md` — the owner's profile
-- `.claude/synaptra-data/` — the memory store
+- `.claude/synaptra-data/` — the memory store (copied into the backup, never overwritten by the release)
 - `.mcp.json` — machine-local server config
 - `.claude/dream-backups/` — dream checkpoint backups
 - `.claude/.self-aware` — provisioning record (owned by `/init-brain`)
