@@ -96,14 +96,20 @@ Observed 2026-08-12: a backup containing **1 of 55 memories** passed every check
 the old backup command had. It had backed up the wrong store, correctly. **Only
 the row count caught it.** A copy that completes is not a copy that is complete.
 
-## Refuses to run during an active conversation
+## Refuses an automatic run during an active conversation
 
-Before anything else — before the pre-dream checkpoint, before disabling
-the heartbeat, before any reshaping — check whether this is an **active
-conversation**: has the owner sent a message in this session within the
-last **10 minutes**? If so, `/dream` refuses and says why. Deep
-reshaping and an ongoing exchange do not share a session well; wait for
-a genuine lull rather than interrupting one.
+This check guards a run the owner did not ask for. A bare `/dream` — typed
+by the owner — is the owner asking, and it always arrives right after an
+owner message, so this check **does not apply** to it: go straight to the
+pre-dream checkpoint.
+
+An invocation that carries `requested by <requester>` (a requester that is
+not the owner) is automatic. For it, before anything else — before the
+pre-dream checkpoint, before disabling the heartbeat, before any reshaping —
+check whether this is an **active conversation**: has the owner sent a
+message in this session within the last **10 minutes**? If so, `/dream`
+refuses and says why. Deep reshaping and an ongoing exchange do not share a
+session well; wait for a genuine lull rather than interrupting one.
 
 ## Prerequisites
 

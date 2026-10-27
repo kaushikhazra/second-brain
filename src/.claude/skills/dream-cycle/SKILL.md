@@ -37,8 +37,10 @@ both finish through `finish`, with `--by hand` or `--by heartbeat`.
 
 ### Hard stops
 
-1. **The owner is in conversation** (a message from them in the last 10 minutes) → refuse
-   and say why. A cycle waits for a lull.
+1. **The owner is in conversation and the cycle is automatic** (`/dream-cycle "requested by
+   heartbeat"`, and a message from them in the last 10 minutes) → refuse and say why. A
+   cycle waits for a lull. A bare `/dream-cycle`, typed by the owner, is the owner asking and
+   always arrives right after a message: this stop does not apply to it.
 2. **Synaptra unreachable** → say so once and stop. Change nothing.
 
 **There is no backup step.** A cycle runs only on quiet beats and only retypes or archives,
