@@ -51,12 +51,15 @@ OWNER_DIRS = frozenset(
     }
 )
 
+BASELINE = ".claude/conformance-baseline.json"
+
 MACHINE_LOCAL = frozenset(
     {
         ".claude/.self-aware",
         ".claude/.protected-ids.json",
         ".claude/.list-holder-check.json",
         ".claude/activations.json",
+        BASELINE,
         ".claude/dream-cycle-plan.json",
         ".claude/dream-cycle-log.md",
         ".claude/skills/local-agent/config.json",
@@ -518,6 +521,11 @@ def restore_backup(
         if added is not None:
             remove_guard_entry(brain, added["file_existed"])
 
+        # Conformance baseline the update added
+        if meta.get("baseline_added") is True:
+            (brain / BASELINE).unlink(missing_ok=True)
+            print("  removed the conformance baseline the update added")
+
         # Synaptra version, then the store it migrated
         if not skip_synaptra:
             prior_synaptra = meta.get("prior_synaptra_version")
@@ -762,6 +770,25 @@ def keep_guard_setting(
     print("  command guard stays on (this brain already had it)")
 
 
+def keep_conformance_baseline(brain: Path, backup_dir: Path) -> None:
+    """Date the session-end conformance scan from this update, if the brain has no date.
+
+    Memories older than the baseline are history, not violations (issue #79). An
+    existing baseline is the owner's and is left alone. What is added is noted in the
+    backup so --restore can take it out again.
+    """
+    path = brain / BASELINE
+    if path.exists():
+        return
+    since = datetime.datetime.now().astimezone().isoformat()
+    path.write_text(json.dumps({"since": since}, indent=2) + "\n", encoding="utf-8")
+    meta_path = backup_dir / _RESTORE_META
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["baseline_added"] = True
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    print(f"  conformance baseline set to {since}")
+
+
 def remove_guard_entry(brain: Path, file_existed: bool) -> None:
     """Undo keep_guard_setting: take the entry out, and the file if it was ours."""
     path = brain / ".claude" / "activations.json"
@@ -858,6 +885,7 @@ def run_update(
             raise _UpdateStepFailed("record", RuntimeError("injected fault"))
         write_release_record(brain, brain_version, synaptra_version)
         keep_guard_setting(brain, had_guard, brain_version, backup_dir)
+        keep_conformance_baseline(brain, backup_dir)
 
     except _UpdateStepFailed as exc:
         print(f"\nFAILED at step '{exc.step}': {exc.cause}")

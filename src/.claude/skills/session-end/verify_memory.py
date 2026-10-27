@@ -31,6 +31,13 @@ that skill has no reason to set this prefix -- it either leaves `source`
 unset (null) or sets something else. So: any ACTIVE memory whose `source`
 does not start with `create-memory:` is flagged, by id.
 
+Issue #79: only memories written under the rule are judged. A memory with a null
+`rater` predates rater tracking (synaptra 2.1.1 stamps one on every write, so null
+is a closed set of older rows); one created before `.claude/conformance-baseline.json`'s
+`since` date is history too (the update writes that file). The output says how many
+were not judged. `rater` cannot replace the prefix as the signal: a direct store
+carries one as well.
+
 ## The two-list checks (issue #3)
 
 Same file-reading discipline as the conformance scan above -- no synaptra I/O of its
@@ -82,8 +89,14 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 REQUIRED_PREFIX = "create-memory:"
+# .claude/conformance-baseline.json, found from this file (.claude/skills/session-end/).
+BASELINE_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "conformance-baseline.json"
+)
 LIST_TAGS = ("self-map", "surface-map")
 SURFACE_MAP_CAP = 25
 UUID_LINE_RE = re.compile(
@@ -107,15 +120,53 @@ def load_input(raw: str) -> tuple[list[dict], dict | None]:
     )
 
 
-def find_violations(memories: list[dict]) -> list[dict]:
-    violations = []
+def load_baseline(path: Path | None = None) -> datetime | None:
+    """The date from .claude/conformance-baseline.json, or None (no file, no limit)."""
+    try:
+        raw = json.loads((path or BASELINE_PATH).read_text(encoding="utf-8"))["since"]
+        return parse_time(raw)
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def parse_time(value: str) -> datetime:
+    when = datetime.fromisoformat(value)
+    return when if when.tzinfo else when.replace(tzinfo=timezone.utc)
+
+
+def judge(
+    memories: list[dict], since: datetime | None = None
+) -> tuple[list[dict], dict[str, int]]:
+    """Violations, and how many active memories were not judged and why.
+
+    Not judged: a `rater` of null -- synaptra's own mark for "written before rater
+    tracking", and every write since carries one -- and a memory created before the
+    baseline. A list with no `rater` key at all (synaptra 2.0.0) cannot be told apart
+    that way, so it is judged by `source` as before. `rater` is no stand-in for the
+    source prefix: every store gets one, `auto:heuristic` when none is passed.
+    """
+    violations: list[dict] = []
+    unjudged = {
+        "no rater (written before rater tracking)": 0,
+        "created before the baseline": 0,
+    }
     for mem in memories:
         if mem.get("state", "active") != "active":
             continue  # archived history isn't this scan's concern
+        if "rater" in mem and mem["rater"] is None:
+            unjudged["no rater (written before rater tracking)"] += 1
+            continue
+        if since and mem.get("created_at") and parse_time(mem["created_at"]) < since:
+            unjudged["created before the baseline"] += 1
+            continue
         source = mem.get("source") or ""
         if not source.startswith(REQUIRED_PREFIX):
             violations.append(mem)
-    return violations
+    return violations, unjudged
+
+
+def find_violations(memories: list[dict]) -> list[dict]:
+    return judge(memories, load_baseline())[0]
 
 
 def check_list(tag: str, memories: list[dict], resolved: dict | None) -> list[str]:
@@ -214,13 +265,16 @@ def main() -> int:
         else open(sys.argv[1], encoding="utf-8").read()
     )
     memories, resolved = load_input(raw)
-    violations = find_violations(memories)
+    violations, unjudged = judge(memories, load_baseline())
 
     print(f"Scanned {len(memories)} memories.")
 
     problem_found = False
 
     print("\n--- Conformance scan (issue #2) ---")
+    for why, n in unjudged.items():
+        if n:
+            print(f"  {n} active memories not judged: {why}")
     if not violations:
         print(
             "No conformance violations found -- every active memory carries a "
