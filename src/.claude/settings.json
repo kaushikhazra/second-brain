@@ -14,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/memory_guard.py\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_guard.sh\" memory_guard.py",
             "timeout": 5
           }
         ]
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/command_guard.py\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_guard.sh\" command_guard.py",
             "timeout": 5
           }
         ]
