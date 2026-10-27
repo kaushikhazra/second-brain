@@ -8,6 +8,7 @@ codes and the specific finding lines -- no synaptra I/O, live or scratch. Stdlib
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -218,6 +219,49 @@ def main() -> int:
             "AC24 regression: conformance scan still catches a direct store",
             ok,
             f"exit={p.returncode}",
+        )
+    )
+
+    # --- Issue #89: non-ASCII content on a cp1252 stream prints the same report ---
+    mems = base_memories() + [
+        {
+            "id": "rogue",
+            "state": "active",
+            "tags": [],
+            "source": None,
+            "content": "decay — stability ≥ 14 days ⭐",
+        },
+    ]
+    payload = json.dumps({"memories": mems, "resolved": base_resolved()})
+
+    def run_bytes(utf8: bool) -> subprocess.CompletedProcess:
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("PYTHONIOENCODING", "PYTHONUTF8")
+        }
+        if utf8:
+            env["PYTHONIOENCODING"] = "utf-8"
+        return subprocess.run(
+            [sys.executable, str(SCRIPT), "-"],
+            input=payload.encode("utf-8"),
+            capture_output=True,
+            env=env,
+            timeout=15,
+        )
+
+    default, utf8 = run_bytes(False), run_bytes(True)
+    ok = (
+        b"UnicodeEncodeError" not in default.stderr
+        and b"Boot lists" in default.stdout
+        and default.returncode == utf8.returncode
+        and default.stdout == utf8.stdout
+    )
+    results.append(
+        (
+            "issue #89: non-ASCII content, default encoding == PYTHONIOENCODING=utf-8",
+            ok,
+            f"exit={default.returncode}/{utf8.returncode}",
         )
     )
 

@@ -199,6 +199,11 @@ def check_list(tag: str, memories: list[dict], resolved: dict | None) -> list[st
 
 
 def main() -> int:
+    # Memory content is routinely non-ASCII; a redirected Windows stream defaults to
+    # cp1252 and the report would die mid-print. Same text as PYTHONIOENCODING=utf-8.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8")
+
     if len(sys.argv) != 2:
         print(f"usage: {sys.argv[0]} <memories.json | ->", file=sys.stderr)
         return 2
