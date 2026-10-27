@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import os
 import re
 import sys
 from datetime import datetime
@@ -208,14 +209,16 @@ def parse_args(argv: list[str] | None = None):
 
 def resolve(args) -> tuple[Path | None, Path]:
     """Real resolution: walk up for the brain root, encode it, look under
-    `~/.claude/projects/` (or `--projects-dir` / `--root`, test-only overrides for
+    `$CLAUDE_CONFIG_DIR/projects/` when that is set (Claude Code keeps its files there
+    instead of `~/.claude/` then), else `~/.claude/projects/` (or `--projects-dir` / `--root`, test-only overrides for
     the check script's scratch tree -- the skill's real invocation passes neither, so
     every real run resolves both fresh)."""
     root = Path(args.root).resolve() if args.root else brain_root()
+    config_dir = os.environ.get("CLAUDE_CONFIG_DIR")
     projects_dir = (
         Path(args.projects_dir).resolve()
         if args.projects_dir
-        else (Path.home() / ".claude" / "projects")
+        else (Path(config_dir) if config_dir else Path.home() / ".claude") / "projects"
     )
     if root is None:
         return None, projects_dir / "<unresolved-brain-root>"
