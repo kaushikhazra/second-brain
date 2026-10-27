@@ -109,7 +109,7 @@ def require_brain_venv() -> str:
     if version is None:
         fail(
             "the brain's Python environment (.claude/.venv) is missing or unusable, "
-            "so synaptra cannot be imported there. Start the brain with brain.bat "
+            "so synaptra cannot be imported there. Restart the brain "
             "(a moved brain repairs it on /session-start) or run /init-brain, "
             "then try again. This skill does not create an environment of its own."
         )
