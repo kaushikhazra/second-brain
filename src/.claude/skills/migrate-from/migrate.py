@@ -2,8 +2,11 @@
 
 Run by /migrate-from with this brain's own interpreter:
 
-    .claude/.venv/Scripts/python.exe .claude/skills/migrate-from/migrate.py \
+    <venv python> .claude/skills/migrate-from/migrate.py \
         "<old brain>" ["<old store>"]
+
+where <venv python> is .claude/.venv/Scripts/python.exe on Windows and
+.claude/.venv/bin/python on Linux.
 
 Copy only. Nothing in the old brain or the old memory store is changed, so the
 old brain keeps working and can run in parallel until the owner is satisfied.

@@ -16,6 +16,8 @@ interpreter; it resolves its own location at runtime:
 .claude/.venv/Scripts/python.exe .claude/shared/dream_cycle.py <command>
 ```
 
+On Linux the interpreter is `.claude/.venv/bin/python`.
+
 ## The owner's commands
 
 | Command | Do | Say |

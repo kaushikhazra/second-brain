@@ -542,7 +542,10 @@ def interpreter_choice(configured: str | None) -> dict[str, Any]:
     """Offer the interpreters we can actually see, rather than asking blind."""
 
     candidates: list[dict[str, str]] = []
-    brain_venv = Path(__file__).resolve().parents[3] / ".venv" / "Scripts" / "python.exe"
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "shared"))
+    import platform_paths
+
+    brain_venv = platform_paths.venv_python(Path(__file__).resolve().parents[3] / ".venv")
     if brain_venv.is_file():
         candidates.append(
             {

@@ -36,7 +36,7 @@ are the same root.
 
 Judge by the recorded root versus the actual root, **never** by whether the
 memory tools happen to work. If the original folder still exists, the copy's
-`synaptra.exe` starts fine — it is silently borrowing the old folder's
+`synaptra` executable (`synaptra.exe` on Windows) starts fine — it is silently borrowing the old folder's
 interpreter, and it breaks later when that folder is deleted. Repair both cases
 identically.
 
@@ -74,8 +74,19 @@ quotes suppress `$` expansion and need no escaping (double any literal `'`).
 A root containing a space or `$` otherwise mangles the prefix, matches nothing,
 and the stop silently no-ops.
 
-**Never select by image name.** `Get-Process synaptra` matches every synaptra on
-the machine and will kill other brains' and other sessions' memory servers.
+**On Linux** the same stop is one command, selected by what each process runs out
+of (not by image name, and not by resolved exe — the venv's `python` is a symlink
+into `.claude/.python`, so the exe says nothing about which brain owns it):
+
+```sh
+python3 '<resolved root>/.claude/shared/platform_paths.py' stop-venv '<resolved root>/.claude/.venv'
+```
+
+It prints `RELEASED` or `STILL RUNNING: <pids>`, with the same meaning as below.
+
+**Never select by image name.** `Get-Process synaptra` (or `pkill synaptra`)
+matches every synaptra on the machine and will kill other brains' and other
+sessions' memory servers.
 
 **Wait for the stop to complete.** `Stop-Process` returns before the process is
 gone, so the loop above re-queries until nothing matches. **If it reports
@@ -84,8 +95,8 @@ runtime and to close that program, then re-run. A delete attempted against a
 live process half-succeeds and leaves a wrecked venv.
 
 **3. Delete `.claude/.venv`.** Only after `RELEASED`. Only that directory —
-keep `.claude/.python`, `.claude/uv.exe`, and `.claude/synaptra-data`; all
-three are relocatable, and the store holds the user's memories.
+keep `.claude/.python`, `.claude/uv.exe` (`.claude/uv` on Linux), and
+`.claude/synaptra-data`; all three are relocatable, and the store holds the user's memories.
 
 **4. Run `/init-brain`.** Its existing idempotency now sees the venv missing and
 rebuilds it, regenerates `.mcp.json`, and rewrites `.self-aware` with the new
@@ -102,8 +113,6 @@ belong to the fresh session that follows.
 **When reading `.self-aware`, parse it — do not pattern-match the text.** If it
 fails to parse, treat it as missing (unknown, not moved) and say so; never
 compare against a raw substring.
-
-_Windows-only, by the same non-goal that makes `brain.bat` Windows-only._
 
 _This step deliberately runs before persona adoption — the check must precede
 everything, so the move message is delivered before the persona is loaded. That
