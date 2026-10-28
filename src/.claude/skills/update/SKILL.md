@@ -53,10 +53,11 @@ released version.  The core logic lives in `.claude/shared/update_brain.py`
    - Verify `synaptra.__version__` matches
    - Copy product files (skipping owner paths: `persona.md`, `user.md`,
      `.mcp.json`, `.claude/synaptra-data/`, `.claude/dream-backups/`)
-   - **Keep the owner's edits.**  A file whose content matches no shipped
-     version of it (checked against `.claude/shared/shipped_hashes.json`) is the
-     owner's edit: it is not overwritten, and the release's version is written
-     beside it as `<name>.new`
+   - **Never overwrite what it cannot prove untouched.**  A file whose content
+     matches no shipped version of it (checked against
+     `.claude/shared/shipped_hashes.json`, which carries the hashes of every
+     past release) is a conflict: it is not overwritten, and the release's
+     version is written beside it as `<name>.new`
    - Write `.claude/.release-record.json`
    - **Auto-rollback**: if any step after the backup fails, the script
      automatically restores from the backup and exits non-zero naming
@@ -64,9 +65,17 @@ released version.  The core logic lives in `.claude/shared/update_brain.py`
 
 6. **Report** what changed: the old and new versions of both the brain and
    synaptra, the number of files replaced, and the backup location.  If the
-   script printed `KEPT n file(s) you edited`, list each one with its diff
-   summary and tell the owner to merge what they want from the `.new` file,
-   then delete it.
+   script printed `CONFLICT n file(s)`, each is a file that matches no shipped
+   version of itself, so it cannot be proven untouched.  Show the owner each
+   file's diff and **ask, per file: take the release's, keep theirs, or
+   merge** -- never choose for them.  Then run, from the brain root:
+
+   - take:  `python .claude/shared/update_brain.py <brain-root> --take <file>`
+   - keep:  `python .claude/shared/update_brain.py <brain-root> --keep <file>`
+   - merge: edit `<file>` using `<file>.new`, then `--keep <file>` to drop the
+     `.new`
+
+   A release that ships no hash table treats every differing file this way.
 
 7. **Restart gate.**  The synaptra MCP server was stopped in step 5.
    Tell the owner to restart the brain so the server

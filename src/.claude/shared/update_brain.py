@@ -184,13 +184,16 @@ def plan_update(
     """Split the release's product files into (replace, keep).
 
     *keep* are files the brain already has whose content is neither the new
-    release's nor any shipped version: the owner's edits.  Everything else is
-    replaced.  A release without a hash table cannot tell, so it replaces all.
+    release's nor any shipped version: conflicts, left for the owner to settle.
+    Everything else is replaced.  A release without a hash table cannot prove
+    any file untouched, so every file that differs from the release is a
+    conflict -- nothing is overwritten on a guess.
     """
     table = load_shipped_hashes(release)
     if table is None:
-        print("  NOTE  release has no shipped-hash table -- replacing every file")
-        return list(release_files), []
+        print("  NOTE  release has no shipped-hash table -- no file can be proven")
+        print("        untouched, so any file that differs is kept as a conflict")
+        table = {}
     replace: list[str] = []
     keep: list[str] = []
     for rel in release_files:
@@ -229,15 +232,54 @@ def write_new_files(brain: Path, release: Path, keep: list[str]) -> None:
         shutil.copy2(str(release / rel), str(brain / (rel + NEW_SUFFIX)))
 
 
+DIFF_LINES = 40
+
+
+def diff_excerpt(live: Path, new: Path) -> list[str]:
+    """The first DIFF_LINES lines of a unified diff, owner's file -> release's."""
+    try:
+        a = live.read_text(encoding="utf-8").splitlines()
+        b = new.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return ["(binary or unreadable -- no diff)"]
+    lines = list(difflib.unified_diff(a, b, "yours", "release", lineterm="", n=1))
+    if len(lines) > DIFF_LINES:
+        lines = lines[:DIFF_LINES] + [f"... {len(lines) - DIFF_LINES} more diff lines"]
+    return lines
+
+
 def report_kept(brain: Path, keep: list[str]) -> None:
     if not keep:
         return
-    print(f"KEPT {len(keep)} file(s) you edited -- not overwritten")
+    print(
+        f"CONFLICT {len(keep)} file(s) differ from every shipped version -- not overwritten"
+    )
     for rel in keep:
         new = brain / (rel + NEW_SUFFIX)
         print(f"  {rel}  ({diff_summary(brain / rel, new)} to reach the release)")
         print(f"    release version: {rel + NEW_SUFFIX}")
-    print("  Merge what you want from each .new file, then delete it.")
+        enc = sys.stdout.encoding or "utf-8"
+        for line in diff_excerpt(brain / rel, new):
+            # the owner's text can hold characters a legacy console cannot show
+            print("    | " + line.encode(enc, "replace").decode(enc))
+    print("  Ask the owner, per file: take the release's, keep theirs, or merge.")
+    print("    take:  update_brain.py <brain> --take <file>")
+    print("    keep:  update_brain.py <brain> --keep <file>")
+    print("    merge: edit <file> by hand using <file>.new, then --keep <file>")
+
+
+def resolve_conflict(brain: Path, rel: str, action: str) -> None:
+    """Settle one kept file: 'take' installs the release's, 'keep' drops the .new."""
+    live = brain / rel
+    new = brain / (rel + NEW_SUFFIX)
+    if not new.is_file():
+        raise SystemExit(f"FAIL: {rel + NEW_SUFFIX} not found -- nothing to resolve")
+    if action == "take":
+        shutil.move(str(new), str(live))
+        print(f"TAKE  {rel} now matches the release (yours is in .update-backup)")
+    else:
+        new.unlink()
+        print(f"KEEP  {rel} left as yours; {rel + NEW_SUFFIX} removed")
 
 
 def list_release_files(release: Path) -> list[str]:
@@ -947,6 +989,20 @@ def main() -> int:
         action="store_true",
         help="Skip synaptra install/verify (for file-only testing)",
     )
+    parser.add_argument(
+        "--take",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="Settle a conflict: install the release's version of FILE",
+    )
+    parser.add_argument(
+        "--keep",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="Settle a conflict: keep your FILE and drop FILE.new",
+    )
     args = parser.parse_args()
 
     brain = args.brain.resolve()
@@ -954,6 +1010,13 @@ def main() -> int:
         raise SystemExit(
             f"FAIL: {brain} does not look like a brain root (no CLAUDE.md)"
         )
+
+    if args.take or args.keep:
+        for rel in args.take:
+            resolve_conflict(brain, rel, "take")
+        for rel in args.keep:
+            resolve_conflict(brain, rel, "keep")
+        return 0
 
     handed_over = hand_over_to_standalone(brain)
     if handed_over is not None:
