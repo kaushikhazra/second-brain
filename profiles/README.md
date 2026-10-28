@@ -16,10 +16,9 @@ A **profile** is a ready-made identity for a second brain. Second brain itself i
 
 ## Using a profile
 
-1. Install second brain into a new folder named after the agent.
-2. Copy the profile's files into that folder.
-3. Replace every `{{...}}` placeholder. The profile's own README lists them.
-4. Start it with the profile's launcher.
+**The convention:** a profile is a folder, its `README.md` is the entry point, and adoption starts at its `## Adopt this profile` section. Second brain carries no profile logic. To adopt one, the brain reads that section and follows it.
+
+Adoption works the same on a fresh install and on a brain already in use, the way an update does: diff the profile's files against the brain's, apply what doesn't conflict, and ask the owner about anything that does.
 
 ## Available profiles
 
