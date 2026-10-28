@@ -34,6 +34,33 @@ if [ -d ".claude/.venv/bin" ]; then
   export PATH
 fi
 
-# 4) Launch Claude in this project. On first run, use /init-brain.
+# 4) aarch64 only: torch and scikit-learn each bundle their own libgomp, and loading the
+#    second dies with "cannot allocate memory in static TLS block". Preloading both before
+#    anything starts fixes it; the MCP server inherits the variable from here.
+first_match() {
+  for f in "$@"; do
+    if [ -e "$f" ]; then
+      echo "$PWD/$f"
+      return
+    fi
+  done
+}
+if [ "$(uname -m)" = "aarch64" ]; then
+  preload=
+  for lib in \
+    "$(first_match .claude/.venv/lib/python3*/site-packages/torch/lib/libgomp.so.1)" \
+    "$(first_match .claude/.venv/lib/python3*/site-packages/scikit_learn.libs/libgomp-*.so*)"
+  do
+    if [ -n "$lib" ]; then
+      preload="${preload:+$preload:}$lib"
+    fi
+  done
+  if [ -n "$preload" ]; then
+    LD_PRELOAD="$preload${LD_PRELOAD:+:$LD_PRELOAD}"
+    export LD_PRELOAD
+  fi
+fi
+
+# 5) Launch Claude in this project. On first run, use /init-brain.
 echo "Starting your second brain...  (first run? run  /init-brain )"
 exec claude "$@"

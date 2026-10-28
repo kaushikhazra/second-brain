@@ -17,6 +17,10 @@ taken from how a console script is actually exec'd.
     AC 7  update_brain stops processes through the rule on Linux and through PowerShell on Windows
     AC 8  no script outside platform_paths.py hardcodes the Scripts/ or .exe layout
     AC 9  the guard hook launcher finds the Linux interpreter layout
+    AC 10 aarch64 only: brain.sh preloads torch's and scikit-learn's libgomp (the Pi's
+          "cannot allocate memory in static TLS block"), keeps a preload the caller had
+    AC 11 init-brain pre-approves the synaptra server in settings.local.json, so an
+          unattended run connects to it
 
 Each criterion is shown to bite: the same scenarios run on copies of the files with one
 behaviour removed, and the named criteria must FAIL.
@@ -122,6 +126,30 @@ MUTANTS = {
         "`./.claude/.venv/bin/synaptra.exe`",
         ("AC 3",),
     ),
+    "brain.sh never preloads libgomp": (
+        BRAIN_SH,
+        'if [ "$(uname -m)" = "aarch64" ]; then',
+        "if false; then",
+        ("AC 10",),
+    ),
+    "brain.sh preloads libgomp on every machine": (
+        BRAIN_SH,
+        'if [ "$(uname -m)" = "aarch64" ]; then',
+        "if true; then",
+        ("AC 10",),
+    ),
+    "brain.sh drops the caller's LD_PRELOAD": (
+        BRAIN_SH,
+        'LD_PRELOAD="$preload${LD_PRELOAD:+:$LD_PRELOAD}"',
+        'LD_PRELOAD="$preload"',
+        ("AC 10",),
+    ),
+    "init-brain stops pre-approving the server": (
+        INIT_SKILL,
+        "enabledMcpjsonServers",
+        "enabledServers",
+        ("AC 11",),
+    ),
     "run_guard.sh loses the Linux layout": (
         RUN_GUARD,
         '    "$claude/.venv/bin/python" \\\n',
@@ -169,7 +197,8 @@ def make_fake_claude(bin_dir: Path) -> None:
         'echo "ARGS:$*"\n'
         'echo "PWD:$(pwd)"\n'
         'echo "MCP:$MCP_TIMEOUT"\n'
-        'echo "PATH0:${PATH%%:*}"\n',
+        'echo "PATH0:${PATH%%:*}"\n'
+        'echo "LDP:$LD_PRELOAD"\n',
         encoding="utf-8",
         newline="",
     )
@@ -320,6 +349,74 @@ def scenarios(
         and absent_msg_ok,
         f"args={out.get('ARGS')!r} mcp={out.get('MCP')!r} cwd_ok={in_own_folder} "
         f"venv_first_only_when_present={venv_first and no_venv_first} missing_claude_ok={absent_msg_ok}",
+    )
+
+    # AC 10 -- aarch64: torch and scikit-learn each bundle libgomp; preload both.
+    def launch(machine: str, extra_env: dict | None = None, libs: bool = True) -> dict:
+        w = base / f"ac10-{machine}-{int(libs)}-{bool(extra_env)}"
+        if w.exists():
+            shutil.rmtree(w)
+        b = w / "brain"
+        site = b / ".claude" / ".venv" / "lib" / "python3.12" / "site-packages"
+        if libs:
+            (site / "torch" / "lib").mkdir(parents=True)
+            (site / "torch" / "lib" / "libgomp.so.1").write_text("")
+            (site / "scikit_learn.libs").mkdir(parents=True)
+            (site / "scikit_learn.libs" / "libgomp-a1b2c3.so.1.0.0").write_text("")
+        else:
+            site.mkdir(parents=True)
+        # Stop at the launch line and print the variable: a preloaded fake library would
+        # otherwise be loaded into every process sh starts, the fake claude included.
+        script = brain_sh.read_text("utf-8")
+        assert 'exec claude "$@"' in script
+        script = script.replace('exec claude "$@"', 'echo "LDP:$LD_PRELOAD"')
+        if extra_env:
+            # The caller already had a preload: set it just before the launcher merges.
+            script = script.replace(
+                'LD_PRELOAD="$preload',
+                'LD_PRELOAD=/opt/own.so\n    LD_PRELOAD="$preload',
+                1,
+            )
+        (b / "brain.sh").write_text(script, encoding="utf-8", newline="")
+        fb = w / "fakebin"
+        make_fake_claude(fb)
+        uname = fb / "uname"
+        uname.write_text(f"#!/bin/sh\necho {machine}\n", encoding="utf-8", newline="")
+        uname.chmod(0o755)
+        e = dict(os.environ, PATH=os.pathsep.join([fb.as_posix(), os.environ["PATH"]]))
+        e.pop("LD_PRELOAD", None)
+        out = sh_run(b / "brain.sh", [], w, e).stdout
+        return dict(l.split(":", 1) for l in out.splitlines() if ":" in l)
+
+    arm = launch("aarch64")
+    parts = arm.get("LDP", "").split(":")
+    arm_ok = (
+        len(parts) == 2
+        and parts[0].endswith("torch/lib/libgomp.so.1")
+        and "scikit_learn.libs/libgomp-a1b2c3.so.1.0.0" in parts[1]
+    )
+    x86 = launch("x86_64").get("LDP", "") == ""
+    kept = (
+        launch("aarch64", {"LD_PRELOAD": "/opt/own.so"})
+        .get("LDP", "")
+        .endswith(":/opt/own.so")
+    )
+    nolibs = launch("aarch64", libs=False).get("LDP", "") == ""
+    r["AC 10"] = (
+        arm_ok and x86 and kept and nolibs,
+        f"aarch64 preload={arm.get('LDP')!r} x86_64 untouched={x86} "
+        f"existing LD_PRELOAD kept={kept} nothing set without the libs={nolibs}",
+    )
+
+    # AC 11 -- unattended runs can reach the memory server: init-brain pre-approves it.
+    approve = (
+        "enabledMcpjsonServers" in init_text
+        and ".claude/settings.local.json" in init_text
+        and "keep every other key" in init_text
+    )
+    r["AC 11"] = (
+        approve,
+        "init-brain writes enabledMcpjsonServers into settings.local.json",
     )
 
     # AC 6 -- which processes belong to this brain.

@@ -192,10 +192,18 @@ the working directory. `LAUNCHER` guarantees this (`brain.bat` does `cd /d "%~dp
 
 ### 7. Document the launcher env
 
+**Pre-approve the project MCP server.** Claude Code does not connect a project's
+`.mcp.json` server until someone approves it, and an unattended run (a schedule, a
+login start) has nobody to approve, so the memory tools never appear. After writing
+`.mcp.json`, put `"synaptra"` into `enabledMcpjsonServers` in
+`.claude/settings.local.json` (machine-local, never shipped): read the file if it
+exists, add the key as `["synaptra"]` or append `synaptra` to the list it already
+has, keep every other key as it was, and write it back. Already listed → write
+nothing. Say in one line that it was done.
+
 Tell the user (for their Claude launcher / settings — this skill does not set it):
-set **`MCP_TIMEOUT=300000`** to cover synaptra's ~20s–3min cold start, and
-pre-approve the project MCP server (`enableAllProjectMcpServers: true`, or list
-`synaptra` under `enabledMcpjsonServers`) so headless/agent sessions pick it up.
+set **`MCP_TIMEOUT=300000`** to cover synaptra's ~20s–3min cold start.
+`brain.bat` and `brain.sh` already do.
 
 ### 8. Restart gate
 
