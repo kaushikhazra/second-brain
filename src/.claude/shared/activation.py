@@ -78,13 +78,50 @@ def _entry(record: dict, habit: str) -> dict | None:
     return entry if isinstance(entry, dict) else None
 
 
-def needs_ask(record: dict, habit: str, version: str) -> bool:
-    """True when `habit` has never been answered, or was answered against a
-    different VERSION than the one passed in now."""
+# Per habit: the version its behaviour last changed, and what changed. An owner's
+# answer stands until the habit itself changes -- a release that leaves the habit
+# alone never re-asks it. Changing a habit's behaviour means bumping its entry here.
+HABIT_CHANGED_IN: dict[str, tuple[str, str]] = {
+    "curiosity": ("0.3.1", "introduced"),
+    "news": ("0.3.1", "introduced"),
+}
+
+
+def changed_in(habit: str) -> str:
+    """The version `habit`'s behaviour last changed. An unregistered habit has
+    no change on record, so an answer to it stands."""
+    return HABIT_CHANGED_IN.get(habit, ("0.0.0", ""))[0]
+
+
+def change_note(habit: str) -> str:
+    """One line on what changed in `habit`, for the re-ask."""
+    return HABIT_CHANGED_IN.get(habit, ("", ""))[1]
+
+
+def _version_key(version: object) -> tuple[int, ...] | None:
+    try:
+        return tuple(int(part) for part in str(version).split("."))
+    except ValueError:
+        return None
+
+
+def needs_ask(record: dict, habit: str) -> bool:
+    """True when `habit` has never been answered, or was answered before the
+    version it last changed in. An answer whose version cannot be read counts as
+    stale -- re-asking is the safe direction."""
     entry = _entry(record, habit)
     if entry is None:
         return True
-    return entry.get("answered_at_version") != version
+    answered = _version_key(entry.get("answered_at_version"))
+    if answered is None:
+        return True
+    return answered < _version_key(changed_in(habit))
+
+
+def changed_since_answer(record: dict, habit: str) -> bool:
+    """True when `habit` was answered and has since changed: the re-ask that
+    must say what changed, as opposed to a first-time ask."""
+    return _entry(record, habit) is not None and needs_ask(record, habit)
 
 
 UNATTENDED_ENV = "SECOND_BRAIN_UNATTENDED"
@@ -100,15 +137,15 @@ def unattended(env: dict | None = None) -> bool:
 
 
 def habits_to_ask(
-    record: dict, habits: list[str], version: str, env: dict | None = None
+    record: dict, habits: list[str], env: dict | None = None
 ) -> list[str]:
     """The habits `/session-start` should put a question to on this boot.
 
     An unattended boot asks nothing and so records nothing: the habits stay off, and
-    the next attended boot on the same VERSION still finds them unanswered."""
+    the next attended boot still finds them unanswered."""
     if unattended(env):
         return []
-    return [h for h in habits if needs_ask(record, h, version)]
+    return [h for h in habits if needs_ask(record, h)]
 
 
 def is_active(record: dict, habit: str) -> bool:
