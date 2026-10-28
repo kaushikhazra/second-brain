@@ -381,12 +381,15 @@
    "9f37ee52cbd3bd676e56a9a8a1771a19677f830497fdbb5c6daa86e1d4384fac",
    "c11f4243dc5ae6c16281cad89234132a8f17b33d59c89d85d8c9d8b784cbb009"
   ],
+  ".claude/shared/platform_paths.py": [
+   "3266507166ded605588967700cee1fc7830b7d2fca9d602164c2990458cecc25"
+  ],
   ".claude/shared/update_brain.py": [
    "37e19e70ca20a8f12c30a7c33ced19470b7c69d5e1e6f0d55800cb920ed3f21c",
    "4e3821f5203f643dcc164144bc1d970db5c1de5f300cb8f978c56c1c746f6b23",
    "640dce6c6e2276b2ee4e7c0e2dc90d46091c6b11894caaa4bea66d8d18156f56",
    "7581873ff223a5d3a34a89d87a8e666ea9e109ee33f5e1fc0704faf212c54914",
-   "8023e564218e77c8d1cdf99c6d685c0a2826749b17effce7198cb8b6703782f3",
+   "7ff600f7648003af440eaee52a8c0d8d95846dc89e6838a63eab5a105fee1259",
    "8560a958ee07e0ca680dfedfbdc0e8353f69d2a54487cc43608b88267cc8d0a3",
    "923e5be30445480cb06da64fe49d578f903d66998652acae0b56f09a049a128a"
   ],
@@ -411,10 +414,12 @@
    "88dcf57744504785e5db926d77fa78db90f0021144762367a36a574ffb0d01a0"
   ],
   ".claude/skills/delete-memory/SKILL.md": [
+   "4c1acf40cd5da460306b12cbcaad691df5dfb9ae4f39866df2dce9773386f860",
    "c9a69d6aa15939496b5df098b6c30dad5b56a067f7b88bf244a35fe5d5687bbd",
    "cdb1446d46ec23c2dabff3532cdcf653e7b358f9433e247ff9185610c837acb4"
   ],
   ".claude/skills/dream-cycle/SKILL.md": [
+   "064cb2391036c39b27b90aab2bea6f1700ebecfba70d757939873d8e7a5192c4",
    "76620e0a8ee3dff4b2e35730d62a48d7b4294aa8f40ea5e8632eacc6cb57e34a",
    "a25e3571a78318036d21449649fe367657c58749932da57e966f408406e7f52a"
   ],
@@ -423,12 +428,14 @@
    "1d9aa2ef559044ccffecb4955be2fa033d0d19e5912185480c83861c8614769e",
    "90307531179892c5f615748f83784c8d7841f7f39111699938d1b01169ca9e56",
    "b1c34a4624b996b83e6b52c853fb7c1ddf2535480814b7e0bdce2f228120ba94",
-   "be87a88c5c976423ccb1a21db1a96845f6c3b04a95a3dcbd5c9c24098f3ff98b"
+   "be87a88c5c976423ccb1a21db1a96845f6c3b04a95a3dcbd5c9c24098f3ff98b",
+   "d5f21c2f676bac8c010740bb9e43422dffb8ddcc74837405a8bea9de6877feed"
   ],
   ".claude/skills/dream/check_dream.py": [
    "82946a5afb49552115cdcc3bf93613ecf0f653c9acabba9b41e8c8593cae9588"
   ],
   ".claude/skills/dream/checkpoint.py": [
+   "a99bd10529a0c3224b1f776f296c90d4ce17cd1c715246c1949c3f1a766a97b5",
    "adf96ce34f07ff0c218a500f2e64a5c2c14d7706e5209a2e967366707e4b15b6"
   ],
   ".claude/skills/guard/SKILL.md": [
@@ -458,6 +465,7 @@
   ".claude/skills/init-brain/SKILL.md": [
    "0fefbe06fc3e7490228dd50eadde5abe8d8aa5c43b50172dad66da2869ce718d",
    "2b708a6805281b06a00c71515fd4ad851932714595e914c1f3f80a7144802f33",
+   "97bb4d19a6d2891d33e45d14708cd6d1a2b84d9399097447ad0496c0a1dfed9b",
    "ca69eb94e7711f0fad3fb6887bf3c9597c7129b8a0d8a2fa570e0f3b80cbd3ad",
    "f0879249f27d6f743e2b1a647f5e40b92722a7c7ce85a5c5417262bf0ae7c5e7"
   ],
@@ -474,6 +482,7 @@
    "0fcc10144e88a0133d1938782d6e8929c315fa47ea3a1d62976370c7cd4bb536"
   ],
   ".claude/skills/local-agent/scripts/run.py": [
+   "071992d70ce0958a23f535a007b9aeeebe9956f831a17bcd795702b8c9fb98b8",
    "4f2b0d45153df93d1ad7f7d0361d5134bac792075b6491994ca77fdae051ab80"
   ],
   ".claude/skills/local-agent/scripts/tools.py": [
@@ -494,9 +503,11 @@
    "1f4bbbffbd240c76c148391cae75360d92b7272b5d857b8aa92f0d117a3c79b1"
   ],
   ".claude/skills/migrate-from/SKILL.md": [
+   "1ceca434e516874ed064d6d3df8ccf7efee0f8ce795fa429cca2acb9a91f5c3c",
    "64350e67f39280bb861795db68a4f14206c22c4166138987eb43398a7967313a"
   ],
   ".claude/skills/migrate-from/migrate.py": [
+   "54af5cd2712bf0adce9eed13e9edfcc46161afdac04d1f34934418ddcd5f9435",
    "6a23990d0611b83f164dc561d8d02ec4afcb1ddaee454afcd3be1d1a0b1b1e8f"
   ],
   ".claude/skills/news/SKILL.md": [
@@ -544,6 +555,7 @@
   ],
   ".claude/skills/session-start/SKILL.md": [
    "22c1b182bb70878d8014a86294f5518403804518519107437b54ddea132c5636",
+   "58ea68f3b0a88e36cb6d9777eacd0f2fa5abb53874c12c3ba2742aa215aef87d",
    "6723e46a69d61d2b2d766628fda36a419b3bc01b29df3a9e0946ed5aa7114afd",
    "6f7b785142ee7dd313e5f287df3a3ebfb809ae3141272006f58cbe028f6117a6",
    "abb3c7429af1bc60c49e5787553e51efbd65b953363f922a27c11377eaa84a91",
@@ -553,6 +565,7 @@
   ".claude/skills/transcribe/SKILL.md": [
    "0ac3647cfac4a60a3b2627b77b78fa3484fac546ab08f2ed79676afcf8f40108",
    "0b79747f0488032a824281bfce318c0749f703d8c4e6c037e290d5203db98f31",
+   "76cfd5d7aee9470bf4a8f94a89adef91cca873c0d221254b700e0a46a4576f7d",
    "f78498cd8960117850d33483d63221e98073e730a96541270dd93d5cd09fc99e"
   ],
   ".claude/skills/transcribe/requirements-cuda.txt": [
@@ -563,6 +576,7 @@
   ],
   ".claude/skills/transcribe/scripts/launch.py": [
    "67a91501fac795efcf742c24b8197e295ae3010b4f1fc8b75ddf330c0a8c5a74",
+   "8b55d9cd1b4382564d61080bf5f5ff1988c449518c682557a532fd4a2e1c50e0",
    "cc466bde66b285f62c35c2e5187f6f2a8bdec397c9b91756c83f2c4c0d1a33c6",
    "eb252670b262e49218208bb7610de87a06d89a747fcb711a133331eaea3cdc22"
   ],
@@ -572,6 +586,9 @@
   ".claude/skills/transcribe/scripts/transcribe.py": [
    "46f604641927c7ba61517d957905778f630e5a97a3c2fb37eb37754303e7c440",
    "8cc157ec45ee912f6a1a97d41248b7b48c920e47ce577991cff50e5ede4e062c"
+  ],
+  ".claude/skills/transcribe/scripts/transcribe.sh": [
+   "d1f3158c01b116ffaab2dfafc5a6e362f3e5c78c37cf117eb2338ff520098af9"
   ],
   ".claude/skills/update-memory/SKILL.md": [
    "3f002749cb46ad3bcbb46f955ea1fced302504fea129edbd703fd41543294604",
@@ -633,9 +650,15 @@
   "brain-claude-sandbox.bat": [
    "7b5e24d1c9e5a9754fc011bef683f5e99b320c3704ca8ae0a4c266a6da50c364"
   ],
+  "brain-claude-sandbox.sh": [
+   "bf57a2b114cd82ba0b75511ccc3a655b515398c48871de85b7d985493a42dcf9"
+  ],
   "brain.bat": [
    "664c43cf91b675636cdacb83be05dc58d8b70bd38750e4f9a641e9dbd919b435",
    "eac0349ace85eb9e8287025798736d59bcef25fb1313f6693975e1805306c4b1"
+  ],
+  "brain.sh": [
+   "03e884ccf9846a5e369d27fa93377eccd03f83d7120311c1dc47bde9ad62c70c"
   ],
   "news-keywords.txt": [
    "7ad8960f54a7b2645c78644ab4b4c46d0340e1cf5f167cd3cfe18c551a75c450"
