@@ -7,8 +7,8 @@ fails here), and reads the skill and brain.bat for what only they can say.
 
     AC 1  SECOND_BRAIN_UNATTENDED set: no question is put, nothing is written to the record
     AC 2  on that boot every habit with no answer stays off
-    AC 3  the next attended boot, same VERSION, asks each habit with no answer
-    AC 4  a habit already answered at this VERSION is not asked on an attended boot
+    AC 3  the next attended boot asks each habit with no answer
+    AC 4  a habit already answered, and unchanged since, is not asked on an attended boot
     AC 5  empty, 0, false, no mean attended; anything else means unattended
     AC 6  the skill tells the owner, in one line, that the questions were skipped
     AC 7  brain.bat's header names the variable and says what it does
@@ -53,14 +53,14 @@ MUTANTS = {
     ),
     "answered habits are asked again": (
         ACTIVATION,
-        "if needs_ask(record, h, version)",
+        "if needs_ask(record, h)",
         "if True",
         ("AC 4",),
     ),
     "skill no longer imports the new names": (
         SKILL,
-        "habits_to_ask, unattended, set_answer",
-        "needs_ask, set_answer",
+        "habits_to_ask, changed_since_answer, change_note, unattended, set_answer",
+        "needs_ask, changed_since_answer, change_note, set_answer",
         ("AC 1",),
     ),
     "skill is silent about the skip": (
@@ -92,7 +92,7 @@ def habit_keys(skill_text: str) -> list[str]:
 def boot(act, record: dict, habits: list[str], env: dict) -> tuple[list[str], dict]:
     """A boot where nobody answers: whatever is asked is recorded as declined, as the
     skill says of a question left unanswered. Returns (asked, record after)."""
-    asked = act.habits_to_ask(record, habits, VERSION, env)
+    asked = act.habits_to_ask(record, habits, env)
     for h in asked:
         record = act.set_answer(record, h, VERSION, active=False)
     return asked, record
@@ -136,7 +136,7 @@ def scenarios(
     )
 
     answered = act.set_answer({}, habits[0], VERSION, active=True) if habits else {}
-    asked_att = act.habits_to_ask(answered, habits, VERSION, {})
+    asked_att = act.habits_to_ask(answered, habits, {})
     r["AC 4"] = (
         bool(habits)
         and habits[0] not in asked_att

@@ -103,10 +103,12 @@ handful, and number them continuously so one can be cited as "AC 12". Issue #2
 is the worked example.
 
 **Anything the owner switches on** — a habit the brain would otherwise run
-unasked — is asked once, on the first session of a fresh brain and on the first
-session after `VERSION` changes. Declined or unanswered, the brain gives the
-one-line hint for switching it on later and does not ask again until the next
-`VERSION` change.
+unasked — is asked once, on the first session of a fresh brain, and again only
+when the habit itself has changed since the answer (its `changed_in` version,
+declared in `activation.py`), with a line on what changed. Declined or
+unanswered, the brain gives the one-line hint for switching it on later and
+does not ask again until then. A release that leaves the habit alone asks
+nothing.
 
 ## Session Lifecycle
 

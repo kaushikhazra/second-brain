@@ -82,28 +82,42 @@ def main() -> int:
 
     # --- AC 1: fresh record -> needs asking. ---
     fresh = act.load_record(path)
-    ok1 = act.needs_ask(fresh, "news", "0.3.1")
+    ok1 = act.needs_ask(fresh, "news")
     results.append(("AC1: a fresh record needs asking (news)", ok1, f"needs_ask={ok1}"))
 
     # --- AC 2: a yes is recorded, news runs once a day from then on (active). ---
     r = act.set_answer(fresh, "news", "0.3.1", active=True)
-    ok2 = act.is_active(r, "news") and not act.needs_ask(r, "news", "0.3.1")
+    ok2 = act.is_active(r, "news") and not act.needs_ask(r, "news")
     results.append(
         (
             "AC2: a yes is recorded, active from that session on (news)",
             ok2,
-            f"is_active={act.is_active(r, 'news')} needs_ask={act.needs_ask(r, 'news', '0.3.1')}",
+            f"is_active={act.is_active(r, 'news')} needs_ask={act.needs_ask(r, 'news')}",
         )
     )
 
     # --- AC 3: a no/no-answer is recorded, one-line hint given, no re-ask until
     # VERSION changes. ---
     r_no = act.set_answer(fresh, "news", "0.3.1", active=False)
-    same_version_no_reask = not act.needs_ask(r_no, "news", "0.3.1")
-    next_version_reasks = act.needs_ask(r_no, "news", "0.4.0")
+    unchanged_no_reask = not act.needs_ask(r_no, "news")
+    # A later release that leaves the habit alone asks nothing (issue #95) ...
+    later_release_no_reask = not act.needs_ask(
+        {"news": {"answered_at_version": "1.7.0", "active": False}}, "news"
+    )
+    # ... and a change to the habit itself re-asks it, with a note on what changed.
+    saved = dict(act.HABIT_CHANGED_IN)
+    act.HABIT_CHANGED_IN["news"] = ("9.9.9", "now does X")
+    try:
+        changed_reasks = act.changed_since_answer(r_no, "news") and (
+            act.change_note("news") == "now does X"
+        )
+    finally:
+        act.HABIT_CHANGED_IN.clear()
+        act.HABIT_CHANGED_IN.update(saved)
     ok3 = (
-        same_version_no_reask
-        and next_version_reasks
+        unchanged_no_reask
+        and later_release_no_reask
+        and changed_reasks
         and not act.is_active(r_no, "news")
     )
     hint_in_session_start = "/news on" in session_start_text
@@ -111,9 +125,9 @@ def main() -> int:
     ok3 = ok3 and hint_in_session_start and hint_in_skill
     results.append(
         (
-            "AC3: a no/no-answer is recorded, one-line hint given, no re-ask until VERSION changes (news)",
+            "AC3: a no/no-answer is recorded, one-line hint given, no re-ask until the habit changes (news)",
             ok3,
-            f"same_version_no_reask={same_version_no_reask} next_version_reasks={next_version_reasks} "
+            f"unchanged_no_reask={unchanged_no_reask} later_release_no_reask={later_release_no_reask} changed_reasks={changed_reasks} "
             f"hint_in_session_start={hint_in_session_start} hint_in_skill={hint_in_skill}",
         )
     )

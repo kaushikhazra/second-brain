@@ -131,7 +131,7 @@ through this same step; a future habit is one more entry in the table
 below, not a second block of prose here.
 
 ```python
-from activation import brain_root, record_path, load_record, save_record, habits_to_ask, unattended, set_answer
+from activation import brain_root, record_path, load_record, save_record, habits_to_ask, changed_since_answer, change_note, unattended, set_answer
 ```
 
 (`.claude/shared/activation.py` — resolve the import path from this brain's
@@ -151,14 +151,17 @@ no/no-answer:
    set `SECOND_BRAIN_UNATTENDED`, so nobody is there to answer — skip this whole
    step: no `AskUserQuestion`, nothing written to the record, every habit stays
    off. Print one line: "Unattended boot — activation questions skipped; they
-   will be asked next time someone is present." The next attended boot, on the
-   same `VERSION`, still finds the habits unanswered and asks. This is not a
+   will be asked next time someone is present." The next attended boot still
+   finds the habits unanswered and asks. This is not a
    "declined": nothing was asked.
-4. `to_ask = habits_to_ask(record, [the habit keys in the table above], version)`.
-   A habit already answered for the current `VERSION` is not in it.
+4. `to_ask = habits_to_ask(record, [the habit keys in the table above])`.
+   A habit already answered, and not changed since the answer, is not in it.
 
 5. For each habit in `to_ask`, ask **once**, with `AskUserQuestion`, using that
-   habit's own question text from the table above.
+   habit's own question text from the table above. If
+   `changed_since_answer(record, habit)` is true, the owner has answered this
+   habit before: put `change_note(habit)` in front of the question as one line
+   on what changed, so it is not read as a repeat.
    - **A non-interactive (headless) session counts as no answer** — if
      `AskUserQuestion` is unavailable or errors, treat exactly like a
      declined question rather than retrying or blocking the boot.
@@ -169,9 +172,10 @@ no/no-answer:
    is resolved — not once per habit, so a boot that asks about two
    habits writes the record a single time.
 
-The question is asked **once per habit per `VERSION`** — declined or
-unanswered, it is not asked again until `VERSION` changes, per the record's
-`answered_at_version` field. Report what was asked and what was recorded in
+An answer stands until **the habit itself changes** — declined or unanswered,
+the habit is not asked again until the version in its `HABIT_CHANGED_IN` entry
+(`activation.py`) passes the record's `answered_at_version`. A new release that
+leaves the habit alone asks nothing. Report what was asked and what was recorded in
 step 7, not silently.
 
 ## 3. Verify Synaptra
