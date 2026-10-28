@@ -1,6 +1,6 @@
 # Personal identity — lives only on the owner's machine, never in the repo
-persona.md
-user.md
+/persona.md
+/user.md
 *.bak
 
 # Review and runtime artifacts
