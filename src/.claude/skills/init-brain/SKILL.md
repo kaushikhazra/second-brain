@@ -15,16 +15,33 @@ files from experience; the questionnaire is for a brain with no past.
 **Run this first.** Restore (Round 0) needs the `mcp__synaptra__*` tools live,
 and a freshly-cloned second brain has no synaptra, may have no suitable Python,
 and no `.mcp.json`. This step provisions synaptra **self-contained under
-`.claude/`** so the host system is never touched. (Windows-first; the
-`Scripts/`-vs-`bin/`, `.exe` split is an easy later add.)
+`.claude/`** so the host system is never touched. It runs on Windows and Linux;
+the two differ only in the names below.
 
 Let **`CLAUDE_DIR`** = the absolute path to this project's `.claude` directory.
+
+**Platform names** — use the column for the host you are on, everywhere this
+skill says `UV`, `VENV_PY`, `SYNAPTRA` or `LAUNCHER`:
+
+| Name | Windows | Linux |
+|------|---------|-------|
+| `UV` | `CLAUDE_DIR/uv.exe` | `CLAUDE_DIR/uv` |
+| `VENV_PY` | `CLAUDE_DIR/.venv/Scripts/python.exe` | `CLAUDE_DIR/.venv/bin/python` |
+| `SYNAPTRA` | `CLAUDE_DIR/.venv/Scripts/synaptra.exe` | `CLAUDE_DIR/.venv/bin/synaptra` |
+| `.mcp.json` `command` | `./.claude/.venv/Scripts/synaptra.exe` | `./.claude/.venv/bin/synaptra` |
+| `LAUNCHER` | `brain.bat` | `./brain.sh` |
+| uv installer | the official PowerShell installer | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+
+`.claude/shared/platform_paths.py` is the same rule in code
+(`python .claude/shared/platform_paths.py show` prints the host's column; a Linux
+host without `python` runs it as `python3`). On Linux the installer needs `curl`
+(or `wget`) and nothing else, and no `sudo`.
 
 ### 0. Already reachable?
 
 **Check the disk first, then the tools — in that order.**
 
-1. If `CLAUDE_DIR/.venv/Scripts/synaptra.exe` is **missing**, the backend is
+1. If `SYNAPTRA` is **missing**, the backend is
    *not* up regardless of what the tool list says. Go to step 1 and provision.
 2. Otherwise, if `mcp__synaptra__*` tools are present in this session, the
    backend is up — **skip to Round 0**. (This is what makes the post-restart
@@ -63,35 +80,35 @@ list and an explicit environment. **Never** rely on PATH (Claude-spawned
 subprocesses may not inherit it) and never build a fragile quoted-concat command
 string. Set the `UV_*`/`VIRTUAL_ENV` env vars per call as shown.
 
-a. **Ensure `CLAUDE_DIR/uv.exe`.** If it already exists, skip. Otherwise download
+a. **Ensure `UV`.** If it already exists, skip. Otherwise download
    and run the official uv installer with env `UV_INSTALL_DIR=CLAUDE_DIR` and
-   `UV_NO_MODIFY_PATH=1` — this drops `uv.exe` into `CLAUDE_DIR` and edits no PATH.
+   `UV_NO_MODIFY_PATH=1` — this drops `UV` into `CLAUDE_DIR` and edits no PATH.
 b. **Install a standalone CPython under `CLAUDE_DIR/.python`:**
-   run `CLAUDE_DIR/uv.exe python install` with env
+   run `UV python install` with env
    `UV_PYTHON_INSTALL_DIR=CLAUDE_DIR/.python`.
 c. **Create the venv off that Python.** With `UV_PYTHON_INSTALL_DIR=CLAUDE_DIR/.python`
    set, pin uv to its own managed install so the venv is never built off a host
-   Python — either by version, `CLAUDE_DIR/uv.exe venv --python 3.12 CLAUDE_DIR/.venv`,
-   or by the exact path from `CLAUDE_DIR/uv.exe python find` (returns the
+   Python — either by version, `UV venv --python 3.12 CLAUDE_DIR/.venv`,
+   or by the exact path from `UV python find` (returns the
    interpreter under `CLAUDE_DIR/.python`). That pin is what preserves the "host
    untouched / portable" guarantee. After creation, confirm the venv's python
    resolves under `CLAUDE_DIR/.python`.
 d. **Install synaptra from PyPI into the venv, pinned to the declared version.**
    Read `SYNAPTRA_VERSION` at the brain root (same directory as `VERSION`) —
    it contains the exact version this release requires.  Install pinned:
-   `CLAUDE_DIR/uv.exe pip install --python CLAUDE_DIR/.venv/Scripts/python.exe synaptra==<version>`.
+   `UV pip install --python VENV_PY synaptra==<version>`.
    After install, verify: run
-   `CLAUDE_DIR/.venv/Scripts/python.exe -c "import synaptra; print(synaptra.__version__)"`
+   `VENV_PY -c "import synaptra; print(synaptra.__version__)"`
    and assert the output equals the declared version.  A silent install that
    leaves the old version (or no version) is a failed provision, not a
    successful one.
-   Resolved exe → `CLAUDE_DIR/.venv/Scripts/synaptra.exe`.
+   Resolved exe → `SYNAPTRA`.
 
 **Idempotency — check the _complete_ artifact, not just the directory.** Skip a
-step only when its finished artifact exists: uv → `CLAUDE_DIR/uv.exe`; python →
+step only when its finished artifact exists: uv → `UV`; python →
 an interpreter under `CLAUDE_DIR/.python`; venv →
-`CLAUDE_DIR/.venv/Scripts/python.exe`; synaptra →
-`CLAUDE_DIR/.venv/Scripts/synaptra.exe`. A directory that exists but is empty
+`VENV_PY`; synaptra →
+`SYNAPTRA`. A directory that exists but is empty
 (a partial install) is **not** complete — re-run must repair it, not skip it.
 
 **Failure handling.** On any step failure: **stop**, show the exact failing
@@ -139,7 +156,7 @@ For **install-local** — the normal case — write exactly this:
   "mcpServers": {
     "synaptra": {
       "type": "stdio",
-      "command": "./.claude/.venv/Scripts/synaptra.exe",
+      "command": "<the .mcp.json command from the platform table>",
       "args": ["--transport", "stdio"],
       "env": {
         "SYNAPTRA_BACKEND": "surrealkv-file",
@@ -149,6 +166,9 @@ For **install-local** — the normal case — write exactly this:
   }
 }
 ```
+
+`command` is the `.mcp.json` `command` row of the platform table; nothing else
+in the file differs between platforms.
 
 **INVARIANT — `command` and `SYNAPTRA_DB` must always derive from the same
 form.** Never one absolute and one relative. If `command` is relative, a wrong
@@ -165,16 +185,25 @@ configured this way is **not portable**: moving the folder will require re-runni
 `/init-brain`.
 
 Relative resolution depends on Claude being launched with the project root as
-the working directory. `brain.bat` guarantees this (`cd /d "%~dp0"`).
+the working directory. `LAUNCHER` guarantees this (`brain.bat` does `cd /d "%~dp0"`,
+`brain.sh` does `cd "$(dirname "$0")"`).
 
 `MCP_TIMEOUT` is **not** a per-server field here (step 7).
 
 ### 7. Document the launcher env
 
+**Pre-approve the project MCP server.** Claude Code does not connect a project's
+`.mcp.json` server until someone approves it, and an unattended run (a schedule, a
+login start) has nobody to approve, so the memory tools never appear. After writing
+`.mcp.json`, put `"synaptra"` into `enabledMcpjsonServers` in
+`.claude/settings.local.json` (machine-local, never shipped): read the file if it
+exists, add the key as `["synaptra"]` or append `synaptra` to the list it already
+has, keep every other key as it was, and write it back. Already listed → write
+nothing. Say in one line that it was done.
+
 Tell the user (for their Claude launcher / settings — this skill does not set it):
-set **`MCP_TIMEOUT=300000`** to cover synaptra's ~20s–3min cold start, and
-pre-approve the project MCP server (`enableAllProjectMcpServers: true`, or list
-`synaptra` under `enabledMcpjsonServers`) so headless/agent sessions pick it up.
+set **`MCP_TIMEOUT=300000`** to cover synaptra's ~20s–3min cold start.
+`brain.bat` and `brain.sh` already do.
 
 ### 8. Restart gate
 

@@ -2,7 +2,10 @@
 
 Run by /dream with this brain's own interpreter, before anything is reshaped:
 
-    .claude/.venv/Scripts/python.exe .claude/skills/dream/checkpoint.py --expect <N>
+    <venv python> .claude/skills/dream/checkpoint.py --expect <N>
+
+where <venv python> is .claude/.venv/Scripts/python.exe on Windows and
+.claude/.venv/bin/python on Linux.
 
 <N> is memory_stats' storage.memory_count, read from the live store just
 before. The store is SurrealKV, which is plain files, so copying the folder

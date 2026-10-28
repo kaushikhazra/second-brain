@@ -80,6 +80,8 @@ memory service.
    .claude/.venv/Scripts/python.exe .claude/skills/dream/checkpoint.py --expect <N>
    ```
 
+   On Linux the interpreter is `.claude/.venv/bin/python`.
+
    It copies `.claude/synaptra-data` into `.claude/dream-backups/<date_time>/`,
    opens the copy on its own, and counts it.
 4. **`CHECKPOINT OK` → tell the owner the backup path, the count, and the

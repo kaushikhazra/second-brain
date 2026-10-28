@@ -33,6 +33,8 @@ CLAUDE = SKILL.parent.parent
 VENV = CLAUDE / ".venv"
 IS_WIN = sys.platform == "win32"
 
+sys.path.insert(0, str(CLAUDE / "shared"))
+
 BASE_REQ = SKILL / "requirements.txt"
 CUDA_REQ = SKILL / "requirements-cuda.txt"
 BASE_MARK = VENV / ".transcribe-base"
@@ -61,7 +63,7 @@ def fail(msg: str, code: int = 2) -> "None":
 
 
 def venv_python() -> Path:
-    return VENV / ("Scripts/python.exe" if IS_WIN else "bin/python")
+    return platform_paths.venv_python(VENV)
 
 
 def probe(code: str) -> str | None:
@@ -79,7 +81,7 @@ def probe(code: str) -> str | None:
 
 
 def find_uv() -> Path:
-    uv = CLAUDE / ("uv.exe" if IS_WIN else "uv")
+    uv = platform_paths.uv_path(CLAUDE)
     if not uv.exists():
         fail(
             f"the brain's uv was not found at {uv}. Run /init-brain first; "

@@ -19,6 +19,8 @@ Let `DIR` be this skill's own directory — the folder containing this `SKILL.md
 DIR\scripts\transcribe.cmd "<path to the audio or video file>" ["<output folder>"]
 ```
 
+On Linux use `DIR/scripts/transcribe.sh` with the same arguments.
+
 - Writes `<name>.txt` (paragraphs) and `<name>.srt` (timestamps) next to the
   recording, or into the output folder if you give one.
 - Any common audio or video format works (mp3, wav, m4a, mp4, mkv, ...). No

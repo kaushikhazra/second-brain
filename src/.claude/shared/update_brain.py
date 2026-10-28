@@ -31,6 +31,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import platform_paths  # noqa: E402  (beside this file; the one platform rule)
+
 # -- owner / machine-local paths: never overwritten ----------------------
 
 OWNER_PATHS = frozenset(
@@ -96,8 +99,9 @@ def running_from_venv(brain: Path) -> bool:
 
 def find_standalone_python(brain: Path) -> Path | None:
     """The standalone interpreter /init-brain installed under .claude/.python."""
-    layout = "*/python.exe" if sys.platform == "win32" else "*/bin/python3"
-    found = sorted((brain / ".claude" / ".python").glob(layout))
+    found = sorted(
+        (brain / ".claude" / ".python").glob(platform_paths.standalone_python_glob())
+    )
     return found[0] if found else None
 
 
@@ -338,9 +342,7 @@ def _read_synaptra_version(brain: Path) -> str | None:
     Returns None if the venv or synaptra is not installed.
     """
     claude_dir = brain / ".claude"
-    scripts = "Scripts" if sys.platform == "win32" else "bin"
-    ext = ".exe" if sys.platform == "win32" else ""
-    venv_python = claude_dir / ".venv" / scripts / f"python{ext}"
+    venv_python = platform_paths.venv_python(claude_dir / ".venv")
     if not venv_python.exists():
         return None
     try:
@@ -603,12 +605,21 @@ def restore_backup(
 def stop_synaptra(brain: Path) -> bool:
     """Stop synaptra processes running from this brain's venv.
 
-    Returns True if any were stopped.  Windows-only (matches the product).
+    Returns True if any were stopped.
     """
     venv = brain / ".claude" / ".venv"
     if not venv.exists():
         print("  (no .venv -- nothing to stop)")
         return False
+
+    if not platform_paths.is_windows():
+        stopped = platform_paths.stop_venv_processes(venv.resolve())
+        if stopped:
+            print(f"  stopped {stopped} synaptra process(es)")
+            time.sleep(1)
+        else:
+            print("  (no running synaptra processes)")
+        return stopped > 0
 
     venv_str = str(venv).replace("'", "''")  # escape for PS single-quote
     # This script is a child of the updater, so walking up from $PID reaches the
@@ -668,10 +679,8 @@ def stop_synaptra(brain: Path) -> bool:
 def install_synaptra(brain: Path, version: str) -> None:
     """Install synaptra pinned to the declared version via uv."""
     claude_dir = brain / ".claude"
-    uv = claude_dir / ("uv.exe" if sys.platform == "win32" else "uv")
-    scripts = "Scripts" if sys.platform == "win32" else "bin"
-    ext = ".exe" if sys.platform == "win32" else ""
-    venv_python = claude_dir / ".venv" / scripts / f"python{ext}"
+    uv = platform_paths.uv_path(claude_dir)
+    venv_python = platform_paths.venv_python(claude_dir / ".venv")
 
     if not uv.exists():
         raise SystemExit(f"FAIL: uv not found at {uv} -- run /init-brain first")
@@ -705,9 +714,7 @@ def install_synaptra(brain: Path, version: str) -> None:
 def verify_synaptra_version(brain: Path, expected: str) -> None:
     """Assert the installed synaptra.__version__ equals *expected*."""
     claude_dir = brain / ".claude"
-    scripts = "Scripts" if sys.platform == "win32" else "bin"
-    ext = ".exe" if sys.platform == "win32" else ""
-    venv_python = claude_dir / ".venv" / scripts / f"python{ext}"
+    venv_python = platform_paths.venv_python(claude_dir / ".venv")
 
     result = subprocess.run(
         [str(venv_python), "-c", "import synaptra; print(synaptra.__version__)"],

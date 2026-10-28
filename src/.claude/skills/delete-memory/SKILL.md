@@ -93,7 +93,8 @@ State which of these applies when reporting the deletion (AC 21).
    expects it to exist.
 3. **Back up if the operation is bulk** — the same file checkpoint `/dream` takes:
    `memory_stats` for the live count, then
-   `.claude/.venv/Scripts/python.exe .claude/skills/dream/checkpoint.py --expect <N>`.
+   `.claude/.venv/Scripts/python.exe .claude/skills/dream/checkpoint.py --expect <N>`
+   (on Linux `.claude/.venv/bin/python`).
    Proceed only on `CHECKPOINT OK`. ⛔ Not `cm backup`; see `/dream`'s checkpoint for
    why.
 4. **`memory_delete` requires `confirm=true`.** Verified against this install's server:

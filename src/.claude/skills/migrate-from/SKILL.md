@@ -20,7 +20,8 @@ the rest.
 
 Paths with spaces need quotes.
 
-Run it in a session started with **`brain-claude-sandbox.bat`**, never plain `brain.bat`.
+Run it in a session started with **`brain-claude-sandbox.bat`** (`./brain-claude-sandbox.sh`
+on Linux), never plain `brain.bat` / `./brain.sh`.
 The sandbox has its own Claude config, so the old brain's memory tools, which are
 registered for the whole user account, never appear in this brain.
 
@@ -40,8 +41,8 @@ Run **`/init-brain` Round -1, steps 0, 2, 6 and 9 only**: install-local, write
 install-local. **Do not do the restart gate (step 8) yet**, and do not run Round 0 or
 the interview: the migration supplies the persona and the memories.
 
-If `.claude/.venv/Scripts/python.exe` and `synaptra.exe` already exist, skip straight
-to step 3.
+If `VENV_PY` and `SYNAPTRA` (the platform names in `/init-brain`) already exist, skip
+straight to step 3.
 
 ## 3. Run the migration
 
@@ -51,6 +52,8 @@ as the owner gave them:
 ```
 .claude/.venv/Scripts/python.exe .claude/skills/migrate-from/migrate.py "<old brain>" ["<old store>"]
 ```
+
+On Linux the interpreter is `.claude/.venv/bin/python`.
 
 The script prints which store it used and why (`given` or `default`); read that line
 back to the owner. It takes a few minutes on a large store. Let it finish.
