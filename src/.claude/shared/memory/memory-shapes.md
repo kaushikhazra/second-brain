@@ -341,7 +341,7 @@ skills.
 
 **The rules above hold for any store. These are what synaptra does** — the
 first thing to re-check if this file is ever reused elsewhere, and verified
-against synaptra `2.1.1` (the version in `SYNAPTRA_VERSION`) rather than assumed.
+against synaptra `3.0.0` (the version in `SYNAPTRA_VERSION`) rather than assumed.
 Re-check them when that version changes.
 
 - **`memory_store` honors an explicit `type` as given — it does not

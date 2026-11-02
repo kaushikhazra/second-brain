@@ -75,7 +75,7 @@ MUTANTS = {
     ),
     "memory-shapes says it was verified against 2.0.0": (
         SHAPES,
-        "synaptra `2.1.1`",
+        "synaptra `3.0.0`",
         "synaptra `2.0.0`",
         "AC 4",
     ),
