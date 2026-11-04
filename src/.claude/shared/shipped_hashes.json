@@ -17,7 +17,8 @@
   "v1.6.0",
   "v1.6.1",
   "v1.7.0",
-  "v1.8.0"
+  "v1.8.0",
+  "v1.9.0"
  ],
  "files": {
   ".claude/hooks/command_guard.bin": [
@@ -379,6 +380,7 @@
    "8a9443af0a933fa3e3b5861ed8942907955de4e0f1bfa685def176d92a69bcbc"
   ],
   ".claude/shared/memory/memory-shapes.md": [
+   "1189fa09b82e3005bf010142b037fa05df937936117a9701f5de2e7d7cddba0d",
    "40ef95491b145f7cca38cc27ea088f544b17db753623a04f8279246a6d639d72",
    "7d3ff2d0d2dce50268cbab29493a73d7a7d9a991cf0444ecc7fa7b256f4ae0f7",
    "9f37ee52cbd3bd676e56a9a8a1771a19677f830497fdbb5c6daa86e1d4384fac",
@@ -631,6 +633,7 @@
    "a72316a0f4f41ad7ca7f73ce1c760497514c04753fa31f43288307299f658a32"
   ],
   "SYNAPTRA_VERSION": [
+   "06e3fe4a7a1884d20d81cc7065ca8cfd4c394ec602c4d180ddc39bbd4f7da521",
    "2985be8b28d3ade858e8d8fb4bc22f565b1bf6020dff982dce141f7721b9999c",
    "7b3ff271f1373cfb97e9e53349794e1450f3794e4c0788c54a2060c7596da821"
   ],
