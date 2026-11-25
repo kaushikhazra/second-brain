@@ -33,6 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import platform_paths  # noqa: E402  (beside this file; the one platform rule)
+import venv_cleanup  # noqa: E402  (beside this file; removes the PyTorch nothing needs)
 
 # -- owner / machine-local paths: never overwritten ----------------------
 
@@ -60,6 +61,7 @@ MACHINE_LOCAL = frozenset(
     {
         ".claude/.self-aware",
         ".claude/.protected-ids.json",
+        ".claude/.cleanup-log.json",
         ".claude/.list-holder-check.json",
         ".claude/activations.json",
         BASELINE,
@@ -957,12 +959,18 @@ def run_update(
         print(f"  restored {restored} files")
         raise SystemExit(f"FAIL: update aborted -- {exc} -- rolled back to prior state")
 
+    # 6. Take out the PyTorch the new synaptra no longer needs (#106).  Outside the
+    # rollback above on purpose: it never fails the update, it only says what it did.
+    cleanup_lines = [] if skip_synaptra else venv_cleanup.cleanup(brain, brain_version)
+
     print(
         f"DONE  brain updated to second-brain {brain_version}"
         f" + synaptra {synaptra_version}"
     )
     print("  Restart Claude to reconnect the memory server.")
     report_kept(brain, kept_files)
+    for line in cleanup_lines:
+        print(f"  {line}")
 
 
 def main() -> int:
