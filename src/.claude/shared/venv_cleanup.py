@@ -51,13 +51,66 @@ _SKIP_DIRS = frozenset(
 )
 
 # Runs inside the brain's venv python: one JSON object of what is installed.
+# "requires" holds only the requirements that apply here (issue #109): a marker
+# is evaluated with packaging, and an `extra == "x"` requirement counts only when
+# some installed package asked for that extra of this one (`pkg[x]`).  Without
+# packaging nothing can be evaluated, so every requirement counts -- the cautious
+# answer, and the one the cleanup gave before.
 _DUMP = r"""
-import json, importlib.metadata as m
-out = {}
+import json, re, importlib.metadata as m
+try:
+    from packaging.requirements import Requirement
+except Exception:
+    Requirement = None
+
+def norm(n):
+    return re.sub(r"[-_.]+", "-", n).lower()
+
+dists = {}
 for d in m.distributions():
     name = d.metadata["Name"]
-    if not name:
-        continue
+    if name:
+        dists[norm(name)] = d
+
+parsed = {}
+for key, d in dists.items():
+    reqs = []
+    for text in d.requires or []:
+        if Requirement is None:
+            reqs.append((text, None))
+            continue
+        try:
+            reqs.append((text, Requirement(text)))
+        except Exception:
+            reqs.append((text, None))  # unreadable: counts, cautiously
+    parsed[key] = reqs
+
+def applies(req, extras):
+    if req.marker is None:
+        return True
+    return any(req.marker.evaluate({"extra": e}) for e in ["", *sorted(extras)])
+
+active = {key: set() for key in dists}
+changed = True
+while changed and Requirement is not None:
+    changed = False
+    for key, reqs in parsed.items():
+        for text, req in reqs:
+            if req is None or not applies(req, active[key]):
+                continue
+            target = norm(req.name)
+            if target in active and not req.extras <= active[target]:
+                active[target] |= req.extras
+                changed = True
+
+out = {}
+for key, d in dists.items():
+    names = []
+    for text, req in parsed[key]:
+        if req is None:
+            names.append(text)
+        elif applies(req, active[key]):
+            names.append(req.name)
     tops = (d.read_text("top_level.txt") or "").split()
     if not tops:
         seen = set()
@@ -66,9 +119,9 @@ for d in m.distributions():
             if p and not p.endswith((".dist-info", ".data", "__pycache__")):
                 seen.add(p[:-3] if p.endswith(".py") else p)
         tops = sorted(seen)
-    out[name] = {
+    out[d.metadata["Name"]] = {
         "version": d.version,
-        "requires": list(d.requires or []),
+        "requires": names,
         "modules": tops,
     }
 print(json.dumps(out))
