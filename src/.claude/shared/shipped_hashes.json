@@ -18,7 +18,8 @@
   "v1.6.1",
   "v1.7.0",
   "v1.8.0",
-  "v1.9.0"
+  "v1.9.0",
+  "v1.9.1"
  ],
  "files": {
   ".claude/hooks/command_guard.bin": [
@@ -391,12 +392,16 @@
   ],
   ".claude/shared/update_brain.py": [
    "37e19e70ca20a8f12c30a7c33ced19470b7c69d5e1e6f0d55800cb920ed3f21c",
+   "480828c8e5cd3c88e6ce6872fbf1103fffa79b9d0c680d5e3badfc3000e6a70b",
    "4e3821f5203f643dcc164144bc1d970db5c1de5f300cb8f978c56c1c746f6b23",
    "640dce6c6e2276b2ee4e7c0e2dc90d46091c6b11894caaa4bea66d8d18156f56",
    "7581873ff223a5d3a34a89d87a8e666ea9e109ee33f5e1fc0704faf212c54914",
    "7ff600f7648003af440eaee52a8c0d8d95846dc89e6838a63eab5a105fee1259",
    "8560a958ee07e0ca680dfedfbdc0e8353f69d2a54487cc43608b88267cc8d0a3",
    "923e5be30445480cb06da64fe49d578f903d66998652acae0b56f09a049a128a"
+  ],
+  ".claude/shared/venv_cleanup.py": [
+   "3efa0ab1496b3d6da2d3026e855aafb0e11b3f5df339d5d0fe5ea440066ba83a"
   ],
   ".claude/skills/agent-creator/SKILL.md": [
    "43e1513acc219feac2d4bce8a38732ae648f900a14102261629bdb476b8fce3f"
