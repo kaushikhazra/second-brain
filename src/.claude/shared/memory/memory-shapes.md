@@ -341,7 +341,7 @@ skills.
 
 **The rules above hold for any store. These are what synaptra does** — the
 first thing to re-check if this file is ever reused elsewhere, and verified
-against synaptra `3.0.1` (the version in `SYNAPTRA_VERSION`) rather than assumed.
+against synaptra `3.1.0` (the version in `SYNAPTRA_VERSION`) rather than assumed.
 Re-check them when that version changes.
 
 - **`memory_store` honors an explicit `type` as given — it does not
@@ -361,9 +361,10 @@ Re-check them when that version changes.
   type changed, which resets it), so bookkeeping edits write into the decay
   engine. **Do not update for tidiness.**
 - **`memory_relate` takes `source_id` / `target_id` / `rel_type` /
-  `strength`.** Nothing in the engine itself rejects a short id — the
-  **skill** is the thing that must refuse an id shorter than a full uuid
-  before making the call, and say why.
+  `strength`.** The engine rejects an id that does not resolve to an existing
+  memory, and a short id never does — but the **skill** still refuses an id
+  shorter than a full uuid before making the call, and says why, so the owner
+  gets the rule rather than a not-found error.
 - **`rel_type` is closed**: `causes` · `follows` · `contradicts` ·
   `supports` · `relates_to` · `supersedes` · `part_of` · `describes`.
 - **Large memories can blow the token cap on `memory_get`** — dump to a file
