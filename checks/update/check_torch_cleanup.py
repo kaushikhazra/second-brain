@@ -73,13 +73,59 @@ def make_wheel(
             z.writestr(path, text)
 
 
+def make_packaging_wheel(out: Path) -> None:
+    """A wheel of the host's own `packaging`, so scratch venvs can evaluate markers.
+
+    Every real brain venv that holds torch has packaging (transformers needs it).
+    """
+    import packaging
+
+    root = Path(packaging.__file__).resolve().parent
+    version = packaging.__version__
+    dist = f"packaging-{version}.dist-info"
+    files = {
+        f"packaging/{p.relative_to(root).as_posix()}": p.read_bytes()
+        for p in root.rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts
+    }
+    files[f"{dist}/METADATA"] = (
+        f"Metadata-Version: 2.1\nName: packaging\nVersion: {version}\n".encode()
+    )
+    files[f"{dist}/WHEEL"] = (
+        b"Wheel-Version: 1.0\nGenerator: check\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
+    )
+    files[f"{dist}/top_level.txt"] = b"packaging\n"
+    files[f"{dist}/RECORD"] = "".join(
+        f"{p},,\n" for p in [*files, f"{dist}/RECORD"]
+    ).encode()
+    with zipfile.ZipFile(out / f"packaging-{version}-py3-none-any.whl", "w") as z:
+        for path, data in files.items():
+            z.writestr(path, data)
+
+
 def build_wheels(out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
+    make_packaging_wheel(out)
     make_wheel(out, "torch", "2.5.0")
     make_wheel(out, "sentence-transformers", "3.0.0", ("torch",))
     make_wheel(out, "other-tool", "1.0.0", ("torch",))
     make_wheel(out, "synaptra", "2.1.1", ("sentence-transformers",))
     make_wheel(out, "synaptra", "3.1.0")
+    # #109: huggingface-hub names torch only behind an extra, as the real one does
+    make_wheel(
+        out,
+        "huggingface-hub",
+        "0.30.0",
+        (
+            "packaging",
+            'torch; extra == "torch"',
+            'safetensors[torch]; extra == "torch"',
+        ),
+    )
+    make_wheel(out, "safetensors", "0.5.0", ('torch; extra == "torch"',))
+    make_wheel(out, "wants-hf-torch", "1.0.0", ("huggingface-hub[torch]",))
+    make_wheel(out, "old-python-only", "1.0.0", ('torch; python_version < "3"',))
+    make_wheel(out, "new-python-only", "1.0.0", ('torch; python_version >= "3"',))
 
 
 # -- scratch brains -------------------------------------------------------
@@ -102,7 +148,7 @@ class Env:
         venv = claude / ".venv"
         run([str(self.uv), "venv", str(venv), "--python", sys.executable])
         py = platform_paths.venv_python(venv)
-        for specs in installs:
+        for specs in (["packaging"], *installs):
             run(
                 [
                     str(self.uv),
@@ -194,6 +240,13 @@ def scenario_dependent(env: Env, mod) -> dict:
         "torch": imports(env, brain, "torch"),
         "log": (brain / ".claude" / ".cleanup-log.json").exists(),
     }
+
+
+def scenario_marker(env: Env, mod, *extra_installs: str) -> dict:
+    """An old synaptra left torch behind; *extra_installs* are added on top (#109)."""
+    brain = env.brain(["synaptra==2.1.1"], ["synaptra==3.1.0", *extra_installs])
+    lines = mod.cleanup(brain, "1.10.1")
+    return {"lines": lines, "torch": imports(env, brain, "torch")}
 
 
 def scenario_imports(env: Env, mod) -> dict:
@@ -303,6 +356,38 @@ def main() -> int:
         )
         record("AC 3  nothing is logged when nothing is removed", not d["log"])
 
+        # #109 -- markers are evaluated; an extra counts only when it is installed
+        h = scenario_marker(env, venv_cleanup, "huggingface-hub", "safetensors")
+        record(
+            "#109 AC 1  huggingface-hub installed plainly does not keep torch",
+            not h["torch"],
+            str(h["lines"]),
+        )
+        h = scenario_marker(env, venv_cleanup, "wants-hf-torch")
+        record(
+            "#109 AC 1  an extra that IS installed (huggingface-hub[torch]) keeps torch",
+            h["torch"] and any("huggingface-hub" in l for l in h["lines"]),
+            str(h["lines"]),
+        )
+        h = scenario_marker(env, venv_cleanup, "old-python-only")
+        record(
+            "#109 AC 2  a python_version marker that is false here does not keep torch",
+            not h["torch"],
+            str(h["lines"]),
+        )
+        h = scenario_marker(env, venv_cleanup, "new-python-only")
+        record(
+            "#109 AC 2  a python_version marker that is true here keeps torch",
+            h["torch"] and any("new-python-only" in l for l in h["lines"]),
+            str(h["lines"]),
+        )
+        h = scenario_marker(env, venv_cleanup, "other-tool", "huggingface-hub")
+        record(
+            "#109 AC 3  a real dependent (other-tool) still keeps torch, hub present",
+            h["torch"] and any("other-tool" in l for l in h["lines"]),
+            str(h["lines"]),
+        )
+
         # AC 4, 9 -- the brain's own code stops it
         i = scenario_imports(env, venv_cleanup)
         record(
@@ -347,6 +432,16 @@ def main() -> int:
         record(
             "mutation: without the dependents check AC 3 fails (torch is removed)",
             not got["torch"],
+        )
+
+        m9 = load_variant(
+            "    if req.marker is None:\n        return True\n",
+            "    return True\n",
+        )
+        got = scenario_marker(env, m9, "huggingface-hub", "safetensors")
+        record(
+            "mutation: without marker evaluation #109 fails (torch is kept)",
+            got["torch"],
         )
 
         m4 = load_variant(

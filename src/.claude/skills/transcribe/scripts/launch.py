@@ -34,6 +34,7 @@ VENV = CLAUDE / ".venv"
 IS_WIN = sys.platform == "win32"
 
 sys.path.insert(0, str(CLAUDE / "shared"))
+import platform_paths  # noqa: E402  (lives in .claude/shared, put on the path above)
 
 BASE_REQ = SKILL / "requirements.txt"
 CUDA_REQ = SKILL / "requirements-cuda.txt"
